@@ -59,7 +59,9 @@ export default async function BrewingPage() {
   ] = await Promise.all([
     supabase
       .from("potion_recipes")
-      .select("id, effect_type, effect_magnitude, is_active, potion:items(id, name, image_url, rarity)")
+      .select(
+        "id, effect_type, effect_magnitude, is_active, potion:items!potion_recipes_output_potion_item_id_fkey(id, name, image_url, rarity)",
+      )
       .eq("is_active", true),
     supabase
       .from("potion_recipe_ingredients")
@@ -73,7 +75,9 @@ export default async function BrewingPage() {
       .gt("quantity", 0),
     supabase
       .from("potion_brews")
-      .select("id, status, resolves_at, potion_recipes(items(name, image_url))")
+      .select(
+        "id, status, resolves_at, potion_recipes(items!potion_recipes_output_potion_item_id_fkey(name, image_url))",
+      )
       .eq("user_id", user.id)
       .in("status", ["in_progress", "awaiting_claim"])
       .maybeSingle(),
