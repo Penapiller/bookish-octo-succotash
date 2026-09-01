@@ -25,7 +25,9 @@ This project is being built one module at a time. Current state:
 - [x] Starter pet + one-time tutorial expedition (species/pets/zones/
       expeditions schema, shown on the profile page)
 - [x] Expeditions map — an "Expeditions" tab with a clickable map of
-      explorable zones, pet-pool preview, and starting a timed expedition
+      explorable zones, pet-pool preview, starting a timed expedition (one
+      per zone at a time), and a return-to-claim popup once it resolves
+      (keep the reward or send it away)
 - [ ] Full inventory display (items), layered pet art rendering
 - [ ] Potions & brewing (the map's "potion boost" checkbox is a testing
       stub for expedition duration — see Notes below)
@@ -357,16 +359,29 @@ signs in.
 - Trading must be implemented as a single atomic database transaction (e.g.
   a Postgres function called via RPC) to avoid duplication or race
   conditions.
-- Expeditions (including the tutorial one) resolve **lazily**: there's no
-  background job/cron in this phase, so `resolve_due_expeditions` runs on
-  every profile page load and settles any expedition whose timer has
-  already elapsed. The profile page also has a client-side countdown that
-  refreshes itself once the timer hits zero, so a player watching the page
-  sees it resolve without needing to manually reload. A real scheduled job
-  (e.g. Supabase's pg_cron, or a Vercel Cron Job hitting a route handler)
-  could replace or supplement this later if expeditions need to "complete"
-  even while nobody has the page open (e.g. for push notifications) — not
-  needed for the current feature set.
+- Expeditions resolve **lazily**: there's no background job/cron in this
+  phase, so `resolve_due_expeditions` runs on every profile/expeditions
+  page load and settles any expedition whose timer has already elapsed.
+  The countdown components also refresh their route once they hit zero,
+  so a player watching the page sees it resolve without needing to
+  manually reload. A real scheduled job (e.g. Supabase's pg_cron, or a
+  Vercel Cron Job hitting a route handler) could replace or supplement
+  this later if expeditions need to "complete" even while nobody has the
+  page open (e.g. for push notifications) — not needed for the current
+  feature set.
+  - The tutorial expedition still auto-grants its pet the moment it
+    resolves (unchanged, one-time onboarding step).
+  - Non-tutorial (map) expeditions do **not** auto-grant on resolution
+    anymore: `resolve_due_expeditions` rolls the species and parks it on
+    the row as `pending_species_id` with `status = 'awaiting_claim'`, and
+    only `claim_expedition_reward` (called from the "keep"/"send it away"
+    buttons in `ClaimRewardModal`) either turns it into an actual pet or
+    discards it. The roll itself happens once, at resolution time, not at
+    claim time — re-opening the zone or the popup can't reroll it, only
+    defer the keep/release decision. A zone (and the sent pet) stays
+    locked from `start_expedition` for as long as an expedition sits in
+    either `in_progress` or `awaiting_claim` — a player has to claim
+    before sending that zone's next pet.
 - Any privileged column on `users` (`is_admin`, `currency_balance`,
   `den_size`, `starter_granted`, …) is protected from direct client writes
   by a trigger (`protect_privileged_user_fields`, in

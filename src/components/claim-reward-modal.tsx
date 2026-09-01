@@ -1,0 +1,173 @@
+"use client";
+
+import Image from "next/image";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import type { ExpeditionRewardReveal } from "@/lib/supabase/types";
+
+/**
+ * "What did I get?" popup for a single awaiting_claim expedition. Fetches
+ * the reveal itself, on mount, rather than the parent map passing it down
+ * — the reward is deliberately not part of the map's initial data load,
+ * so it stays a surprise until the player explicitly opens this.
+ *
+ * Closing without choosing is always safe: the expedition just stays
+ * awaiting_claim, and reopening the zone later shows this same popup
+ * again — nothing is lost by deferring the decision.
+ */
+export function ClaimRewardModal({
+  expeditionId,
+  zoneName,
+  onClose,
+}: {
+  expeditionId: string;
+  zoneName: string;
+  onClose: () => void;
+}) {
+  const router = useRouter();
+  const [reveal, setReveal] = useState<ExpeditionRewardReveal | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const supabase = createClient();
+
+    supabase
+      .from("expeditions")
+      .select("pending_species_id, species(name, image_url, rarity)")
+      .eq("id", expeditionId)
+      .single()
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error || !data) {
+          setLoadError("Couldn't load your reward. Please try again.");
+          return;
+        }
+        setReveal(data as unknown as ExpeditionRewardReveal);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [expeditionId]);
+
+  async function handleChoice(keep: boolean) {
+    setIsSubmitting(true);
+    setActionError(null);
+
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      setActionError("Your session expired — please sign in again.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    const { error } = await supabase.rpc("claim_expedition_reward", {
+      p_user_id: user.id,
+      p_expedition_id: expeditionId,
+      p_keep: keep,
+    });
+
+    setIsSubmitting(false);
+
+    if (error) {
+      setActionError(error.message);
+      return;
+    }
+
+    router.refresh();
+    onClose();
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Expedition reward"
+    >
+      <div className="flex w-full max-w-sm flex-col items-center gap-4 rounded-lg bg-white p-6 text-center dark:bg-zinc-900">
+        <p className="text-sm text-zinc-500">Your pet has returned from {zoneName}!</p>
+
+        {loadError ? (
+          <p className="text-sm text-red-600 dark:text-red-400">{loadError}</p>
+        ) : !reveal ? (
+          <p className="text-sm text-zinc-500">Opening…</p>
+        ) : reveal.species ? (
+          <>
+            <h2 className="text-lg font-semibold tracking-tight">You found:</h2>
+            {reveal.species.image_url ? (
+              <Image
+                src={reveal.species.image_url}
+                alt={reveal.species.name}
+                width={112}
+                height={112}
+                className="h-28 w-28 rounded"
+              />
+            ) : (
+              <div className="h-28 w-28 rounded bg-zinc-200 dark:bg-zinc-800" />
+            )}
+            <p className="font-medium">{reveal.species.name}</p>
+            <p className="text-xs capitalize text-zinc-500">{reveal.species.rarity}</p>
+          </>
+        ) : (
+          <p className="text-sm text-zinc-500">
+            Nothing this time — your pet came back empty-handed.
+          </p>
+        )}
+
+        {actionError ? (
+          <p className="text-sm text-red-600 dark:text-red-400">{actionError}</p>
+        ) : null}
+
+        <div className="flex w-full gap-3">
+          {reveal?.species ? (
+            <>
+              <button
+                type="button"
+                onClick={() => handleChoice(true)}
+                disabled={isSubmitting}
+                className="flex-1 rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-60 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
+              >
+                {isSubmitting ? "…" : "Keep it"}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleChoice(false)}
+                disabled={isSubmitting}
+                className="flex-1 rounded-md border border-zinc-300 px-4 py-2 text-sm hover:bg-zinc-100 disabled:opacity-60 dark:border-zinc-700 dark:hover:bg-zinc-800"
+              >
+                {isSubmitting ? "…" : "Send it away"}
+              </button>
+            </>
+          ) : reveal ? (
+            <button
+              type="button"
+              onClick={() => handleChoice(false)}
+              disabled={isSubmitting}
+              className="flex-1 rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-60 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
+            >
+              {isSubmitting ? "…" : "Continue"}
+            </button>
+          ) : null}
+        </div>
+
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={isSubmitting}
+          className="text-sm text-zinc-500 hover:underline disabled:opacity-60"
+        >
+          Close for now
+        </button>
+      </div>
+    </div>
+  );
+}

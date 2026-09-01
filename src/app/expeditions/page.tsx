@@ -45,9 +45,9 @@ export default async function ExpeditionsPage() {
         .order("created_at", { ascending: true }),
       supabase
         .from("expeditions")
-        .select("id, pet_id, zone_id, resolves_at")
+        .select("id, pet_id, zone_id, resolves_at, status")
         .eq("user_id", user.id)
-        .eq("status", "in_progress"),
+        .in("status", ["in_progress", "awaiting_claim"]),
     ]);
 
   const poolByZone = new Map<string, ExplorableZone["pool"]>();

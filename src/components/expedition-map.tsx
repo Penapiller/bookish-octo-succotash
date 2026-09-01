@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ExpeditionCountdown } from "@/components/expedition-countdown";
+import { ClaimRewardModal } from "@/components/claim-reward-modal";
 import type {
   ActiveExpeditionSummary,
   ExplorableZone,
@@ -33,21 +34,24 @@ export function ExpeditionMap({
   const [usePotion, setUsePotion] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [claimTarget, setClaimTarget] = useState<{ expeditionId: string; zoneName: string } | null>(
+    null,
+  );
 
+  // The sent pet stays busy, and its zone stays locked, through
+  // awaiting_claim too — see the one-expedition-per-zone comment on
+  // start_expedition in supabase/migrations/0004_expedition_claim_flow.sql.
   const busyPetIds = useMemo(
     () => new Set(activeExpeditions.map((e) => e.pet_id)),
     [activeExpeditions],
   );
 
+  // At most one entry per zone, enforced server-side — a Map is just a
+  // convenient zone_id -> expedition lookup, not modeling "many per zone".
   const activeByZone = useMemo(() => {
-    const map = new Map<string, ActiveExpeditionSummary[]>();
+    const map = new Map<string, ActiveExpeditionSummary>();
     for (const exp of activeExpeditions) {
-      const list = map.get(exp.zone_id) ?? [];
-      list.push(exp);
-      map.set(exp.zone_id, list);
-    }
-    for (const list of map.values()) {
-      list.sort((a, b) => a.resolves_at.localeCompare(b.resolves_at));
+      map.set(exp.zone_id, exp);
     }
     return map;
   }, [activeExpeditions]);
@@ -56,7 +60,7 @@ export function ExpeditionMap({
   const availablePets = pets.filter((p) => !busyPetIds.has(p.id));
 
   const selectedZone = zones.find((z) => z.id === selectedZoneId) ?? null;
-  const selectedZoneActive = selectedZoneId ? (activeByZone.get(selectedZoneId) ?? []) : [];
+  const selectedZoneActive = selectedZoneId ? activeByZone.get(selectedZoneId) : undefined;
 
   function openZone(zoneId: string) {
     setSelectedZoneId(zoneId);
@@ -112,8 +116,7 @@ export function ExpeditionMap({
           priority
         />
         {zones.map((zone) => {
-          const zoneActive = activeByZone.get(zone.id) ?? [];
-          const soonest = zoneActive[0];
+          const active = activeByZone.get(zone.id);
           if (zone.map_x === null || zone.map_y === null || zone.map_width === null || zone.map_height === null) {
             return null;
           }
@@ -151,9 +154,13 @@ export function ExpeditionMap({
               <span className="absolute inset-x-0 bottom-0 truncate bg-black/60 px-1 py-0.5 text-xs font-medium text-white">
                 {zone.name}
               </span>
-              {soonest ? (
+              {active?.status === "awaiting_claim" ? (
+                <span className="absolute right-1 top-1 animate-pulse rounded bg-emerald-600 px-1.5 py-0.5 text-xs font-medium text-white">
+                  Ready!
+                </span>
+              ) : active ? (
                 <span className="absolute right-1 top-1 rounded bg-black/70 px-1.5 py-0.5">
-                  <ExpeditionCountdown resolvesAt={soonest.resolves_at} compact />
+                  <ExpeditionCountdown resolvesAt={active.resolves_at} compact />
                 </span>
               ) : null}
             </button>
@@ -208,22 +215,34 @@ export function ExpeditionMap({
             </div>
           ) : null}
 
-          {selectedZoneActive.length > 0 ? (
-            <div className="flex flex-col gap-2 rounded-md bg-zinc-100 p-3 text-sm dark:bg-zinc-900">
-              <p className="font-medium">Already exploring here:</p>
-              {selectedZoneActive.map((exp) => (
-                <div key={exp.id} className="flex items-center justify-between gap-2">
-                  <span>{petsById.get(exp.pet_id)?.species?.name ?? "A pet"}</span>
-                  <ExpeditionCountdown resolvesAt={exp.resolves_at} />
-                </div>
-              ))}
-              <p className="text-xs text-zinc-500">
-                You can still send another pet below, if you have one free.
+          {selectedZoneActive?.status === "awaiting_claim" ? (
+            <div className="flex flex-col items-start gap-2 rounded-md bg-emerald-50 p-3 text-sm dark:bg-emerald-950">
+              <p className="font-medium">
+                {petsById.get(selectedZoneActive.pet_id)?.species?.name ?? "Your pet"} has
+                returned!
               </p>
+              <button
+                type="button"
+                onClick={() =>
+                  setClaimTarget({
+                    expeditionId: selectedZoneActive.id,
+                    zoneName: selectedZone.name,
+                  })
+                }
+                className="rounded-md bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600"
+              >
+                Claim reward
+              </button>
             </div>
-          ) : null}
-
-          {availablePets.length === 0 ? (
+          ) : selectedZoneActive ? (
+            <div className="flex items-center justify-between gap-2 rounded-md bg-zinc-100 p-3 text-sm dark:bg-zinc-900">
+              <span>
+                {petsById.get(selectedZoneActive.pet_id)?.species?.name ?? "A pet"} is exploring
+                here
+              </span>
+              <ExpeditionCountdown resolvesAt={selectedZoneActive.resolves_at} />
+            </div>
+          ) : availablePets.length === 0 ? (
             <p className="text-sm text-zinc-500 italic">
               All of your pets are already out on an expedition.
             </p>
@@ -275,6 +294,14 @@ export function ExpeditionMap({
           Hover an area to preview it, then click to see details and send a pet.
         </p>
       )}
+
+      {claimTarget ? (
+        <ClaimRewardModal
+          expeditionId={claimTarget.expeditionId}
+          zoneName={claimTarget.zoneName}
+          onClose={() => setClaimTarget(null)}
+        />
+      ) : null}
     </div>
   );
 }

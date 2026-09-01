@@ -18,7 +18,7 @@ export type PublicUserProfile = Pick<
 >;
 
 export type PetRarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
-export type ExpeditionStatus = "in_progress" | "completed";
+export type ExpeditionStatus = "in_progress" | "awaiting_claim" | "completed";
 
 export type SpeciesRow = {
   id: string;
@@ -70,6 +70,7 @@ export type ExpeditionRow = {
   started_at: string;
   resolves_at: string;
   result_pet_id: string | null;
+  pending_species_id: string | null;
   created_at: string;
 };
 
@@ -92,13 +93,24 @@ export type ExpeditionWithZone = Pick<
   zones: Pick<ZoneRow, "name" | "description" | "image_url"> | null;
 };
 
-// A user's own active (in_progress) expedition, for cross-referencing
-// against the explorable-zones map: which zones/pets are currently busy,
-// and what to show as each hotspot's countdown badge.
+// A user's own not-yet-completed (in_progress or awaiting_claim)
+// expedition, for cross-referencing against the explorable-zones map:
+// which zones/pets are currently busy, and what to show as each hotspot's
+// badge. The sent pet stays "busy" and the zone stays locked through
+// awaiting_claim too — it isn't free until the reward is claimed.
 export type ActiveExpeditionSummary = Pick<
   ExpeditionRow,
-  "id" | "pet_id" | "zone_id" | "resolves_at"
+  "id" | "pet_id" | "zone_id" | "resolves_at" | "status"
 >;
+
+// The revealed reward for a single awaiting_claim expedition, fetched
+// only when the player explicitly opens the claim popup — deliberately
+// not part of the map's initial data load, so the reward stays a
+// surprise until then.
+export type ExpeditionRewardReveal = {
+  pending_species_id: string | null;
+  species: Pick<SpeciesRow, "name" | "image_url" | "rarity"> | null;
+};
 
 // A zone as shown on the expeditions map, with its pet-pool preview
 // ("what you might get") resolved server-side.
@@ -172,6 +184,14 @@ export type Database = {
           p_use_potion: boolean;
         };
         Returns: string;
+      };
+      claim_expedition_reward: {
+        Args: {
+          p_user_id: string;
+          p_expedition_id: string;
+          p_keep: boolean;
+        };
+        Returns: string | null;
       };
     };
   };
