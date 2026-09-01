@@ -51,8 +51,8 @@ export default async function BrewingPage() {
   await supabase.rpc("resolve_due_brews", { p_user_id: user.id });
 
   const [
-    { data: recipesData },
-    { data: ingredientsData },
+    { data: recipesData, error: recipesError },
+    { data: ingredientsData, error: ingredientsError },
     { data: inventoryData },
     { data: ownedIngredientsData },
     { data: activeBrewData },
@@ -145,6 +145,21 @@ export default async function BrewingPage() {
           start brewing it — same recipe book for every player, nothing to unlock.
         </p>
       </div>
+      {recipesError || ingredientsError ? (
+        <div className="rounded-md border border-red-400 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+          <p className="font-medium">Couldn&apos;t load the recipe book.</p>
+          {recipesError ? (
+            <p>
+              potion_recipes ({recipesError.code}): {recipesError.message}
+            </p>
+          ) : null}
+          {ingredientsError ? (
+            <p>
+              potion_recipe_ingredients ({ingredientsError.code}): {ingredientsError.message}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
       <BrewingStand recipes={recipes} ownedIngredients={ownedIngredients} activeBrew={activeBrew} />
     </main>
   );
