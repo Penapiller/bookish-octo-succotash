@@ -206,6 +206,16 @@ export type OwnedPotion = {
   quantity: number;
 };
 
+// A crafting ingredient sitting in the player's inventory, offered as an
+// option when filling a brewing slot.
+export type OwnedIngredient = {
+  itemId: string;
+  name: string;
+  image_url: string | null;
+  rarity: ItemRarity;
+  quantity: number;
+};
+
 // A zone as shown on the expeditions map, with its pool preview resolved
 // server-side.
 export type ExplorableZone = Pick<

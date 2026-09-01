@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { BrewingBoard } from "@/components/brewing-board";
+import { BrewingStand } from "@/components/brewing-stand";
 import type {
   ItemRarity,
+  OwnedIngredient,
   RecipeIngredientWithStock,
   RecipeWithDetails,
 } from "@/lib/supabase/types";
@@ -22,6 +23,11 @@ type IngredientRow = {
   quantity_required: number;
   item: { id: string; name: string; image_url: string | null; rarity: ItemRarity } | null;
 };
+type OwnedIngredientJoinRow = {
+  item_id: string;
+  quantity: number;
+  items: { name: string; image_url: string | null; rarity: ItemRarity } | null;
+};
 
 export default async function BrewingPage() {
   const supabase = await createClient();
@@ -33,17 +39,27 @@ export default async function BrewingPage() {
     redirect("/login");
   }
 
-  const [{ data: recipesData }, { data: ingredientsData }, { data: inventoryData }] =
-    await Promise.all([
-      supabase
-        .from("potion_recipes")
-        .select("id, effect_type, effect_magnitude, is_active, potion:items(id, name, image_url, rarity)")
-        .eq("is_active", true),
-      supabase
-        .from("potion_recipe_ingredients")
-        .select("recipe_id, quantity_required, item:items(id, name, image_url, rarity)"),
-      supabase.from("user_inventory").select("item_id, quantity").eq("user_id", user.id),
-    ]);
+  const [
+    { data: recipesData },
+    { data: ingredientsData },
+    { data: inventoryData },
+    { data: ownedIngredientsData },
+  ] = await Promise.all([
+    supabase
+      .from("potion_recipes")
+      .select("id, effect_type, effect_magnitude, is_active, potion:items(id, name, image_url, rarity)")
+      .eq("is_active", true),
+    supabase
+      .from("potion_recipe_ingredients")
+      .select("recipe_id, quantity_required, item:items(id, name, image_url, rarity)"),
+    supabase.from("user_inventory").select("item_id, quantity").eq("user_id", user.id),
+    supabase
+      .from("user_inventory")
+      .select("item_id, quantity, items!inner(name, image_url, rarity, type)")
+      .eq("user_id", user.id)
+      .eq("items.type", "ingredient")
+      .gt("quantity", 0),
+  ]);
 
   const ownedQuantityByItem = new Map<string, number>();
   for (const row of inventoryData ?? []) {
@@ -78,16 +94,28 @@ export default async function BrewingPage() {
     },
   );
 
+  const ownedIngredients: OwnedIngredient[] = (
+    (ownedIngredientsData ?? []) as unknown as OwnedIngredientJoinRow[]
+  )
+    .filter((row) => row.items)
+    .map((row) => ({
+      itemId: row.item_id,
+      name: row.items!.name,
+      image_url: row.items!.image_url,
+      rarity: row.items!.rarity,
+      quantity: row.quantity,
+    }));
+
   return (
-    <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-6 py-12">
+    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-6 py-12">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Brewing</h1>
         <p className="text-sm text-zinc-500">
-          These are the same recipes for every player — no discovery or unlocking, just whether
-          you have the ingredients. Click a potion to see what it takes.
+          Place ingredients in the 3 slots below. If they match a recipe from the book, you can
+          brew it — same recipe book for every player, nothing to unlock.
         </p>
       </div>
-      <BrewingBoard recipes={recipes} />
+      <BrewingStand recipes={recipes} ownedIngredients={ownedIngredients} />
     </main>
   );
 }

@@ -31,10 +31,12 @@ This project is being built one module at a time. Current state:
 - [x] Items + inventory — zones now sometimes drop a crafting item instead
       of a pet (blue = pet art, green = item art, for easy testing), and a
       new "Inventory" tab shows owned pets and item stacks
-- [x] Potions & brewing — a "Brewing" tab with fixed, shared recipes
-      (click a potion to see its ingredients and brew it), purple potion
-      art, and real potions now consumed on the expeditions map (replacing
-      the old testing checkbox) to shorten an expedition's timer
+- [x] Potions & brewing — a "Brewing" tab: a 3-slot brewing stand players
+      fill with owned ingredients, a recipe-book popup (📖 icon) showing
+      every fixed, shared recipe for reference/testing, and matching the
+      slots against the book to brew. Purple potion art, and real potions
+      now consumed on the expeditions map (replacing the old testing
+      checkbox) to shorten an expedition's timer
 - [ ] Layered pet art rendering, accessory equip/unequip
 - [ ] Currency & den expansion (den cap is temporarily raised to 25 for
       testing — see Notes below to find where to lower it back down)
@@ -454,11 +456,23 @@ signs in.
   silently inert.
 - Recipes are fixed and identical for every player — no per-user
   discovery/unlock state, matching spec ("no player-driven discovery at
-  launch"). The brewing page's "recipes you've found" framing is just
-  copy for the shared recipe book, not a gating mechanic; new recipes are
-  meant to be added by the (not yet built) admin panel via `potion_recipes`
-  / `potion_recipe_ingredients`, the same way zones/items/species are
-  today — direct SQL inserts in a migration until then.
+  launch"). The recipe book (📖 icon on `/brewing`) shows every active
+  recipe to everyone unconditionally; new recipes are meant to be added
+  by the (not yet built) admin panel via `potion_recipes` /
+  `potion_recipe_ingredients`, the same way zones/items/species are today
+  — direct SQL inserts in a migration until then.
+- The brewing UI (`brewing-stand.tsx`) is a **client-side staging area
+  only** — dragging/clicking ingredients into the 3 slots doesn't touch
+  the database at all. It just computes, locally, whether the slots'
+  contents exactly match some recipe's ingredient list, and if so enables
+  a "Start brewing" button that calls the same `brew_potion(recipe_id)`
+  RPC as before, which re-verifies ownership and does the actual
+  atomic deduct-and-grant server-side. This matters for one thing: the
+  UI has exactly **3 slots**, a hard cap — a recipe needing more than 3
+  total ingredient units (e.g. 2 of one item + 2 of another) could never
+  be assembled by a player even though the database would happily store
+  such a recipe. Keep future recipes at 3 total units or fewer, or grow
+  `SLOT_COUNT` if that constraint ever needs to change.
 - `users.den_size` is temporarily defaulted to **25** instead of 3
   (`0006_potions_and_brewing.sql`, both the column default and a one-time
   `UPDATE` on existing rows) to make testing easier with more pets in
