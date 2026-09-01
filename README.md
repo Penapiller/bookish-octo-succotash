@@ -40,6 +40,12 @@ This project is being built one module at a time. Current state:
       chance of finding an item instead of a pet, and a chance of a bonus
       second reward. Purple potion art; real potions are consumed on the
       expeditions map to apply their effect
+- [x] Admin panel & audit log — an "Admin" tab (visible only to you) for
+      managing zones (incl. pet pool + loot table), items, species, and
+      potion recipes (incl. ingredients), plus a read-only audit log of
+      every admin write. See Notes below for the architecture and the
+      one-time SQL snippet that makes your account the admin — there's no
+      in-app way to grant admin to anyone else, by design
 - [ ] Layered pet art rendering, accessory equip/unequip
 - [ ] Currency & den expansion (den cap is temporarily raised to 25 for
       testing — see Notes below to find where to lower it back down)
@@ -47,7 +53,6 @@ This project is being built one module at a time. Current state:
 - [ ] Trading
 - [ ] Profile customization (sanitized custom CSS/HTML)
 - [ ] Forums
-- [ ] Admin panel & audit log
 
 ---
 
@@ -500,10 +505,9 @@ signs in.
 - Recipes are fixed and identical for every player — no per-user
   discovery/unlock state, matching spec ("no player-driven discovery at
   launch"). The recipe book (📖 icon on `/brewing`) shows every active
-  recipe to everyone unconditionally; new recipes are meant to be added
-  by the (not yet built) admin panel via `potion_recipes` /
-  `potion_recipe_ingredients`, the same way zones/items/species are today
-  — direct SQL inserts in a migration until then.
+  recipe to everyone unconditionally; new recipes are added via
+  `/admin/recipes` now (see the Admin panel notes below) the same way
+  zones/items/species are.
 - The slot-filling UI (`brewing-stand.tsx`) is a **client-side staging
   area only** — dragging/clicking ingredients into the 3 slots doesn't
   touch the database at all. It just computes, locally, whether the
@@ -561,3 +565,90 @@ signs in.
   height modified, but not the other" warning in dev. Images using `fill`
   instead of `width`/`height` aren't affected (its inline styles already
   win over Preflight).
+- **Admin panel (`0009_admin_panel.sql`, `/admin/*`)** — scoped to the
+  systems that already exist: zones (+ pet pool + loot table), items,
+  species, and potion recipes (+ ingredients). Shop/economy config, statue
+  offerings, and user support tools aren't included yet since those
+  modules don't exist.
+  - **You are the only admin, by design** — there's no "manage other
+    admins" UI anywhere in the app, on purpose (that was an explicit
+    requirement, not an oversight). The only way `is_admin` ever becomes
+    `true` is a one-time SQL statement you run yourself:
+    ```sql
+    update public.users set is_admin = true where email = 'you@example.com';
+    ```
+    Run this once in the Supabase SQL Editor (after running
+    `0009_admin_panel.sql`), substituting your own account's email. It
+    works there specifically because the SQL Editor runs as the
+    `service_role`/no-JWT context, which is the one case
+    `protect_privileged_user_fields` (0001) lets `is_admin` through — the
+    app itself can never write that column (see below).
+  - **Authorization is enforced twice**, deliberately redundant: every
+    `/admin/*` page and every Server Action calls `requireAdmin()`
+    (`src/lib/admin.ts`), which redirects non-admins away — but per this
+    project's own rule (and Next.js's own docs) that render-time gating
+    isn't a sufficient boundary by itself, the real backstop is the
+    database: `zones`, `zone_pet_pool`, `zone_loot_table`, `items`,
+    `species`, `potion_recipes`, and `potion_recipe_ingredients` all got
+    real INSERT/UPDATE(/DELETE) RLS policies gated on a
+    `current_user_is_admin()` helper (a `security definer` function so it
+    doesn't depend on the calling role having schema-level access to
+    `auth`). Even if every Server Action's admin check were somehow
+    bypassed, a non-admin's write would still be rejected at the database
+    level.
+  - This is a different authorization pattern than the rest of the app:
+    everywhere else, writes go through one security-definer RPC per
+    action (`start_expedition`, `claim_brew`, etc.), each re-validating
+    `auth.uid()`. For the admin panel that would mean ~20 near-identical
+    functions across 4 entity types, so instead the tables themselves got
+    real write policies and the Server Actions use plain
+    `.insert()`/`.update()`/`.delete()` through the normal client.
+  - **Audit log**: rather than a "log this" call at every admin action
+    site (easy to forget on a new one), a single generic trigger function
+    (`log_admin_action()`) is attached to every admin-managed table. It
+    builds an `{old, new}` jsonb diff, resolves `target_id` from the row's
+    `id` column where one exists and falls back to the whole row as JSON
+    for the composite-key junction tables (`zone_pet_pool`,
+    `zone_loot_table`, `potion_recipe_ingredients`), and — importantly —
+    **skips logging entirely when `auth.uid()` is null**, so migration-time
+    seed data and any future service-role script don't clutter the log
+    with meaningless "admin: null" rows. `/admin/audit-log` is read-only;
+    nothing ever writes to `admin_audit_log` except that trigger.
+  - `zones`, `items`, and `species` deliberately have **no delete policy**
+    — only insert/update. Zones are referenced by expedition history,
+    items by inventories/recipes/loot tables, and species by owned pets;
+    "delete" in the admin panel means toggling `is_active = false`
+    instead. `zone_pet_pool`, `zone_loot_table`, and
+    `potion_recipe_ingredients` (junction/pool rows, not content) do allow
+    delete, since removing one row there just means "this thing no longer
+    drops here" / "this ingredient is no longer required," not destroying
+    referenced history.
+  - `zones.is_tutorial` is intentionally **not editable** from
+    `/admin/zones` — it's a one-time seed flag for the single tutorial
+    zone, and the edit page hides the pet-pool/loot-table sections
+    entirely for that zone (its pool is fixed in code, not
+    database-driven).
+  - The brewing stand only has **3 ingredient slots** and requires an
+    exact match (see the recipes note above) — `/admin/recipes/[id]`'s
+    "add ingredient" form enforces this by capping the total ingredient
+    quantity at 3 server-side (`addIngredient` in
+    `src/app/admin/recipes/actions.ts`), so you can't accidentally create
+    a recipe nobody could ever brew.
+  - Verified against a local Postgres 16 instance the same way every
+    other migration in this project has been: both `psql -f`
+    (autocommit-per-statement) and `psql -1` (single implicit transaction,
+    matching how the Supabase SQL Editor runs a pasted script) apply
+    cleanly, and RLS behavior was
+    checked directly by role-switching (`set role authenticated; set
+    request.jwt.uid = '<uuid>';`) as both an admin and a non-admin
+    account — non-admin writes are rejected, admin writes succeed and are
+    audit-logged with correct old/new diffs, and writes with no
+    authenticated caller (`auth.uid()` null) are correctly never logged.
+    One real thing this testing caught: `current_user_is_admin()` was
+    initially written as a plain (non-`security definer`) SQL function,
+    which works fine on a real Supabase project (Supabase grants
+    `authenticated`/`anon` `USAGE` on the `auth` schema by default) but
+    would silently depend on that external grant rather than being
+    self-contained — changed to `security definer` to match the
+    convention every other cross-cutting helper in this codebase already
+    follows.

@@ -110,6 +110,18 @@ export type PotionRecipeIngredientRow = {
   quantity_required: number;
 };
 
+// Written only by the log_admin_action() trigger (see
+// 0009_admin_panel.sql), never inserted/updated from the app directly.
+export type AdminAuditLogRow = {
+  id: string;
+  admin_user_id: string | null;
+  action_type: "insert" | "update" | "delete";
+  target_table: string;
+  target_id: string;
+  change_summary: unknown;
+  created_at: string;
+};
+
 export type PotionBrewRow = {
   id: string;
   user_id: string;
@@ -308,6 +320,7 @@ export type Database = {
           resolves_at: string;
         }
       >;
+      admin_audit_log: TableOf<AdminAuditLogRow>;
     };
     Views: {
       user_profiles: {

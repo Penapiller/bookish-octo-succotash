@@ -10,15 +10,17 @@ export async function SiteHeader() {
 
   let displayName: string | null = null;
   let avatarUrl: string | null = null;
+  let isAdmin = false;
 
   if (user) {
     const { data: profile } = await supabase
       .from("users")
-      .select("display_name, avatar_url")
+      .select("display_name, avatar_url, is_admin")
       .eq("id", user.id)
       .single();
     displayName = profile?.display_name ?? null;
     avatarUrl = profile?.avatar_url ?? null;
+    isAdmin = profile?.is_admin ?? false;
   }
 
   return (
@@ -53,6 +55,11 @@ export async function SiteHeader() {
             <Link href="/settings" className="hover:underline">
               Settings
             </Link>
+            {isAdmin ? (
+              <Link href="/admin" className="hover:underline">
+                Admin
+              </Link>
+            ) : null}
             <form action="/auth/sign-out" method="post">
               <button
                 type="submit"
