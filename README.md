@@ -31,11 +31,13 @@ This project is being built one module at a time. Current state:
 - [x] Items + inventory — zones now sometimes drop a crafting item instead
       of a pet (blue = pet art, green = item art, for easy testing), and a
       new "Inventory" tab shows owned pets and item stacks
+- [x] Potions & brewing — a "Brewing" tab with fixed, shared recipes
+      (click a potion to see its ingredients and brew it), purple potion
+      art, and real potions now consumed on the expeditions map (replacing
+      the old testing checkbox) to shorten an expedition's timer
 - [ ] Layered pet art rendering, accessory equip/unequip
-- [ ] Potions & brewing (the map's "potion boost" checkbox is a testing
-      stub for expedition duration — see Notes below; items are crafting-
-      only ingredients for this future module, not pet decoration)
-- [ ] Currency & den expansion
+- [ ] Currency & den expansion (den cap is temporarily raised to 25 for
+      testing — see Notes below to find where to lower it back down)
 - [ ] Statue offerings
 - [ ] Trading
 - [ ] Profile customization (sanitized custom CSS/HTML)
@@ -438,18 +440,33 @@ signs in.
   names and descriptions are explicitly placeholder text (not real game
   content) — both are meant to be replaced once real art assets exist and
   the admin panel can manage them.
-- The expeditions map's "use a potion boost" checkbox
-  (`src/components/expedition-map.tsx`) is a **testing stub**, not a real
-  potion system — there's no item inventory yet to actually equip one
-  from. It's passed straight through to `start_expedition`'s
-  `p_use_potion` argument, which biases the expedition's randomized
-  duration into a shorter range without ever guaranteeing an outcome —
-  the same shape the spec describes for real potion effects. When the
-  potions/brewing module is built, swap the checkbox for a real "equipped
-  potion" check (e.g. does the player have an unconsumed duration-potion
-  item selected) and extend `start_expedition` to also consume it and
-  apply its specific `effect_magnitude`, rather than the current
-  hardcoded 1-2 min (potion) / 2-3 min (no potion) split.
+- Potions are real now (`0006_potions_and_brewing.sql`): the expeditions
+  map's potion dropdown passes the chosen potion's item id as
+  `start_expedition`'s `p_potion_item_id`, which looks up that potion's
+  recipe for its `effect_type`/`effect_magnitude`, consumes one from
+  `user_inventory`, and (for `duration_reduction`) shaves that fraction
+  off the randomized 2-3 minute base roll — still never a guarantee, just
+  a shifted range, per spec. `rarity_boost` is defined in the
+  `potion_effect_type` enum and a potion can be brewed with it, but
+  nothing reads it yet — `pick_weighted_zone_reward` (the roll expeditions
+  use) doesn't take a bias input. Wiring that up is the next piece if a
+  rarity-boosting potion is wanted for real, not just accepted and
+  silently inert.
+- Recipes are fixed and identical for every player — no per-user
+  discovery/unlock state, matching spec ("no player-driven discovery at
+  launch"). The brewing page's "recipes you've found" framing is just
+  copy for the shared recipe book, not a gating mechanic; new recipes are
+  meant to be added by the (not yet built) admin panel via `potion_recipes`
+  / `potion_recipe_ingredients`, the same way zones/items/species are
+  today — direct SQL inserts in a migration until then.
+- `users.den_size` is temporarily defaulted to **25** instead of 3
+  (`0006_potions_and_brewing.sql`, both the column default and a one-time
+  `UPDATE` on existing rows) to make testing easier with more pets in
+  flight. Lower it back with another migration — `ALTER TABLE users ALTER
+  COLUMN den_size SET DEFAULT <n>;` plus an `UPDATE` for existing accounts
+  — once real balancing starts; the currency/den-expansion module will
+  likely replace this flat default with the spec's cost-curve-driven
+  expansion anyway.
 - A next/image quirk worth knowing if you add more images: Tailwind's
   Preflight CSS resets `img { height: auto }` globally, which fights with
   next/image's fixed `width`/`height` props unless you *also* pin both

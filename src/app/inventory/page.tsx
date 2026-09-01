@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { ItemWithQuantity, PetWithSpecies } from "@/lib/supabase/types";
@@ -34,7 +35,9 @@ export default async function InventoryPage() {
     <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-8 px-6 py-12">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Inventory</h1>
-        <p className="text-sm text-zinc-500">Pets are shown in blue, crafting items in green.</p>
+        <p className="text-sm text-zinc-500">
+          Pets are shown in blue, crafting ingredients in green, potions in purple.
+        </p>
       </div>
 
       <section className="flex flex-col gap-3">
@@ -70,7 +73,8 @@ export default async function InventoryPage() {
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold tracking-tight">Items ({items.length})</h2>
         <p className="text-xs text-zinc-500">
-          Crafting ingredients — used in future potion recipes, not for decorating pets.
+          Crafting ingredients and brewed potions — not for decorating pets. Turn ingredients into
+          potions on the <Link href="/brewing" className="underline">Brewing</Link> page.
         </p>
         {items.length === 0 ? (
           <p className="text-sm text-zinc-500 italic">
@@ -93,7 +97,9 @@ export default async function InventoryPage() {
                       alt={entry.item.name}
                       width={96}
                       height={96}
-                      className="h-24 w-24 rounded border-2 border-green-600"
+                      className={`h-24 w-24 rounded border-2 ${
+                        entry.item.type === "potion" ? "border-purple-600" : "border-green-600"
+                      }`}
                     />
                   ) : (
                     <div className="h-24 w-24 rounded bg-zinc-200 dark:bg-zinc-800" />

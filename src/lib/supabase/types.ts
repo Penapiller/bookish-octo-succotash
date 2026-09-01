@@ -25,6 +25,7 @@ export type PetRarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
 export type ItemRarity = PetRarity;
 export type ExpeditionStatus = "in_progress" | "awaiting_claim" | "completed";
 export type ItemType = "ingredient" | "cosmetic" | "potion";
+export type PotionEffectType = "duration_reduction" | "rarity_boost";
 
 export type SpeciesRow = {
   id: string;
@@ -87,6 +88,21 @@ export type ZoneLootTableRow = {
   zone_id: string;
   item_id: string;
   drop_weight: number;
+};
+
+export type PotionRecipeRow = {
+  id: string;
+  output_potion_item_id: string;
+  effect_type: PotionEffectType;
+  effect_magnitude: number;
+  is_active: boolean;
+  created_at: string;
+};
+
+export type PotionRecipeIngredientRow = {
+  recipe_id: string;
+  item_id: string;
+  quantity_required: number;
 };
 
 export type ExpeditionRow = {
@@ -162,6 +178,34 @@ export type ZonePoolEntry = {
   rarity: PetRarity;
 };
 
+// A recipe as shown on /brewing: the output potion, its ingredients (each
+// with the player's current owned quantity resolved server-side, so the
+// UI can show "2 / 3" without a second round trip), and whether the
+// player currently has enough of everything to brew it.
+export type RecipeIngredientWithStock = {
+  item: Pick<ItemRow, "id" | "name" | "image_url" | "rarity"> | null;
+  quantityRequired: number;
+  quantityOwned: number;
+};
+
+export type RecipeWithDetails = Pick<
+  PotionRecipeRow,
+  "id" | "effect_type" | "effect_magnitude" | "is_active"
+> & {
+  potion: Pick<ItemRow, "id" | "name" | "image_url" | "rarity"> | null;
+  ingredients: RecipeIngredientWithStock[];
+  canBrew: boolean;
+};
+
+// A potion sitting in the player's inventory, offered as an option when
+// starting an expedition.
+export type OwnedPotion = {
+  itemId: string;
+  name: string;
+  image_url: string | null;
+  quantity: number;
+};
+
 // A zone as shown on the expeditions map, with its pool preview resolved
 // server-side.
 export type ExplorableZone = Pick<
@@ -207,6 +251,8 @@ export type Database = {
         Partial<UserInventoryRow> & { user_id: string; item_id: string }
       >;
       zone_loot_table: TableOf<ZoneLootTableRow>;
+      potion_recipes: TableOf<PotionRecipeRow, Partial<PotionRecipeRow> & { output_potion_item_id: string; effect_type: PotionEffectType }>;
+      potion_recipe_ingredients: TableOf<PotionRecipeIngredientRow>;
       expeditions: TableOf<
         ExpeditionRow,
         Partial<ExpeditionRow> & {
@@ -237,7 +283,7 @@ export type Database = {
           p_user_id: string;
           p_pet_id: string;
           p_zone_id: string;
-          p_use_potion: boolean;
+          p_potion_item_id?: string | null;
         };
         Returns: string;
       };
@@ -248,6 +294,13 @@ export type Database = {
           p_keep: boolean;
         };
         Returns: string | null;
+      };
+      brew_potion: {
+        Args: {
+          p_user_id: string;
+          p_recipe_id: string;
+        };
+        Returns: null;
       };
     };
   };

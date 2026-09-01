@@ -9,6 +9,7 @@ import { ClaimRewardModal } from "@/components/claim-reward-modal";
 import type {
   ActiveExpeditionSummary,
   ExplorableZone,
+  OwnedPotion,
   PetWithSpecies,
 } from "@/lib/supabase/types";
 
@@ -22,16 +23,18 @@ export function ExpeditionMap({
   zones,
   pets,
   activeExpeditions,
+  ownedPotions,
 }: {
   zones: ExplorableZone[];
   pets: PetWithSpecies[];
   activeExpeditions: ActiveExpeditionSummary[];
+  ownedPotions: OwnedPotion[];
 }) {
   const router = useRouter();
   const [hoveredZoneId, setHoveredZoneId] = useState<string | null>(null);
   const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null);
   const [selectedPetId, setSelectedPetId] = useState<string>("");
-  const [usePotion, setUsePotion] = useState(false);
+  const [selectedPotionId, setSelectedPotionId] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [claimTarget, setClaimTarget] = useState<{ expeditionId: string; zoneName: string } | null>(
@@ -65,7 +68,7 @@ export function ExpeditionMap({
   function openZone(zoneId: string) {
     setSelectedZoneId(zoneId);
     setError(null);
-    setUsePotion(false);
+    setSelectedPotionId("");
     const firstAvailable = pets.find((p) => !busyPetIds.has(p.id));
     setSelectedPetId(firstAvailable?.id ?? "");
   }
@@ -90,7 +93,7 @@ export function ExpeditionMap({
       p_user_id: user.id,
       p_pet_id: selectedPetId,
       p_zone_id: selectedZoneId,
-      p_use_potion: usePotion,
+      p_potion_item_id: selectedPotionId || null,
     });
 
     setIsSubmitting(false);
@@ -276,15 +279,27 @@ export function ExpeditionMap({
                 </select>
               </div>
 
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={usePotion}
-                  onChange={(e) => setUsePotion(e.target.checked)}
-                />
-                Use a potion boost (testing only — real potions arrive in a
-                later update; this just shortens the expedition timer)
-              </label>
+              {ownedPotions.length > 0 ? (
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="potion-select" className="text-sm font-medium">
+                    Use a potion? (optional — consumed either way, never guarantees an
+                    outcome)
+                  </label>
+                  <select
+                    id="potion-select"
+                    value={selectedPotionId}
+                    onChange={(e) => setSelectedPotionId(e.target.value)}
+                    className="rounded-md border border-purple-600 bg-white px-3 py-2 text-sm dark:bg-zinc-900"
+                  >
+                    <option value="">No potion</option>
+                    {ownedPotions.map((potion) => (
+                      <option key={potion.itemId} value={potion.itemId}>
+                        {potion.name} (×{potion.quantity})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
 
               {error ? <p className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
 

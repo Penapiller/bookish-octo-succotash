@@ -4,12 +4,14 @@ import { ExpeditionMap } from "@/components/expedition-map";
 import type {
   ActiveExpeditionSummary,
   ExplorableZone,
+  OwnedPotion,
   PetWithSpecies,
 } from "@/lib/supabase/types";
 
-// Row shapes of the zone_pet_pool -> species and zone_loot_table -> items
-// joins below. Hand-cast, like the other joined selects in this project —
-// see the comment on PetWithSpecies in lib/supabase/types.ts.
+// Row shapes of the zone_pet_pool -> species, zone_loot_table -> items,
+// and user_inventory -> items (potions only) joins below. Hand-cast, like
+// the other joined selects in this project — see the comment on
+// PetWithSpecies in lib/supabase/types.ts.
 type ZonePetPoolJoinRow = {
   zone_id: string;
   species: { id: string; name: string; image_url: string | null; rarity: string } | null;
@@ -17,6 +19,11 @@ type ZonePetPoolJoinRow = {
 type ZoneLootTableJoinRow = {
   zone_id: string;
   items: { id: string; name: string; image_url: string | null; rarity: string } | null;
+};
+type OwnedPotionJoinRow = {
+  item_id: string;
+  quantity: number;
+  items: { name: string; image_url: string | null } | null;
 };
 
 export default async function ExpeditionsPage() {
@@ -39,6 +46,7 @@ export default async function ExpeditionsPage() {
     { data: lootTableData },
     { data: petsData },
     { data: activeData },
+    { data: potionsData },
   ] = await Promise.all([
     supabase
       .from("zones")
@@ -58,6 +66,12 @@ export default async function ExpeditionsPage() {
       .select("id, pet_id, zone_id, resolves_at, status")
       .eq("user_id", user.id)
       .in("status", ["in_progress", "awaiting_claim"]),
+    supabase
+      .from("user_inventory")
+      .select("item_id, quantity, items!inner(name, image_url, type)")
+      .eq("user_id", user.id)
+      .eq("items.type", "potion")
+      .gt("quantity", 0),
   ]);
 
   // Pets and items are drawn from the same weighted roll server-side (see
@@ -96,6 +110,14 @@ export default async function ExpeditionsPage() {
 
   const pets = (petsData ?? []) as unknown as PetWithSpecies[];
   const activeExpeditions = (activeData ?? []) as ActiveExpeditionSummary[];
+  const ownedPotions: OwnedPotion[] = ((potionsData ?? []) as unknown as OwnedPotionJoinRow[])
+    .filter((row) => row.items)
+    .map((row) => ({
+      itemId: row.item_id,
+      name: row.items!.name,
+      image_url: row.items!.image_url,
+      quantity: row.quantity,
+    }));
 
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-6 py-12">
@@ -105,7 +127,12 @@ export default async function ExpeditionsPage() {
           Pick an area on the map to see what it offers and send a pet to explore it.
         </p>
       </div>
-      <ExpeditionMap zones={zones} pets={pets} activeExpeditions={activeExpeditions} />
+      <ExpeditionMap
+        zones={zones}
+        pets={pets}
+        activeExpeditions={activeExpeditions}
+        ownedPotions={ownedPotions}
+      />
     </main>
   );
 }
