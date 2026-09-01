@@ -7,6 +7,9 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "lh3.googleusercontent.com" },
       // Supabase Storage, used for uploaded pet/item art in later phases.
       { protocol: "https", hostname: "*.supabase.co", pathname: "/storage/v1/object/**" },
+      // placehold.co, used for placeholder species/zone/item art until
+      // real art assets exist.
+      { protocol: "https", hostname: "placehold.co" },
     ],
   },
 };

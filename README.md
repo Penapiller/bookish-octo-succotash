@@ -22,8 +22,10 @@ This project is being built one module at a time. Current state:
 
 - [x] Project skeleton — Next.js + Tailwind + Supabase wired up
 - [x] Google sign-in (Supabase Auth), basic account settings, profile page
-- [ ] Pets, inventory, layered art rendering
-- [ ] Expeditions
+- [x] Starter pet + one-time tutorial expedition (species/pets/zones/
+      expeditions schema, shown on the profile page)
+- [ ] Full inventory display (items), layered pet art rendering
+- [ ] Expeditions (full zone-selection system)
 - [ ] Potions & brewing
 - [ ] Currency & den expansion
 - [ ] Statue offerings
@@ -137,9 +139,16 @@ error when it tries to load your profile.
 This one file sets up everything phase 1 needs: the `users` table, the
 security rules (RLS policies) that keep each user's private data private,
 and a trigger that automatically creates a profile row the first time
-someone signs in. Future development phases will add more `.sql` files to
-that same folder — run each new one the same way, in order, as they're
-added.
+someone signs in.
+
+Future development phases add more `.sql` files to that same folder — run
+each new one the same way (SQL Editor → New query → paste → Run), **in
+filename order**, since later files sometimes alter or build on earlier
+ones. If your project already has `0001_...` applied and a new
+`0002_...` (or later) file shows up in this repo, you only need to run the
+new one — you don't need to re-run files you've already applied.
+
+
 
 ### Step 4: Set your environment variables
 
@@ -346,3 +355,30 @@ signs in.
 - Trading must be implemented as a single atomic database transaction (e.g.
   a Postgres function called via RPC) to avoid duplication or race
   conditions.
+- Expeditions (including the tutorial one) resolve **lazily**: there's no
+  background job/cron in this phase, so `resolve_due_expeditions` runs on
+  every profile page load and settles any expedition whose timer has
+  already elapsed. The profile page also has a client-side countdown that
+  refreshes itself once the timer hits zero, so a player watching the page
+  sees it resolve without needing to manually reload. A real scheduled job
+  (e.g. Supabase's pg_cron, or a Vercel Cron Job hitting a route handler)
+  could replace or supplement this later if expeditions need to "complete"
+  even while nobody has the page open (e.g. for push notifications) — not
+  needed for the current feature set.
+- Any privileged column on `users` (`is_admin`, `currency_balance`,
+  `den_size`, `starter_granted`, …) is protected from direct client writes
+  by a trigger (`protect_privileged_user_fields`, in
+  `0001_init_users.sql`, extended in `0002_...sql`). Server-side game logic
+  that legitimately needs to write one of these columns must call
+  `begin_trusted_user_write()` first, in the same transaction — see
+  `grant_starter_pet_and_tutorial` in
+  `supabase/migrations/0002_pets_and_tutorial_expedition.sql` for the
+  pattern. Forgetting this makes the write silently no-op (the trigger
+  reverts it to the old value) rather than error, so if a future migration
+  adds a new privileged column and a write to it seems to do nothing, this
+  is the first thing to check.
+- Species/zone art currently just points at
+  [placehold.co](https://placehold.co) placeholder images, and zone/species
+  names and descriptions are explicitly placeholder text (not real game
+  content) — both are meant to be replaced once real art assets exist and
+  the admin panel can manage them.

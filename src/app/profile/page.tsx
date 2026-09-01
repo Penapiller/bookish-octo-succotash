@@ -2,6 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { ExpeditionCountdown } from "@/components/expedition-countdown";
+import type { ExpeditionWithZone, PetWithSpecies } from "@/lib/supabase/types";
 
 export default async function ProfilePage() {
   const supabase = await createClient();
@@ -22,6 +24,32 @@ export default async function ProfilePage() {
   if (error || !profile) {
     throw new Error("Failed to load profile for the signed-in user.");
   }
+
+  // First-ever visit: grants the free starter pet + starts its one-time,
+  // fixed-length tutorial expedition. A no-op on every later visit
+  // (guarded server-side by users.starter_granted).
+  await supabase.rpc("grant_starter_pet_and_tutorial", { p_user_id: user.id });
+  // Lazily resolves any expedition whose timer has already elapsed —
+  // there's no background job in this phase, so this runs on every load.
+  await supabase.rpc("resolve_due_expeditions", { p_user_id: user.id });
+
+  const [{ data: petsData }, { data: expeditionsData }] = await Promise.all([
+    supabase
+      .from("pets")
+      .select("id, rarity, color_variant, created_at, species(name, image_url)")
+      .eq("owner_id", user.id)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("expeditions")
+      .select("id, status, is_tutorial, resolves_at, zones(name, description, image_url)")
+      .eq("user_id", user.id)
+      .eq("status", "in_progress"),
+  ]);
+
+  // Hand-cast: see the comment on PetWithSpecies/ExpeditionWithZone in
+  // lib/supabase/types.ts for why these joined selects aren't inferred.
+  const pets = (petsData ?? []) as unknown as PetWithSpecies[];
+  const activeExpeditions = (expeditionsData ?? []) as unknown as ExpeditionWithZone[];
 
   const joined = new Date(profile.created_at).toLocaleDateString(undefined, {
     year: "numeric",
@@ -77,10 +105,75 @@ export default async function ProfilePage() {
         <div>
           <dt className="text-zinc-500">Pets owned</dt>
           <dd className="text-lg font-medium">
-            0 <span className="text-xs text-zinc-500">(pets coming soon)</span>
+            {pets.length} / {profile.den_size}
           </dd>
         </div>
       </dl>
+
+      {activeExpeditions.length > 0 ? (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-lg font-semibold tracking-tight">Active expedition</h2>
+          {activeExpeditions.map((expedition) => (
+            <div
+              key={expedition.id}
+              className="flex items-center gap-4 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800"
+            >
+              {expedition.zones?.image_url ? (
+                <Image
+                  src={expedition.zones.image_url}
+                  alt=""
+                  width={64}
+                  height={48}
+                  className="rounded"
+                />
+              ) : null}
+              <div>
+                <p className="font-medium">
+                  {expedition.is_tutorial ? "Tutorial expedition" : expedition.zones?.name}
+                </p>
+                <p className="text-xs text-zinc-500">
+                  {expedition.zones?.description ??
+                    "This box is meant to hold this zone's flavor description."}
+                </p>
+                <ExpeditionCountdown resolvesAt={expedition.resolves_at} />
+              </div>
+            </div>
+          ))}
+        </section>
+      ) : null}
+
+      <section className="flex flex-col gap-3">
+        <h2 className="text-lg font-semibold tracking-tight">Your pets</h2>
+        {pets.length === 0 ? (
+          <p className="text-zinc-500 italic">
+            You don&apos;t have any pets yet. This shouldn&apos;t normally
+            happen — try refreshing the page.
+          </p>
+        ) : (
+          <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+            {pets.map((pet) => (
+              <li
+                key={pet.id}
+                className="flex flex-col items-center gap-2 rounded-lg border border-zinc-200 p-3 text-center dark:border-zinc-800"
+              >
+                {pet.species?.image_url ? (
+                  <Image
+                    src={pet.species.image_url}
+                    alt={pet.species?.name ?? ""}
+                    width={96}
+                    height={96}
+                    className="rounded"
+                  />
+                ) : (
+                  <div className="h-24 w-24 rounded bg-zinc-200 dark:bg-zinc-800" />
+                )}
+                <p className="text-sm font-medium">{pet.species?.name}</p>
+                <p className="text-xs capitalize text-zinc-500">{pet.rarity}</p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <div className="flex gap-3">
         <Link
