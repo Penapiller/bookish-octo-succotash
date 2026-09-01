@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { BrewingStand } from "@/components/brewing-stand";
 import type {
+  ActiveBrewSummary,
   ItemRarity,
   OwnedIngredient,
   RecipeIngredientWithStock,
@@ -28,6 +29,12 @@ type OwnedIngredientJoinRow = {
   quantity: number;
   items: { name: string; image_url: string | null; rarity: ItemRarity } | null;
 };
+type ActiveBrewJoinRow = {
+  id: string;
+  status: ActiveBrewSummary["status"];
+  resolves_at: string;
+  potion_recipes: { items: { name: string; image_url: string | null } | null } | null;
+};
 
 export default async function BrewingPage() {
   const supabase = await createClient();
@@ -39,11 +46,16 @@ export default async function BrewingPage() {
     redirect("/login");
   }
 
+  // Same lazy-resolution pattern as expeditions: settle anything whose
+  // timer has already elapsed before reading current state.
+  await supabase.rpc("resolve_due_brews", { p_user_id: user.id });
+
   const [
     { data: recipesData },
     { data: ingredientsData },
     { data: inventoryData },
     { data: ownedIngredientsData },
+    { data: activeBrewData },
   ] = await Promise.all([
     supabase
       .from("potion_recipes")
@@ -59,6 +71,12 @@ export default async function BrewingPage() {
       .eq("user_id", user.id)
       .eq("items.type", "ingredient")
       .gt("quantity", 0),
+    supabase
+      .from("potion_brews")
+      .select("id, status, resolves_at, potion_recipes(items(name, image_url))")
+      .eq("user_id", user.id)
+      .in("status", ["in_progress", "awaiting_claim"])
+      .maybeSingle(),
   ]);
 
   const ownedQuantityByItem = new Map<string, number>();
@@ -106,16 +124,28 @@ export default async function BrewingPage() {
       quantity: row.quantity,
     }));
 
+  const activeBrewRow = activeBrewData as unknown as ActiveBrewJoinRow | null;
+  const activeBrew: ActiveBrewSummary | null =
+    activeBrewRow && activeBrewRow.potion_recipes?.items
+      ? {
+          id: activeBrewRow.id,
+          status: activeBrewRow.status,
+          resolves_at: activeBrewRow.resolves_at,
+          potionName: activeBrewRow.potion_recipes.items.name,
+          potionImageUrl: activeBrewRow.potion_recipes.items.image_url,
+        }
+      : null;
+
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-6 py-12">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Brewing</h1>
         <p className="text-sm text-zinc-500">
           Place ingredients in the 3 slots below. If they match a recipe from the book, you can
-          brew it — same recipe book for every player, nothing to unlock.
+          start brewing it — same recipe book for every player, nothing to unlock.
         </p>
       </div>
-      <BrewingStand recipes={recipes} ownedIngredients={ownedIngredients} />
+      <BrewingStand recipes={recipes} ownedIngredients={ownedIngredients} activeBrew={activeBrew} />
     </main>
   );
 }

@@ -4,23 +4,41 @@ import Image from "next/image";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import type { OwnedIngredient, RecipeWithDetails } from "@/lib/supabase/types";
+import { ExpeditionCountdown } from "@/components/expedition-countdown";
+import type { ActiveBrewSummary, OwnedIngredient, RecipeWithDetails } from "@/lib/supabase/types";
 
 const STAND_IMAGE_URL =
   "https://placehold.co/800x500/3b0764/FFFFFF/png?text=Brewing+Stand+%28Placeholder%29";
 const SLOT_COUNT = 3;
 
+function describeEffect(recipe: RecipeWithDetails): string {
+  switch (recipe.effect_type) {
+    case "duration_reduction":
+      return `~${Math.round(recipe.effect_magnitude * 100)}% shorter expeditions`;
+    case "item_find_boost":
+      return "Higher chance an expedition finds an item instead of a pet";
+    case "double_reward_chance":
+      return `${Math.round(recipe.effect_magnitude * 100)}% chance of a bonus second reward`;
+    case "rarity_boost":
+    default:
+      return "Improves rare outcome odds";
+  }
+}
+
 export function BrewingStand({
   recipes,
   ownedIngredients,
+  activeBrew,
 }: {
   recipes: RecipeWithDetails[];
   ownedIngredients: OwnedIngredient[];
+  activeBrew: ActiveBrewSummary | null;
 }) {
   const router = useRouter();
   const [slots, setSlots] = useState<(string | null)[]>(Array(SLOT_COUNT).fill(null));
   const [isBookOpen, setIsBookOpen] = useState(false);
   const [pickerSlotIndex, setPickerSlotIndex] = useState<number | null>(null);
+  const [isClaimOpen, setIsClaimOpen] = useState(false);
   const [isBrewing, setIsBrewing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,7 +49,7 @@ export function BrewingStand({
 
   // How many of each item are currently sitting in a slot — this is
   // purely client-side staging. Nothing is deducted from the inventory
-  // until brew_potion runs, which re-verifies ownership server-side
+  // until start_brew runs, which re-verifies ownership server-side
   // regardless of what's shown here.
   const placedCounts = useMemo(() => {
     const counts = new Map<string, number>();
@@ -108,7 +126,7 @@ export function BrewingStand({
     setError(null);
   }
 
-  async function handleBrew() {
+  async function handleStartBrewing() {
     if (!matchedRecipe) return;
     setIsBrewing(true);
     setError(null);
@@ -124,7 +142,7 @@ export function BrewingStand({
       return;
     }
 
-    const { error: rpcError } = await supabase.rpc("brew_potion", {
+    const { error: rpcError } = await supabase.rpc("start_brew", {
       p_user_id: user.id,
       p_recipe_id: matchedRecipe.id,
     });
@@ -164,55 +182,88 @@ export function BrewingStand({
         </button>
       </div>
 
-      <div className="flex gap-4">
-        {slots.map((itemId, index) => {
-          const ingredient = itemId ? ingredientsById.get(itemId) : null;
-          return (
-            <button
-              key={index}
-              type="button"
-              onClick={() => (itemId ? clearSlot(index) : setPickerSlotIndex(index))}
-              title={itemId ? "Click to remove" : "Click to add an ingredient"}
-              className="flex h-20 w-20 items-center justify-center rounded-lg border-2 border-dashed border-zinc-300 hover:border-purple-600 dark:border-zinc-700"
-            >
-              {ingredient?.image_url ? (
-                <Image
-                  src={ingredient.image_url}
-                  alt={ingredient.name}
-                  width={72}
-                  height={72}
-                  className="h-[72px] w-[72px] rounded border-2 border-green-600"
-                />
-              ) : (
-                <span className="text-xs text-zinc-400">Empty</span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+      {activeBrew ? (
+        <div className="flex flex-col items-center gap-3 rounded-lg border border-purple-600 p-4 text-center">
+          {activeBrew.potionImageUrl ? (
+            <Image
+              src={activeBrew.potionImageUrl}
+              alt={activeBrew.potionName}
+              width={64}
+              height={64}
+              className="h-16 w-16 rounded border-2 border-purple-600"
+            />
+          ) : null}
+          {activeBrew.status === "awaiting_claim" ? (
+            <>
+              <p className="font-medium">{activeBrew.potionName} is ready!</p>
+              <button
+                type="button"
+                onClick={() => setIsClaimOpen(true)}
+                className="rounded-md bg-purple-700 px-4 py-2 text-sm font-medium text-white hover:bg-purple-600"
+              >
+                Claim potion
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="font-medium">Brewing {activeBrew.potionName}…</p>
+              <ExpeditionCountdown resolvesAt={activeBrew.resolves_at} />
+            </>
+          )}
+        </div>
+      ) : (
+        <>
+          <div className="flex gap-4">
+            {slots.map((itemId, index) => {
+              const ingredient = itemId ? ingredientsById.get(itemId) : null;
+              return (
+                <button
+                  key={index}
+                  type="button"
+                  onClick={() => (itemId ? clearSlot(index) : setPickerSlotIndex(index))}
+                  title={itemId ? "Click to remove" : "Click to add an ingredient"}
+                  className="flex h-20 w-20 items-center justify-center rounded-lg border-2 border-dashed border-zinc-300 hover:border-purple-600 dark:border-zinc-700"
+                >
+                  {ingredient?.image_url ? (
+                    <Image
+                      src={ingredient.image_url}
+                      alt={ingredient.name}
+                      width={72}
+                      height={72}
+                      className="h-[72px] w-[72px] rounded border-2 border-green-600"
+                    />
+                  ) : (
+                    <span className="text-xs text-zinc-400">Empty</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
 
-      <div className="flex flex-col items-center gap-2">
-        {matchedRecipe ? (
-          <p className="text-sm font-medium text-purple-700 dark:text-purple-400">
-            Recipe found: {matchedRecipe.potion?.name}
-          </p>
-        ) : (
-          <p className="text-sm text-zinc-500">
-            {placedCounts.size === 0
-              ? "Add ingredients to a slot to begin."
-              : "No matching recipe."}
-          </p>
-        )}
-        {error ? <p className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
-        <button
-          type="button"
-          onClick={handleBrew}
-          disabled={!matchedRecipe || isBrewing}
-          className="rounded-md bg-purple-700 px-6 py-2 text-sm font-medium text-white hover:bg-purple-600 disabled:opacity-60"
-        >
-          {isBrewing ? "Brewing…" : "Start brewing"}
-        </button>
-      </div>
+          <div className="flex flex-col items-center gap-2">
+            {matchedRecipe ? (
+              <p className="text-sm font-medium text-purple-700 dark:text-purple-400">
+                Recipe found: {matchedRecipe.potion?.name}
+              </p>
+            ) : (
+              <p className="text-sm text-zinc-500">
+                {placedCounts.size === 0
+                  ? "Add ingredients to a slot to begin."
+                  : "No matching recipe."}
+              </p>
+            )}
+            {error ? <p className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
+            <button
+              type="button"
+              onClick={handleStartBrewing}
+              disabled={!matchedRecipe || isBrewing}
+              className="rounded-md bg-purple-700 px-6 py-2 text-sm font-medium text-white hover:bg-purple-600 disabled:opacity-60"
+            >
+              {isBrewing ? "Starting…" : "Start brewing"}
+            </button>
+          </div>
+        </>
+      )}
 
       {pickerSlotIndex !== null ? (
         <IngredientPickerModal
@@ -228,6 +279,15 @@ export function BrewingStand({
           recipes={recipes}
           onFillSlots={fillSlotsFromRecipe}
           onClose={() => setIsBookOpen(false)}
+        />
+      ) : null}
+
+      {isClaimOpen && activeBrew ? (
+        <ClaimBrewModal
+          brewId={activeBrew.id}
+          potionName={activeBrew.potionName}
+          potionImageUrl={activeBrew.potionImageUrl}
+          onClose={() => setIsClaimOpen(false)}
         />
       ) : null}
     </div>
@@ -350,11 +410,7 @@ function RecipeBookModal({
                       .map((ing) => `${ing.quantityRequired}× ${ing.item?.name}`)
                       .join(" + ")}
                   </p>
-                  <p className="text-xs text-zinc-500">
-                    {recipe.effect_type === "duration_reduction"
-                      ? `~${Math.round(recipe.effect_magnitude * 100)}% shorter expeditions`
-                      : "Improves rare outcome odds"}
-                  </p>
+                  <p className="text-xs text-zinc-500">{describeEffect(recipe)}</p>
                 </div>
                 <button
                   type="button"
@@ -373,6 +429,97 @@ function RecipeBookModal({
             ))}
           </ul>
         )}
+      </div>
+    </div>
+  );
+}
+
+function ClaimBrewModal({
+  brewId,
+  potionName,
+  potionImageUrl,
+  onClose,
+}: {
+  brewId: string;
+  potionName: string;
+  potionImageUrl: string | null;
+  onClose: () => void;
+}) {
+  const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleCollect() {
+    setIsSubmitting(true);
+    setError(null);
+
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      setError("Your session expired — please sign in again.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    const { error: rpcError } = await supabase.rpc("claim_brew", {
+      p_user_id: user.id,
+      p_brew_id: brewId,
+    });
+
+    setIsSubmitting(false);
+
+    if (rpcError) {
+      setError(rpcError.message);
+      return;
+    }
+
+    router.refresh();
+    onClose();
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Finished potion"
+    >
+      <div className="flex w-full max-w-sm flex-col items-center gap-4 rounded-lg bg-white p-6 text-center dark:bg-zinc-900">
+        <h2 className="text-lg font-semibold tracking-tight">Your potion is ready!</h2>
+        {potionImageUrl ? (
+          <Image
+            src={potionImageUrl}
+            alt={potionName}
+            width={112}
+            height={112}
+            className="h-28 w-28 rounded border-2 border-purple-600"
+          />
+        ) : (
+          <div className="h-28 w-28 rounded bg-zinc-200 dark:bg-zinc-800" />
+        )}
+        <p className="font-medium">{potionName}</p>
+
+        {error ? <p className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
+
+        <button
+          type="button"
+          onClick={handleCollect}
+          disabled={isSubmitting}
+          className="w-full rounded-md bg-purple-700 px-4 py-2 text-sm font-medium text-white hover:bg-purple-600 disabled:opacity-60"
+        >
+          {isSubmitting ? "…" : "Collect"}
+        </button>
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={isSubmitting}
+          className="text-sm text-zinc-500 hover:underline disabled:opacity-60"
+        >
+          Close for now
+        </button>
       </div>
     </div>
   );

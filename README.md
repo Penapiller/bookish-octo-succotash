@@ -34,9 +34,12 @@ This project is being built one module at a time. Current state:
 - [x] Potions & brewing — a "Brewing" tab: a 3-slot brewing stand players
       fill with owned ingredients, a recipe-book popup (📖 icon) showing
       every fixed, shared recipe for reference/testing, and matching the
-      slots against the book to brew. Purple potion art, and real potions
-      now consumed on the expeditions map (replacing the old testing
-      checkbox) to shorten an expedition's timer
+      slots against the book to start a brew — a fixed 2-minute timer,
+      then return and claim the finished potion the same way as an
+      expedition. Five potions total: shorter expedition timers, a higher
+      chance of finding an item instead of a pet, and a chance of a bonus
+      second reward. Purple potion art; real potions are consumed on the
+      expeditions map to apply their effect
 - [ ] Layered pet art rendering, accessory equip/unequip
 - [ ] Currency & den expansion (den cap is temporarily raised to 25 for
       testing — see Notes below to find where to lower it back down)
@@ -442,18 +445,35 @@ signs in.
   names and descriptions are explicitly placeholder text (not real game
   content) — both are meant to be replaced once real art assets exist and
   the admin panel can manage them.
-- Potions are real now (`0006_potions_and_brewing.sql`): the expeditions
-  map's potion dropdown passes the chosen potion's item id as
-  `start_expedition`'s `p_potion_item_id`, which looks up that potion's
-  recipe for its `effect_type`/`effect_magnitude`, consumes one from
-  `user_inventory`, and (for `duration_reduction`) shaves that fraction
-  off the randomized 2-3 minute base roll — still never a guarantee, just
-  a shifted range, per spec. `rarity_boost` is defined in the
-  `potion_effect_type` enum and a potion can be brewed with it, but
-  nothing reads it yet — `pick_weighted_zone_reward` (the roll expeditions
-  use) doesn't take a bias input. Wiring that up is the next piece if a
-  rarity-boosting potion is wanted for real, not just accepted and
-  silently inert.
+- Potions are real (`0006_potions_and_brewing.sql`, effects extended in
+  `0008_potion_effects_and_brew_timers.sql`): the expeditions map's potion
+  dropdown passes the chosen potion's item id as `start_expedition`'s
+  `p_potion_item_id`, which looks up that potion's recipe for its
+  `effect_type`/`effect_magnitude`, consumes one from `user_inventory`,
+  and applies it — still never a guarantee, just a shifted range/chance,
+  per spec. Four effect types now exist:
+  - `duration_reduction`: shaves that fraction off the randomized 2-3
+    minute base roll.
+  - `item_find_boost`: multiplies item (not pet) weights in
+    `pick_weighted_zone_reward`'s roll, biasing toward finding an item.
+  - `double_reward_chance`: sets the probability (in place of the 5% base
+    every non-tutorial expedition already has) that resolving rolls a
+    bonus second reward, granted alongside the primary one if — and only
+    if — the player keeps it; releasing forfeits both.
+  - `rarity_boost` is still defined in the enum and a potion can be
+    brewed with it, but nothing reads it — it's for biasing toward rarer
+    outcomes *within* a pool, a different idea from `item_find_boost`
+    (which biases pet-vs-item at the top level), and not implemented yet.
+
+  Because `item_find_boost`/`double_reward_chance` are consumed at
+  `start_expedition` time but only matter later at `resolve_due_expeditions`
+  time, `expeditions` carries `item_find_bias` / `double_reward_chance` /
+  `is_double_reward` columns to bridge that gap — purely internal
+  bookkeeping the app never queries directly. `claim_expedition_reward`'s
+  return type changed from a plain pet id to jsonb
+  (`{granted_pet_id, bonus_kind?, bonus_name?, bonus_image_url?}`) so the
+  claim popup can show a "🎉 double reward!" screen when a bonus was
+  granted.
 - Recipes are fixed and identical for every player — no per-user
   discovery/unlock state, matching spec ("no player-driven discovery at
   launch"). The recipe book (📖 icon on `/brewing`) shows every active
@@ -461,18 +481,47 @@ signs in.
   by the (not yet built) admin panel via `potion_recipes` /
   `potion_recipe_ingredients`, the same way zones/items/species are today
   — direct SQL inserts in a migration until then.
-- The brewing UI (`brewing-stand.tsx`) is a **client-side staging area
-  only** — dragging/clicking ingredients into the 3 slots doesn't touch
-  the database at all. It just computes, locally, whether the slots'
-  contents exactly match some recipe's ingredient list, and if so enables
-  a "Start brewing" button that calls the same `brew_potion(recipe_id)`
-  RPC as before, which re-verifies ownership and does the actual
-  atomic deduct-and-grant server-side. This matters for one thing: the
-  UI has exactly **3 slots**, a hard cap — a recipe needing more than 3
-  total ingredient units (e.g. 2 of one item + 2 of another) could never
-  be assembled by a player even though the database would happily store
-  such a recipe. Keep future recipes at 3 total units or fewer, or grow
-  `SLOT_COUNT` if that constraint ever needs to change.
+- The slot-filling UI (`brewing-stand.tsx`) is a **client-side staging
+  area only** — dragging/clicking ingredients into the 3 slots doesn't
+  touch the database at all. It just computes, locally, whether the
+  slots' contents exactly match some recipe's ingredient list, and if so
+  enables "Start brewing", which calls `start_brew(recipe_id)` —
+  re-verifying ownership and doing the atomic deduct server-side,
+  regardless of how the client arrived at that recipe id. This matters
+  for one thing: the UI has exactly **3 slots**, a hard cap — a recipe
+  needing more than 3 total ingredient units (e.g. 2 of one item + 2 of
+  another) could never be assembled by a player even though the database
+  would happily store such a recipe. Keep future recipes at 3 total units
+  or fewer, or grow `SLOT_COUNT` if that constraint ever needs to change.
+- Brewing is timed, mirroring expeditions: `start_brew` spends the
+  ingredients immediately and opens a `potion_brews` row
+  (`in_progress` → `awaiting_claim` → `completed`, same lazy
+  `resolve_due_brews` pattern as `resolve_due_expeditions` — called on
+  every `/brewing` page load), with a **fixed** 2-minute timer (not
+  randomized like expedition duration — brewing is a deliberate recipe
+  pick, not a loot roll, so there's nothing to vary). Only one brew at a
+  time per player, since there's one physical stand. Unlike expedition
+  claims, `claim_brew` has no keep/release choice — you already spent the
+  ingredients on purpose, so there's no reason to decline the result;
+  clicking "Collect" always grants it. `brew_potion` from 0006 no longer
+  exists (dropped in 0008) — it's fully replaced by
+  `start_brew`/`resolve_due_brews`/`claim_brew`.
+- **A real `ALTER TYPE ... ADD VALUE` gotcha, hit in
+  `0008_potion_effects_and_brew_timers.sql`**: Postgres refuses to let a
+  brand-new enum value be *used* — not just referenced inside a stored
+  function body, but actually cast as data (e.g. in an `INSERT`) — within
+  the same transaction that added it. Earlier migrations only ever
+  referenced new enum values inside `plpgsql` function bodies, which
+  aren't evaluated until a later, separate call, so this never came up.
+  0008 seeds potion rows using the two enum values it just added in the
+  same file, which — when the whole file runs as one implicit transaction
+  (verified locally with `psql -1`, which is how Supabase's SQL Editor
+  behaves when you paste and run a multi-statement script) — hit exactly
+  this error. Fixed with an explicit `commit;` right after the
+  `ALTER TYPE` statements, forcing them to land before anything later in
+  the file can touch them, regardless of how the file is executed. Any
+  future migration that both adds an enum value **and** inserts/updates a
+  row using that value needs the same `commit;` in between.
 - `users.den_size` is temporarily defaulted to **25** instead of 3
   (`0006_potions_and_brewing.sql`, both the column default and a one-time
   `UPDATE` on existing rows) to make testing easier with more pets in

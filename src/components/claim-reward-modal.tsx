@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import type { ExpeditionRewardReveal } from "@/lib/supabase/types";
+import type { ClaimExpeditionResult, ExpeditionRewardReveal } from "@/lib/supabase/types";
 
 /**
  * "What did I get?" popup for a single awaiting_claim expedition. Fetches
@@ -30,6 +30,7 @@ export function ClaimRewardModal({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [bonus, setBonus] = useState<ClaimExpeditionResult | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -71,7 +72,7 @@ export function ClaimRewardModal({
       return;
     }
 
-    const { error } = await supabase.rpc("claim_expedition_reward", {
+    const { data, error } = await supabase.rpc("claim_expedition_reward", {
       p_user_id: user.id,
       p_expedition_id: expeditionId,
       p_keep: keep,
@@ -85,7 +86,53 @@ export function ClaimRewardModal({
     }
 
     router.refresh();
+
+    const result = data as ClaimExpeditionResult | null;
+    if (result?.bonus_kind) {
+      // Pause on a "you also got a bonus!" screen instead of closing
+      // immediately — router.refresh() has already run, so the
+      // underlying page data is current by the time they dismiss this.
+      setBonus(result);
+      return;
+    }
+
     onClose();
+  }
+
+  if (bonus?.bonus_kind) {
+    const borderColor = bonus.bonus_kind === "pet" ? "border-blue-600" : "border-green-600";
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Bonus reward"
+      >
+        <div className="flex w-full max-w-sm flex-col items-center gap-4 rounded-lg bg-white p-6 text-center dark:bg-zinc-900">
+          <p className="text-lg font-semibold tracking-tight">🎉 Double reward!</p>
+          <p className="text-sm text-zinc-500">You also got a bonus:</p>
+          {bonus.bonus_image_url ? (
+            <Image
+              src={bonus.bonus_image_url}
+              alt={bonus.bonus_name ?? ""}
+              width={96}
+              height={96}
+              className={`h-24 w-24 rounded border-2 ${borderColor}`}
+            />
+          ) : (
+            <div className="h-24 w-24 rounded bg-zinc-200 dark:bg-zinc-800" />
+          )}
+          <p className="font-medium">{bonus.bonus_name}</p>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
+          >
+            Nice!
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (

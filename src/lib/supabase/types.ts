@@ -25,7 +25,12 @@ export type PetRarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
 export type ItemRarity = PetRarity;
 export type ExpeditionStatus = "in_progress" | "awaiting_claim" | "completed";
 export type ItemType = "ingredient" | "cosmetic" | "potion";
-export type PotionEffectType = "duration_reduction" | "rarity_boost";
+export type PotionEffectType =
+  | "duration_reduction"
+  | "rarity_boost"
+  | "item_find_boost"
+  | "double_reward_chance";
+export type BrewStatus = "in_progress" | "awaiting_claim" | "completed";
 
 export type SpeciesRow = {
   id: string;
@@ -105,6 +110,16 @@ export type PotionRecipeIngredientRow = {
   quantity_required: number;
 };
 
+export type PotionBrewRow = {
+  id: string;
+  user_id: string;
+  recipe_id: string;
+  status: BrewStatus;
+  started_at: string;
+  resolves_at: string;
+  created_at: string;
+};
+
 export type ExpeditionRow = {
   id: string;
   user_id: string;
@@ -167,6 +182,15 @@ export type ExpeditionRewardReveal = {
   items: Pick<ItemRow, "name" | "image_url" | "rarity"> | null;
 };
 
+// What claim_expedition_reward returns: the granted pet id (if a pet was
+// kept), plus an optional bonus from a double_reward_chance potion.
+export type ClaimExpeditionResult = {
+  granted_pet_id: string | null;
+  bonus_kind?: "pet" | "item";
+  bonus_name?: string;
+  bonus_image_url?: string | null;
+};
+
 // A zone's pool preview ("what you might get") — pets and items are drawn
 // from the same weighted roll (see pick_weighted_zone_reward), so the
 // preview is one merged, kind-tagged list rather than two separate ones.
@@ -216,6 +240,14 @@ export type OwnedIngredient = {
   quantity: number;
 };
 
+// The player's one active (in_progress or awaiting_claim) brew, if any —
+// there's only one brewing stand, so at most one of these exists per
+// player at a time.
+export type ActiveBrewSummary = Pick<PotionBrewRow, "id" | "status" | "resolves_at"> & {
+  potionName: string;
+  potionImageUrl: string | null;
+};
+
 // A zone as shown on the expeditions map, with its pool preview resolved
 // server-side.
 export type ExplorableZone = Pick<
@@ -263,6 +295,10 @@ export type Database = {
       zone_loot_table: TableOf<ZoneLootTableRow>;
       potion_recipes: TableOf<PotionRecipeRow, Partial<PotionRecipeRow> & { output_potion_item_id: string; effect_type: PotionEffectType }>;
       potion_recipe_ingredients: TableOf<PotionRecipeIngredientRow>;
+      potion_brews: TableOf<
+        PotionBrewRow,
+        Partial<PotionBrewRow> & { user_id: string; recipe_id: string; resolves_at: string }
+      >;
       expeditions: TableOf<
         ExpeditionRow,
         Partial<ExpeditionRow> & {
@@ -303,12 +339,23 @@ export type Database = {
           p_expedition_id: string;
           p_keep: boolean;
         };
-        Returns: string | null;
+        Returns: ClaimExpeditionResult;
       };
-      brew_potion: {
+      start_brew: {
         Args: {
           p_user_id: string;
           p_recipe_id: string;
+        };
+        Returns: string;
+      };
+      resolve_due_brews: {
+        Args: { p_user_id: string };
+        Returns: null;
+      };
+      claim_brew: {
+        Args: {
+          p_user_id: string;
+          p_brew_id: string;
         };
         Returns: null;
       };
