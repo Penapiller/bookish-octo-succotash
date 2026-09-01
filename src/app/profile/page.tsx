@@ -66,7 +66,7 @@ export default async function ProfilePage() {
             alt=""
             width={64}
             height={64}
-            className="rounded-full"
+            className="h-16 w-16 rounded-full"
           />
         ) : (
           <div className="h-16 w-16 rounded-full bg-zinc-200 dark:bg-zinc-800" />
@@ -124,7 +124,7 @@ export default async function ProfilePage() {
                   alt=""
                   width={64}
                   height={48}
-                  className="rounded"
+                  className="h-12 w-16 rounded"
                 />
               ) : null}
               <div>
@@ -162,7 +162,7 @@ export default async function ProfilePage() {
                     alt={pet.species?.name ?? ""}
                     width={96}
                     height={96}
-                    className="rounded"
+                    className="h-24 w-24 rounded"
                   />
                 ) : (
                   <div className="h-24 w-24 rounded bg-zinc-200 dark:bg-zinc-800" />

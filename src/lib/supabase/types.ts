@@ -47,6 +47,10 @@ export type ZoneRow = {
   unlock_requirement: string | null;
   is_tutorial: boolean;
   is_active: boolean;
+  map_x: number | null;
+  map_y: number | null;
+  map_width: number | null;
+  map_height: number | null;
   created_at: string;
 };
 
@@ -86,6 +90,31 @@ export type ExpeditionWithZone = Pick<
   "id" | "status" | "is_tutorial" | "resolves_at"
 > & {
   zones: Pick<ZoneRow, "name" | "description" | "image_url"> | null;
+};
+
+// A user's own active (in_progress) expedition, for cross-referencing
+// against the explorable-zones map: which zones/pets are currently busy,
+// and what to show as each hotspot's countdown badge.
+export type ActiveExpeditionSummary = Pick<
+  ExpeditionRow,
+  "id" | "pet_id" | "zone_id" | "resolves_at"
+>;
+
+// A zone as shown on the expeditions map, with its pet-pool preview
+// ("what you might get") resolved server-side.
+export type ExplorableZone = Pick<
+  ZoneRow,
+  | "id"
+  | "name"
+  | "tier"
+  | "description"
+  | "image_url"
+  | "map_x"
+  | "map_y"
+  | "map_width"
+  | "map_height"
+> & {
+  pool: Array<Pick<SpeciesRow, "id" | "name" | "image_url" | "rarity">>;
 };
 
 type TableOf<Row, Insert = Partial<Row>, Update = Partial<Row>> = {
@@ -134,6 +163,15 @@ export type Database = {
       resolve_due_expeditions: {
         Args: { p_user_id: string };
         Returns: null;
+      };
+      start_expedition: {
+        Args: {
+          p_user_id: string;
+          p_pet_id: string;
+          p_zone_id: string;
+          p_use_potion: boolean;
+        };
+        Returns: string;
       };
     };
   };

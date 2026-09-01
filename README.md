@@ -24,9 +24,11 @@ This project is being built one module at a time. Current state:
 - [x] Google sign-in (Supabase Auth), basic account settings, profile page
 - [x] Starter pet + one-time tutorial expedition (species/pets/zones/
       expeditions schema, shown on the profile page)
+- [x] Expeditions map — an "Expeditions" tab with a clickable map of
+      explorable zones, pet-pool preview, and starting a timed expedition
 - [ ] Full inventory display (items), layered pet art rendering
-- [ ] Expeditions (full zone-selection system)
-- [ ] Potions & brewing
+- [ ] Potions & brewing (the map's "potion boost" checkbox is a testing
+      stub for expedition duration — see Notes below)
 - [ ] Currency & den expansion
 - [ ] Statue offerings
 - [ ] Trading
@@ -382,3 +384,23 @@ signs in.
   names and descriptions are explicitly placeholder text (not real game
   content) — both are meant to be replaced once real art assets exist and
   the admin panel can manage them.
+- The expeditions map's "use a potion boost" checkbox
+  (`src/components/expedition-map.tsx`) is a **testing stub**, not a real
+  potion system — there's no item inventory yet to actually equip one
+  from. It's passed straight through to `start_expedition`'s
+  `p_use_potion` argument, which biases the expedition's randomized
+  duration into a shorter range without ever guaranteeing an outcome —
+  the same shape the spec describes for real potion effects. When the
+  potions/brewing module is built, swap the checkbox for a real "equipped
+  potion" check (e.g. does the player have an unconsumed duration-potion
+  item selected) and extend `start_expedition` to also consume it and
+  apply its specific `effect_magnitude`, rather than the current
+  hardcoded 1-2 min (potion) / 2-3 min (no potion) split.
+- A next/image quirk worth knowing if you add more images: Tailwind's
+  Preflight CSS resets `img { height: auto }` globally, which fights with
+  next/image's fixed `width`/`height` props unless you *also* pin both
+  dimensions via a matching Tailwind class (e.g. `width={64} height={64}
+  className="h-16 w-16"`) — otherwise Next.js logs an "either width or
+  height modified, but not the other" warning in dev. Images using `fill`
+  instead of `width`/`height` aren't affected (its inline styles already
+  win over Preflight).

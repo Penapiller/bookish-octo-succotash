@@ -29,6 +29,9 @@ export async function SiteHeader() {
       <nav className="flex items-center gap-4 text-sm">
         {user ? (
           <>
+            <Link href="/expeditions" className="hover:underline">
+              Expeditions
+            </Link>
             <Link href="/profile" className="flex items-center gap-2 hover:underline">
               {avatarUrl ? (
                 <Image
@@ -36,7 +39,7 @@ export async function SiteHeader() {
                   alt=""
                   width={24}
                   height={24}
-                  className="rounded-full"
+                  className="h-6 w-6 rounded-full"
                 />
               ) : null}
               {displayName ?? "Profile"}

@@ -33,7 +33,7 @@ export default async function PublicProfilePage(
             alt=""
             width={64}
             height={64}
-            className="rounded-full"
+            className="h-16 w-16 rounded-full"
           />
         ) : (
           <div className="h-16 w-16 rounded-full bg-zinc-200 dark:bg-zinc-800" />
