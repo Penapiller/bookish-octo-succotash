@@ -37,7 +37,9 @@ export function ClaimRewardModal({
 
     supabase
       .from("expeditions")
-      .select("pending_species_id, pending_item_id, species(name, image_url, rarity), items(name, image_url, rarity)")
+      .select(
+        "pending_species_id, pending_item_id, species(name, image_url, rarity), items!expeditions_pending_item_id_fkey(name, image_url, rarity)",
+      )
       .eq("id", expeditionId)
       .single()
       .then(({ data, error }) => {

@@ -418,6 +418,21 @@ signs in.
   It's a metadata-only rename (`ALTER TYPE ... RENAME TO`) — no data
   migration needed, and the TypeScript side still calls it `PetRarity`
   (with an `ItemRarity` alias) rather than renaming every call site.
+- **Ambiguous embeds**: a Supabase/PostgREST `select("...,items(...)")`
+  only works unhinted while there's exactly one foreign key between the
+  two tables. `expeditions` now has two FKs to `items`
+  (`pending_item_id`, `result_item_id`), so a plain `items(...)` embed
+  from `expeditions` fails at request time with an embedding-ambiguity
+  error — it doesn't fail typecheck or build, since the query is just a
+  string, so this only surfaces when the code path actually runs (here:
+  opening the claim popup). The fix is a `!constraint_name` hint, e.g.
+  `items!expeditions_pending_item_id_fkey(...)` (see
+  `claim-reward-modal.tsx`) — find the real constraint name with
+  `select conname from pg_constraint where conrelid='expeditions'::regclass
+  and confrelid='items'::regclass;` rather than guessing at it. `pets` has
+  the same latent double-FK from `expeditions` (`pet_id`, `result_pet_id`)
+  — nothing currently embeds `pets` from `expeditions`, but the next
+  query that does will need the same hint.
 - Species/zone art currently just points at
   [placehold.co](https://placehold.co) placeholder images, and zone/species
   names and descriptions are explicitly placeholder text (not real game
