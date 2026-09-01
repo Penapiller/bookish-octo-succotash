@@ -37,7 +37,7 @@ export function ClaimRewardModal({
 
     supabase
       .from("expeditions")
-      .select("pending_species_id, species(name, image_url, rarity)")
+      .select("pending_species_id, pending_item_id, species(name, image_url, rarity), items(name, image_url, rarity)")
       .eq("id", expeditionId)
       .single()
       .then(({ data, error }) => {
@@ -102,20 +102,37 @@ export function ClaimRewardModal({
           <p className="text-sm text-zinc-500">Opening…</p>
         ) : reveal.species ? (
           <>
-            <h2 className="text-lg font-semibold tracking-tight">You found:</h2>
+            <h2 className="text-lg font-semibold tracking-tight">You found a pet:</h2>
             {reveal.species.image_url ? (
               <Image
                 src={reveal.species.image_url}
                 alt={reveal.species.name}
                 width={112}
                 height={112}
-                className="h-28 w-28 rounded"
+                className="h-28 w-28 rounded border-2 border-blue-600"
               />
             ) : (
               <div className="h-28 w-28 rounded bg-zinc-200 dark:bg-zinc-800" />
             )}
             <p className="font-medium">{reveal.species.name}</p>
             <p className="text-xs capitalize text-zinc-500">{reveal.species.rarity}</p>
+          </>
+        ) : reveal.items ? (
+          <>
+            <h2 className="text-lg font-semibold tracking-tight">You found an item:</h2>
+            {reveal.items.image_url ? (
+              <Image
+                src={reveal.items.image_url}
+                alt={reveal.items.name}
+                width={112}
+                height={112}
+                className="h-28 w-28 rounded border-2 border-green-600"
+              />
+            ) : (
+              <div className="h-28 w-28 rounded bg-zinc-200 dark:bg-zinc-800" />
+            )}
+            <p className="font-medium">{reveal.items.name}</p>
+            <p className="text-xs capitalize text-zinc-500">{reveal.items.rarity}</p>
           </>
         ) : (
           <p className="text-sm text-zinc-500">
@@ -128,7 +145,7 @@ export function ClaimRewardModal({
         ) : null}
 
         <div className="flex w-full gap-3">
-          {reveal?.species ? (
+          {reveal?.species || reveal?.items ? (
             <>
               <button
                 type="button"

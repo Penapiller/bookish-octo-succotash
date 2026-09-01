@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ExpeditionCountdown } from "@/components/expedition-countdown";
-import type { ExpeditionWithZone, PetWithSpecies } from "@/lib/supabase/types";
+import type { ExpeditionWithZone } from "@/lib/supabase/types";
 
 export default async function ProfilePage() {
   const supabase = await createClient();
@@ -33,12 +33,11 @@ export default async function ProfilePage() {
   // there's no background job in this phase, so this runs on every load.
   await supabase.rpc("resolve_due_expeditions", { p_user_id: user.id });
 
-  const [{ data: petsData }, { data: expeditionsData }] = await Promise.all([
+  const [{ count: petCount }, { data: expeditionsData }] = await Promise.all([
     supabase
       .from("pets")
-      .select("id, rarity, color_variant, created_at, species(name, image_url)")
-      .eq("owner_id", user.id)
-      .order("created_at", { ascending: true }),
+      .select("id", { count: "exact", head: true })
+      .eq("owner_id", user.id),
     supabase
       .from("expeditions")
       .select("id, status, is_tutorial, resolves_at, zones(name, description, image_url)")
@@ -46,9 +45,8 @@ export default async function ProfilePage() {
       .eq("status", "in_progress"),
   ]);
 
-  // Hand-cast: see the comment on PetWithSpecies/ExpeditionWithZone in
-  // lib/supabase/types.ts for why these joined selects aren't inferred.
-  const pets = (petsData ?? []) as unknown as PetWithSpecies[];
+  // Hand-cast: see the comment on ExpeditionWithZone in
+  // lib/supabase/types.ts for why this joined select isn't inferred.
   const activeExpeditions = (expeditionsData ?? []) as unknown as ExpeditionWithZone[];
 
   const joined = new Date(profile.created_at).toLocaleDateString(undefined, {
@@ -105,7 +103,7 @@ export default async function ProfilePage() {
         <div>
           <dt className="text-zinc-500">Pets owned</dt>
           <dd className="text-lg font-medium">
-            {pets.length} / {profile.den_size}
+            {petCount ?? 0} / {profile.den_size}
           </dd>
         </div>
       </dl>
@@ -142,40 +140,13 @@ export default async function ProfilePage() {
         </section>
       ) : null}
 
-      <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold tracking-tight">Your pets</h2>
-        {pets.length === 0 ? (
-          <p className="text-zinc-500 italic">
-            You don&apos;t have any pets yet. This shouldn&apos;t normally
-            happen — try refreshing the page.
-          </p>
-        ) : (
-          <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-            {pets.map((pet) => (
-              <li
-                key={pet.id}
-                className="flex flex-col items-center gap-2 rounded-lg border border-zinc-200 p-3 text-center dark:border-zinc-800"
-              >
-                {pet.species?.image_url ? (
-                  <Image
-                    src={pet.species.image_url}
-                    alt={pet.species?.name ?? ""}
-                    width={96}
-                    height={96}
-                    className="h-24 w-24 rounded"
-                  />
-                ) : (
-                  <div className="h-24 w-24 rounded bg-zinc-200 dark:bg-zinc-800" />
-                )}
-                <p className="text-sm font-medium">{pet.species?.name}</p>
-                <p className="text-xs capitalize text-zinc-500">{pet.rarity}</p>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
       <div className="flex gap-3">
+        <Link
+          href="/inventory"
+          className="rounded-md border border-zinc-300 px-4 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
+        >
+          View inventory
+        </Link>
         <Link
           href="/settings"
           className="rounded-md border border-zinc-300 px-4 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"

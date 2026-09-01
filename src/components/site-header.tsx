@@ -32,6 +32,9 @@ export async function SiteHeader() {
             <Link href="/expeditions" className="hover:underline">
               Expeditions
             </Link>
+            <Link href="/inventory" className="hover:underline">
+              Inventory
+            </Link>
             <Link href="/profile" className="flex items-center gap-2 hover:underline">
               {avatarUrl ? (
                 <Image

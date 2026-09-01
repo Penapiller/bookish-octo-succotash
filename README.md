@@ -28,9 +28,13 @@ This project is being built one module at a time. Current state:
       explorable zones, pet-pool preview, starting a timed expedition (one
       per zone at a time), and a return-to-claim popup once it resolves
       (keep the reward or send it away)
-- [ ] Full inventory display (items), layered pet art rendering
+- [x] Items + inventory — zones now sometimes drop a crafting item instead
+      of a pet (blue = pet art, green = item art, for easy testing), and a
+      new "Inventory" tab shows owned pets and item stacks
+- [ ] Layered pet art rendering, accessory equip/unequip
 - [ ] Potions & brewing (the map's "potion boost" checkbox is a testing
-      stub for expedition duration — see Notes below)
+      stub for expedition duration — see Notes below; items are crafting-
+      only ingredients for this future module, not pet decoration)
 - [ ] Currency & den expansion
 - [ ] Statue offerings
 - [ ] Trading
@@ -394,6 +398,26 @@ signs in.
   reverts it to the old value) rather than error, so if a future migration
   adds a new privileged column and a write to it seems to do nothing, this
   is the first thing to check.
+- A zone "sometimes" dropping an item instead of a pet isn't a separate
+  probability field anywhere — `pick_weighted_zone_reward` (in
+  `0005_items_and_inventory.sql`) just runs the same weighted draw across
+  a zone's `zone_pet_pool` **and** `zone_loot_table` rows combined. There's
+  no admin-facing "pet vs. item chance" knob to build later; the mix is
+  whatever each row's `drop_weight` implies, in whichever table. The
+  tutorial's own roll (`grant_starter_pet_and_tutorial`) deliberately
+  keeps using the older pet-only `pick_weighted_zone_species` instead, so
+  it can never hand out an item — that's enforced by which function it
+  calls, not just by the tutorial zone having no loot table rows.
+- Items are crafting ingredients only (`item_type`: `ingredient` today;
+  `cosmetic`/`potion` exist in the enum for later modules but aren't used
+  yet). There's intentionally no `pet_accessories`-style equip mechanic
+  for them — that's a separate future system for actual cosmetic items,
+  not these.
+- The rarity enum was renamed `pet_rarity` → `rarity_tier` in
+  `0005_items_and_inventory.sql` once items needed the same tiers as pets.
+  It's a metadata-only rename (`ALTER TYPE ... RENAME TO`) — no data
+  migration needed, and the TypeScript side still calls it `PetRarity`
+  (with an `ItemRarity` alias) rather than renaming every call site.
 - Species/zone art currently just points at
   [placehold.co](https://placehold.co) placeholder images, and zone/species
   names and descriptions are explicitly placeholder text (not real game

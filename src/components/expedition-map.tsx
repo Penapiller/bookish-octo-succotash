@@ -193,22 +193,32 @@ export function ExpeditionMap({
           {selectedZone.pool.length > 0 ? (
             <div>
               <h3 className="text-sm font-medium">You might get:</h3>
+              <p className="text-xs text-zinc-500">
+                Pets are shown in blue, crafting items in green.
+              </p>
               <ul className="mt-2 flex flex-wrap gap-3">
-                {selectedZone.pool.map((species) => (
-                  <li key={species.id} className="flex flex-col items-center gap-1 text-center">
-                    {species.image_url ? (
+                {selectedZone.pool.map((entry) => (
+                  <li
+                    key={`${entry.kind}-${entry.id}`}
+                    className="flex flex-col items-center gap-1 text-center"
+                  >
+                    {entry.image_url ? (
                       <Image
-                        src={species.image_url}
-                        alt={species.name}
+                        src={entry.image_url}
+                        alt={entry.name}
                         width={56}
                         height={56}
-                        className="h-14 w-14 rounded"
+                        className={`h-14 w-14 rounded border-2 ${
+                          entry.kind === "pet" ? "border-blue-600" : "border-green-600"
+                        }`}
                       />
                     ) : (
                       <div className="h-14 w-14 rounded bg-zinc-200 dark:bg-zinc-800" />
                     )}
-                    <span className="text-xs">{species.name}</span>
-                    <span className="text-xs capitalize text-zinc-500">{species.rarity}</span>
+                    <span className="text-xs">{entry.name}</span>
+                    <span className="text-xs capitalize text-zinc-500">
+                      {entry.kind} · {entry.rarity}
+                    </span>
                   </li>
                 ))}
               </ul>

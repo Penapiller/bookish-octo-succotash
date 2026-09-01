@@ -17,8 +17,14 @@ export type PublicUserProfile = Pick<
   "id" | "display_name" | "avatar_url" | "bio" | "created_at"
 >;
 
+// Named rarity_tier in Postgres (renamed from pet_rarity once items also
+// needed it — see 0005_items_and_inventory.sql). Kept as PetRarity here
+// since that's what most call sites already import; ItemRarity is just an
+// alias for the item-shaped call sites.
 export type PetRarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
+export type ItemRarity = PetRarity;
 export type ExpeditionStatus = "in_progress" | "awaiting_claim" | "completed";
+export type ItemType = "ingredient" | "cosmetic" | "potion";
 
 export type SpeciesRow = {
   id: string;
@@ -60,6 +66,29 @@ export type ZonePetPoolRow = {
   drop_weight: number;
 };
 
+export type ItemRow = {
+  id: string;
+  name: string;
+  type: ItemType;
+  rarity: ItemRarity;
+  image_url: string | null;
+  sell_value: number;
+  is_active: boolean;
+  created_at: string;
+};
+
+export type UserInventoryRow = {
+  user_id: string;
+  item_id: string;
+  quantity: number;
+};
+
+export type ZoneLootTableRow = {
+  zone_id: string;
+  item_id: string;
+  drop_weight: number;
+};
+
 export type ExpeditionRow = {
   id: string;
   user_id: string;
@@ -70,7 +99,9 @@ export type ExpeditionRow = {
   started_at: string;
   resolves_at: string;
   result_pet_id: string | null;
+  result_item_id: string | null;
   pending_species_id: string | null;
+  pending_item_id: string | null;
   created_at: string;
 };
 
@@ -84,6 +115,12 @@ export type PetWithSpecies = Pick<
   "id" | "rarity" | "color_variant" | "created_at"
 > & {
   species: Pick<SpeciesRow, "name" | "image_url"> | null;
+};
+
+// A stack in the player's inventory, as shown on /inventory.
+export type ItemWithQuantity = {
+  quantity: number;
+  item: Pick<ItemRow, "id" | "name" | "image_url" | "rarity" | "type"> | null;
 };
 
 export type ExpeditionWithZone = Pick<
@@ -109,11 +146,24 @@ export type ActiveExpeditionSummary = Pick<
 // surprise until then.
 export type ExpeditionRewardReveal = {
   pending_species_id: string | null;
+  pending_item_id: string | null;
   species: Pick<SpeciesRow, "name" | "image_url" | "rarity"> | null;
+  items: Pick<ItemRow, "name" | "image_url" | "rarity"> | null;
 };
 
-// A zone as shown on the expeditions map, with its pet-pool preview
-// ("what you might get") resolved server-side.
+// A zone's pool preview ("what you might get") — pets and items are drawn
+// from the same weighted roll (see pick_weighted_zone_reward), so the
+// preview is one merged, kind-tagged list rather than two separate ones.
+export type ZonePoolEntry = {
+  kind: "pet" | "item";
+  id: string;
+  name: string;
+  image_url: string | null;
+  rarity: PetRarity;
+};
+
+// A zone as shown on the expeditions map, with its pool preview resolved
+// server-side.
 export type ExplorableZone = Pick<
   ZoneRow,
   | "id"
@@ -126,7 +176,7 @@ export type ExplorableZone = Pick<
   | "map_width"
   | "map_height"
 > & {
-  pool: Array<Pick<SpeciesRow, "id" | "name" | "image_url" | "rarity">>;
+  pool: ZonePoolEntry[];
 };
 
 type TableOf<Row, Insert = Partial<Row>, Update = Partial<Row>> = {
@@ -151,6 +201,12 @@ export type Database = {
       >;
       zones: TableOf<ZoneRow, Partial<ZoneRow> & { name: string }>;
       zone_pet_pool: TableOf<ZonePetPoolRow>;
+      items: TableOf<ItemRow, Partial<ItemRow> & { name: string }>;
+      user_inventory: TableOf<
+        UserInventoryRow,
+        Partial<UserInventoryRow> & { user_id: string; item_id: string }
+      >;
+      zone_loot_table: TableOf<ZoneLootTableRow>;
       expeditions: TableOf<
         ExpeditionRow,
         Partial<ExpeditionRow> & {
