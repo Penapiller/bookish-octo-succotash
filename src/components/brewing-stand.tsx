@@ -160,7 +160,7 @@ export function BrewingStand({
 
   return (
     <div className="flex flex-col items-center gap-6">
-      <div className="relative w-full max-w-lg overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800">
+      <div className="relative w-full max-w-lg overflow-hidden rounded-lg border border-amber-200 dark:border-stone-800">
         <div className="relative aspect-[8/5] w-full">
           <Image
             src={STAND_IMAGE_URL}
@@ -176,9 +176,9 @@ export function BrewingStand({
           onClick={() => setIsBookOpen(true)}
           aria-label="Open recipe book"
           title="Recipe book"
-          className="absolute right-3 top-3 flex h-11 w-11 items-center justify-center rounded-full bg-purple-700 text-2xl shadow-md hover:bg-purple-600"
+          className="absolute right-3 top-3 flex h-12 w-12 items-center justify-center rounded-full bg-white/90 shadow-md hover:bg-white dark:bg-stone-900/90 dark:hover:bg-stone-900"
         >
-          📖
+          <Image src="/icons/book.png" alt="" width={30} height={26} />
         </button>
       </div>
 
@@ -222,18 +222,21 @@ export function BrewingStand({
                   type="button"
                   onClick={() => (itemId ? clearSlot(index) : setPickerSlotIndex(index))}
                   title={itemId ? "Click to remove" : "Click to add an ingredient"}
-                  className="flex h-20 w-20 items-center justify-center rounded-lg border-2 border-dashed border-zinc-300 hover:border-purple-600 dark:border-zinc-700"
+                  className="flex h-20 w-20 items-center justify-center bg-contain bg-center bg-no-repeat"
+                  style={{
+                    backgroundImage: `url(${itemId ? "/ui/item-slot-selected.png" : "/ui/item-slot.png"})`,
+                  }}
                 >
                   {ingredient?.image_url ? (
                     <Image
                       src={ingredient.image_url}
                       alt={ingredient.name}
-                      width={72}
-                      height={72}
-                      className="h-[72px] w-[72px] rounded border-2 border-green-600"
+                      width={60}
+                      height={60}
+                      className="h-[60px] w-[60px] rounded"
                     />
                   ) : (
-                    <span className="text-xs text-zinc-400">Empty</span>
+                    <span className="text-xs text-stone-400">Empty</span>
                   )}
                 </button>
               );
@@ -246,7 +249,7 @@ export function BrewingStand({
                 Recipe found: {matchedRecipe.potion?.name}
               </p>
             ) : (
-              <p className="text-sm text-zinc-500">
+              <p className="text-sm text-stone-500">
                 {placedCounts.size === 0
                   ? "Add ingredients to a slot to begin."
                   : "No matching recipe."}
@@ -314,15 +317,15 @@ function IngredientPickerModal({
       aria-modal="true"
       aria-label="Choose an ingredient"
     >
-      <div className="flex w-full max-w-sm flex-col gap-4 rounded-lg bg-white p-6 dark:bg-zinc-900">
+      <div className="flex w-full max-w-sm flex-col gap-4 rounded-lg bg-white p-6 dark:bg-stone-900">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold tracking-tight">Choose an ingredient</h2>
-          <button type="button" onClick={onClose} className="text-sm text-zinc-500 hover:underline">
+          <button type="button" onClick={onClose} className="text-sm text-stone-500 hover:underline">
             Close
           </button>
         </div>
         {selectable.length === 0 ? (
-          <p className="text-sm text-zinc-500 italic">
+          <p className="text-sm text-stone-500 italic">
             You don&apos;t have any spare ingredients. Send pets on expeditions to find some.
           </p>
         ) : (
@@ -332,7 +335,7 @@ function IngredientPickerModal({
                 <button
                   type="button"
                   onClick={() => onSelect(ingredient.itemId)}
-                  className="flex w-full flex-col items-center gap-1 rounded-lg border border-zinc-200 p-2 text-center hover:bg-zinc-100 dark:border-zinc-800 dark:hover:bg-zinc-800"
+                  className="flex w-full flex-col items-center gap-1 rounded-lg border border-amber-200 p-2 text-center hover:bg-amber-100 dark:border-stone-800 dark:hover:bg-stone-800"
                 >
                   {ingredient.image_url ? (
                     <Image
@@ -343,10 +346,10 @@ function IngredientPickerModal({
                       className="h-14 w-14 rounded border-2 border-green-600"
                     />
                   ) : (
-                    <div className="h-14 w-14 rounded bg-zinc-200 dark:bg-zinc-800" />
+                    <div className="h-14 w-14 rounded bg-amber-200 dark:bg-stone-800" />
                   )}
                   <span className="text-xs">{ingredient.name}</span>
-                  <span className="text-xs text-zinc-500">
+                  <span className="text-xs text-stone-500">
                     ×{availableQuantity(ingredient.itemId)}
                   </span>
                 </button>
@@ -375,60 +378,70 @@ function RecipeBookModal({
       aria-modal="true"
       aria-label="Recipe book"
     >
-      <div className="flex max-h-[80vh] w-full max-w-lg flex-col gap-4 overflow-y-auto rounded-lg bg-white p-6 dark:bg-zinc-900">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold tracking-tight">Recipe book</h2>
-          <button type="button" onClick={onClose} className="text-sm text-zinc-500 hover:underline">
-            Close
-          </button>
-        </div>
-        <p className="text-xs text-zinc-500">
-          Every recipe is visible here for testing — nothing is locked or discovered per player.
-        </p>
-        {recipes.length === 0 ? (
-          <p className="text-sm text-zinc-500 italic">No recipes yet.</p>
-        ) : (
-          <ul className="flex flex-col gap-3">
-            {recipes.map((recipe) => (
-              <li
-                key={recipe.id}
-                className="flex items-center gap-4 rounded-lg border border-zinc-200 p-3 dark:border-zinc-800"
-              >
-                {recipe.potion?.image_url ? (
-                  <Image
-                    src={recipe.potion.image_url}
-                    alt={recipe.potion.name}
-                    width={56}
-                    height={56}
-                    className="h-14 w-14 rounded border-2 border-purple-600"
-                  />
-                ) : null}
-                <div className="flex-1">
-                  <p className="text-sm font-medium">{recipe.potion?.name}</p>
-                  <p className="text-xs text-zinc-500">
-                    {recipe.ingredients
-                      .map((ing) => `${ing.quantityRequired}× ${ing.item?.name}`)
-                      .join(" + ")}
-                  </p>
-                  <p className="text-xs text-zinc-500">{describeEffect(recipe)}</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => onFillSlots(recipe)}
-                  disabled={!recipe.canBrew}
-                  title={
-                    recipe.canBrew
-                      ? "Fill the slots with this recipe's ingredients"
-                      : "You don't have enough ingredients"
-                  }
-                  className="rounded-md border border-purple-600 px-3 py-1.5 text-xs font-medium text-purple-700 hover:bg-purple-50 disabled:opacity-40 dark:text-purple-400 dark:hover:bg-purple-950"
+      <div className="relative w-full max-w-3xl">
+        <Image
+          src="/ui/book-container.png"
+          alt=""
+          width={1720}
+          height={1021}
+          className="h-auto w-full"
+          priority
+        />
+        <div className="absolute inset-0 flex flex-col gap-3 overflow-y-auto px-[9%] py-[13%] text-stone-900">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold tracking-tight">Recipe book</h2>
+            <button type="button" onClick={onClose} className="text-sm text-stone-600 hover:underline">
+              Close
+            </button>
+          </div>
+          <p className="text-xs text-stone-600">
+            Every recipe is visible here for testing — nothing is locked or discovered per player.
+          </p>
+          {recipes.length === 0 ? (
+            <p className="text-sm italic text-stone-600">No recipes yet.</p>
+          ) : (
+            <ul className="flex flex-col gap-3">
+              {recipes.map((recipe) => (
+                <li
+                  key={recipe.id}
+                  className="flex items-center gap-4 rounded-lg border border-amber-800/20 bg-amber-50/60 p-3"
                 >
-                  Fill slots
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+                  {recipe.potion?.image_url ? (
+                    <Image
+                      src={recipe.potion.image_url}
+                      alt={recipe.potion.name}
+                      width={56}
+                      height={56}
+                      className="h-14 w-14 rounded border-2 border-purple-600"
+                    />
+                  ) : null}
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{recipe.potion?.name}</p>
+                    <p className="text-xs text-stone-600">
+                      {recipe.ingredients
+                        .map((ing) => `${ing.quantityRequired}× ${ing.item?.name}`)
+                        .join(" + ")}
+                    </p>
+                    <p className="text-xs text-stone-600">{describeEffect(recipe)}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onFillSlots(recipe)}
+                    disabled={!recipe.canBrew}
+                    title={
+                      recipe.canBrew
+                        ? "Fill the slots with this recipe's ingredients"
+                        : "You don't have enough ingredients"
+                    }
+                    className="rounded-md border border-purple-600 px-3 py-1.5 text-xs font-medium text-purple-700 hover:bg-purple-50 disabled:opacity-40"
+                  >
+                    Fill slots
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -487,7 +500,7 @@ function ClaimBrewModal({
       aria-modal="true"
       aria-label="Finished potion"
     >
-      <div className="flex w-full max-w-sm flex-col items-center gap-4 rounded-lg bg-white p-6 text-center dark:bg-zinc-900">
+      <div className="flex w-full max-w-sm flex-col items-center gap-4 rounded-lg bg-white p-6 text-center dark:bg-stone-900">
         <h2 className="text-lg font-semibold tracking-tight">Your potion is ready!</h2>
         {potionImageUrl ? (
           <Image
@@ -498,7 +511,7 @@ function ClaimBrewModal({
             className="h-28 w-28 rounded border-2 border-purple-600"
           />
         ) : (
-          <div className="h-28 w-28 rounded bg-zinc-200 dark:bg-zinc-800" />
+          <div className="h-28 w-28 rounded bg-amber-200 dark:bg-stone-800" />
         )}
         <p className="font-medium">{potionName}</p>
 
@@ -516,7 +529,7 @@ function ClaimBrewModal({
           type="button"
           onClick={onClose}
           disabled={isSubmitting}
-          className="text-sm text-zinc-500 hover:underline disabled:opacity-60"
+          className="text-sm text-stone-500 hover:underline disabled:opacity-60"
         >
           Close for now
         </button>

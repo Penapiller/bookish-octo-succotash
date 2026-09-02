@@ -36,22 +36,22 @@ export default async function PublicProfilePage(
             className="h-16 w-16 rounded-full"
           />
         ) : (
-          <div className="h-16 w-16 rounded-full bg-zinc-200 dark:bg-zinc-800" />
+          <div className="h-16 w-16 rounded-full bg-amber-200 dark:bg-stone-800" />
         )}
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">
             {profile.display_name}
           </h1>
-          <p className="text-sm text-zinc-500">Joined {joined}</p>
+          <p className="text-sm text-stone-500">Joined {joined}</p>
         </div>
       </div>
 
       {profile.bio ? (
-        <p className="whitespace-pre-wrap text-zinc-700 dark:text-zinc-300">
+        <p className="whitespace-pre-wrap text-stone-700 dark:text-stone-300">
           {profile.bio}
         </p>
       ) : (
-        <p className="text-zinc-500 italic">This player hasn&apos;t written a bio yet.</p>
+        <p className="text-stone-500 italic">This player hasn&apos;t written a bio yet.</p>
       )}
     </main>
   );

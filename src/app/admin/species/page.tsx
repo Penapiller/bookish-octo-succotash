@@ -16,15 +16,15 @@ export default async function AdminSpeciesPage() {
         <h2 className="text-lg font-semibold tracking-tight">Species</h2>
         <Link
           href="/admin/species/new"
-          className="rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
+          className="rounded-md bg-amber-800 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-700 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
         >
           + New species
         </Link>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800">
+      <div className="overflow-hidden rounded-lg border border-amber-200 dark:border-stone-800">
         <table className="w-full text-sm">
-          <thead className="bg-zinc-100 text-left text-xs uppercase tracking-wide text-zinc-500 dark:bg-zinc-900">
+          <thead className="bg-amber-100 text-left text-xs uppercase tracking-wide text-stone-500 dark:bg-stone-900">
             <tr>
               <th className="px-4 py-2">Species</th>
               <th className="px-4 py-2">Rarity</th>
@@ -35,7 +35,7 @@ export default async function AdminSpeciesPage() {
             {(species ?? []).map((s) => (
               <tr
                 key={s.id}
-                className="border-t border-zinc-200 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
+                className="border-t border-amber-200 hover:bg-amber-50 dark:border-stone-800 dark:hover:bg-stone-900"
               >
                 <td className="px-4 py-2">
                   <Link href={`/admin/species/${s.id}`} className="flex items-center gap-2 hover:underline">
@@ -51,7 +51,7 @@ export default async function AdminSpeciesPage() {
             ))}
             {(species ?? []).length === 0 ? (
               <tr>
-                <td colSpan={3} className="px-4 py-6 text-center text-zinc-500">
+                <td colSpan={3} className="px-4 py-6 text-center text-stone-500">
                   No species yet.
                 </td>
               </tr>

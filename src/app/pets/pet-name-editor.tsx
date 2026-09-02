@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -50,14 +51,14 @@ export function PetNameEditor({
           maxLength={40}
           autoFocus
           placeholder="Pet name"
-          className="w-28 rounded border border-zinc-300 px-1.5 py-0.5 text-center text-xs dark:border-zinc-700 dark:bg-zinc-900"
+          className="w-28 rounded border border-amber-300 px-1.5 py-0.5 text-center text-xs dark:border-stone-700 dark:bg-stone-900"
         />
         <div className="flex gap-2">
           <button
             type="button"
             onClick={handleSave}
             disabled={isPending}
-            className="text-xs text-zinc-500 hover:underline disabled:opacity-60"
+            className="text-xs text-stone-500 hover:underline disabled:opacity-60"
           >
             {isPending ? "Saving…" : "Save"}
           </button>
@@ -68,7 +69,7 @@ export function PetNameEditor({
               setValue(customName ?? "");
               setError(null);
             }}
-            className="text-xs text-zinc-500 hover:underline"
+            className="text-xs text-stone-500 hover:underline"
           >
             Cancel
           </button>
@@ -82,17 +83,19 @@ export function PetNameEditor({
     <button
       type="button"
       onClick={() => setIsEditing(true)}
-      className="text-sm font-medium hover:underline"
+      className="flex items-center gap-1 text-sm font-medium hover:underline"
     >
       {customName}
+      <Image src="/icons/edit-pencil.png" alt="" width={12} height={12} />
     </button>
   ) : (
     <button
       type="button"
       onClick={() => setIsEditing(true)}
-      className="text-xs italic text-zinc-500 hover:underline"
+      className="flex items-center gap-1 text-xs italic text-stone-500 hover:underline"
     >
-      + Name this pet
+      <Image src="/icons/edit-pencil.png" alt="" width={12} height={12} />
+      Name this pet
     </button>
   );
 }

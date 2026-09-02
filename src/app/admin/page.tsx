@@ -25,10 +25,10 @@ export default async function AdminDashboardPage() {
         <Link
           key={card.href}
           href={card.href}
-          className="flex flex-col gap-1 rounded-lg border border-zinc-200 p-4 hover:bg-zinc-100 dark:border-zinc-800 dark:hover:bg-zinc-900"
+          className="flex flex-col gap-1 rounded-lg border border-amber-200 p-4 hover:bg-amber-100 dark:border-stone-800 dark:hover:bg-stone-900"
         >
           <span className="text-2xl font-semibold tracking-tight">{card.count}</span>
-          <span className="text-sm text-zinc-500">{card.label}</span>
+          <span className="text-sm text-stone-500">{card.label}</span>
         </Link>
       ))}
     </div>

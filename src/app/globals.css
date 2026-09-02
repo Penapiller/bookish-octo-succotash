@@ -1,8 +1,11 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* amber-50 / stone-900 — kept in sync with the bg-amber-50 on <body>
+     in layout.tsx; this rule (unlayered CSS) otherwise wins the cascade
+     over that Tailwind utility class regardless of specificity. */
+  --background: #fffbeb;
+  --foreground: #1c1917;
 }
 
 @theme inline {
@@ -14,8 +17,9 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* stone-950 / stone-50 — kept in sync with dark:bg-stone-950. */
+    --background: #0c0a09;
+    --foreground: #fafaf9;
   }
 }
 

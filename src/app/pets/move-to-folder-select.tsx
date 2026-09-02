@@ -40,7 +40,7 @@ export function MoveToFolderSelect({
       value={currentFolderId ?? UNSORTED_VALUE}
       onChange={handleChange}
       disabled={isPending}
-      className="w-full rounded-md border border-zinc-300 px-2 py-1 text-xs disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-900"
+      className="w-full rounded-md border border-amber-300 px-2 py-1 text-xs disabled:opacity-60 dark:border-stone-700 dark:bg-stone-900"
     >
       <option value={UNSORTED_VALUE}>Unsorted</option>
       {folders.map((folder) => (

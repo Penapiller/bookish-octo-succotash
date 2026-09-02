@@ -31,7 +31,7 @@ This project is being built one module at a time. Current state:
 - [x] Items + inventory — zones now sometimes drop a crafting item instead
       of a pet (blue = pet art, green = item art, for easy testing)
 - [x] Potions & brewing — a "Brewing" tab: a 3-slot brewing stand players
-      fill with owned ingredients, a recipe-book popup (📖 icon) showing
+      fill with owned ingredients, a recipe-book popup showing
       every fixed, shared recipe for reference/testing, and matching the
       slots against the book to start a brew — a fixed 2-minute timer,
       then return and claim the finished potion the same way as an
@@ -72,6 +72,12 @@ This project is being built one module at a time. Current state:
       owner sets a nickname
 - [x] `game-assets/` drop folder for real art — see
       [`game-assets/README.md`](./game-assets/README.md)
+- [x] Cream/parchment theme + wood-sign header — the site-wide color
+      palette moved from a cool gray (zinc) to a warm cream/amber one,
+      and the header/nav was redesigned as a wood-plank bar with a
+      distinct account panel, plus real icon art (recipe book, edit
+      pencil, error banners) replacing emoji/placeholder shapes in a
+      few spots. See Notes below for exactly what did and didn't change
 - [ ] Statue offerings
 - [ ] Trading
 - [ ] Profile customization (sanitized custom CSS/HTML)
@@ -527,7 +533,7 @@ signs in.
   granted.
 - Recipes are fixed and identical for every player — no per-user
   discovery/unlock state, matching spec ("no player-driven discovery at
-  launch"). The recipe book (📖 icon on `/brewing`) shows every active
+  launch"). The recipe book (book icon on `/brewing`) shows every active
   recipe to everyone unconditionally; new recipes are added via
   `/admin/recipes` now (see the Admin panel notes below) the same way
   zones/items/species are.
@@ -849,3 +855,64 @@ signs in.
   species/item/zone name) — not itself app code, just a documented
   workflow for getting art into Storage without going through the admin
   UI's file picker one image at a time.
+- **Cream/parchment theme + wood-sign header** — a site-wide palette
+  swap plus a header redesign, prompted by real art assets dropped into
+  `game-assets/` (see that folder's own notes above).
+  - **The palette swap is a straight, ordered token substitution**
+    across every `.tsx`/`.ts` file under `src/`: every `zinc-*` Tailwind
+    class became `amber-*` (backgrounds, borders, primary buttons —
+    the "cream/wood" tones) or `stone-*` (secondary/muted text, dark-mode
+    surfaces — a warm-toned gray so dark mode stays coherent with the
+    new identity rather than reverting to a cold gray). This was safe to
+    do as a scripted, ordered find-and-replace (longest/most-specific
+    class first — e.g. `dark:hover:bg-zinc-900` before `dark:bg-zinc-900`
+    before `bg-zinc-900` — so a shorter pattern never corrupts a longer
+    one it's a substring of) specifically because this codebase only
+    ever used Tailwind's palette classes directly, in a small, consistent
+    vocabulary I'd authored myself — there was no semantic token layer to
+    preserve. `bg-black/NN` modal scrims and plain `bg-white` cards were
+    deliberately left alone (a scrim doesn't need to match the theme, and
+    a white card reads fine as "paper" against the new cream page
+    background).
+  - **`globals.css`'s `--background`/`--foreground` CSS variables were
+    updated to match**, not just the `bg-amber-50` class on `<body>` —
+    that plain `body { background: var(--background) }` rule is
+    unlayered CSS, which wins the cascade over a Tailwind utility class
+    regardless of specificity, so leaving the variables at their old
+    white/black values would have silently overridden the new class.
+  - **The header** (`site-header.tsx`) was redesigned around the
+    Animal Jam-style reference the assets came with: a warm-brown
+    plank-toned bar, a pill-shaped nav strip, and a distinct rounded
+    cream "signpost" panel on the right for the account area — now also
+    showing the coin/gem balance at a glance, reusing data the header's
+    profile query already needed to fetch. This approximates the
+    reference's *structure and palette*, not a literal recreation of its
+    hand-painted wood/rope/forest illustration — no assets for that
+    specific art were provided, and faking a wood texture with CSS
+    gradients alone tends to look worse than a clean, deliberately
+    simpler shape in the same palette.
+  - **Real icon art replaced emoji/placeholder shapes in a few spots**:
+    the brewing stand's recipe-book button and its 3 ingredient slots
+    (now the actual item-slot frame art, swapping empty/filled states
+    instead of a dashed border), the recipe book modal itself (now
+    rendered over the open-book illustration instead of a plain white
+    card), and a small edit-pencil icon next to the pet name/folder
+    rename controls. These specific spots were picked because they're
+    exactly what the dropped assets were for (book backdrop, inventory
+    slots, icons per the request) — not every emoji or plain-text
+    "Rename"/error message in the app was swept in this pass, to keep
+    the change reviewable.
+  - Chrome/UI assets (icons, panel art, the book backdrop) live in
+    `public/icons/` and `public/ui/`, served directly — **not** uploaded
+    to the Supabase Storage bucket from 0010. That bucket is for
+    admin-editable game content (pet/item/zone art a database row points
+    to via `image_url`); these are static, code-shipped assets that ship
+    with a deploy like any other file in `public/`, with no admin upload
+    step or database row involved.
+  - Verified visually, not just via typecheck/build/lint (this is a
+    styling change — those wouldn't catch a broken layout): ran the dev
+    server against a stub Supabase URL and drove headless Chromium
+    (Playwright, this environment's pre-installed browser) to screenshot
+    both the logged-out `/` and `/login` pages for real, and a temporary
+    throwaway route for the logged-in header state (deleted before
+    finishing, along with the stub `.env.local` — neither was committed).

@@ -44,7 +44,7 @@ export default async function ItemsPage(props: PageProps<"/items">) {
     <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-6 py-12">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Items ({allItems.length})</h1>
-        <p className="text-sm text-zinc-500">
+        <p className="text-sm text-stone-500">
           Crafting ingredients and brewed potions — not for decorating pets. Turn ingredients into
           potions on the{" "}
           <Link href="/brewing" className="underline">
@@ -57,15 +57,15 @@ export default async function ItemsPage(props: PageProps<"/items">) {
         </p>
       </div>
 
-      <nav className="flex gap-2 border-b border-zinc-200 dark:border-zinc-800">
+      <nav className="flex gap-2 border-b border-amber-200 dark:border-stone-800">
         {TABS.map((tab) => (
           <Link
             key={tab.value}
             href={tab.value === "all" ? "/items" : `/items?type=${tab.value}`}
             className={`border-b-2 px-3 py-2 text-sm ${
               activeTab === tab.value
-                ? "border-zinc-900 font-medium dark:border-white"
-                : "border-transparent text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
+                ? "border-amber-800 font-medium dark:border-amber-200"
+                : "border-transparent text-stone-500 hover:text-stone-900 dark:hover:text-white"
             }`}
           >
             {tab.label}
@@ -74,7 +74,7 @@ export default async function ItemsPage(props: PageProps<"/items">) {
       </nav>
 
       {items.length === 0 ? (
-        <p className="text-sm text-zinc-500 italic">
+        <p className="text-sm text-stone-500 italic">
           {allItems.length === 0
             ? "No items yet — expeditions sometimes return one instead of a pet."
             : "Nothing in this category yet."}
@@ -85,9 +85,9 @@ export default async function ItemsPage(props: PageProps<"/items">) {
             entry.item ? (
               <li
                 key={entry.item.id}
-                className="relative flex flex-col items-center gap-2 rounded-lg border border-zinc-200 p-3 text-center dark:border-zinc-800"
+                className="relative flex flex-col items-center gap-2 rounded-lg border border-amber-200 p-3 text-center dark:border-stone-800"
               >
-                <span className="absolute right-2 top-2 rounded-full bg-zinc-900 px-2 py-0.5 text-xs font-medium text-white dark:bg-white dark:text-zinc-900">
+                <span className="absolute right-2 top-2 rounded-full bg-amber-800 px-2 py-0.5 text-xs font-medium text-white dark:bg-amber-200 dark:text-amber-950">
                   ×{entry.quantity}
                 </span>
                 {entry.item.image_url ? (
@@ -101,10 +101,10 @@ export default async function ItemsPage(props: PageProps<"/items">) {
                     }`}
                   />
                 ) : (
-                  <div className="h-24 w-24 rounded bg-zinc-200 dark:bg-zinc-800" />
+                  <div className="h-24 w-24 rounded bg-amber-200 dark:bg-stone-800" />
                 )}
                 <p className="text-sm font-medium">{entry.item.name}</p>
-                <p className="text-xs capitalize text-zinc-500">
+                <p className="text-xs capitalize text-stone-500">
                   {entry.item.type} · {entry.item.rarity}
                 </p>
               </li>

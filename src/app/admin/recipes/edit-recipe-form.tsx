@@ -28,7 +28,7 @@ export function EditRecipeForm({ recipe }: { recipe: PotionRecipeRow }) {
           id="effect_type"
           name="effect_type"
           defaultValue={recipe.effect_type}
-          className="rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+          className="rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
         >
           {EFFECT_TYPES.map((e) => (
             <option key={e.value} value={e.value}>
@@ -50,7 +50,7 @@ export function EditRecipeForm({ recipe }: { recipe: PotionRecipeRow }) {
           step={0.01}
           defaultValue={recipe.effect_magnitude}
           required
-          className="rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+          className="rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
         />
       </div>
 
@@ -59,7 +59,7 @@ export function EditRecipeForm({ recipe }: { recipe: PotionRecipeRow }) {
           type="checkbox"
           name="is_active"
           defaultChecked={recipe.is_active}
-          className="h-4 w-4 rounded border-zinc-300 dark:border-zinc-700"
+          className="h-4 w-4 rounded border-amber-300 dark:border-stone-700"
         />
         Active (visible in the recipe book)
       </label>
@@ -71,7 +71,7 @@ export function EditRecipeForm({ recipe }: { recipe: PotionRecipeRow }) {
       <button
         type="submit"
         disabled={isPending}
-        className="self-start rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-60 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
+        className="self-start rounded-md bg-amber-800 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-60 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
       >
         {isPending ? "Saving…" : "Save changes"}
       </button>

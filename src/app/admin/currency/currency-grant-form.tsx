@@ -20,7 +20,7 @@ export function CurrencyGrantForm() {
           type="number"
           step={1}
           defaultValue={0}
-          className="rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+          className="rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
         />
       </div>
 
@@ -34,11 +34,11 @@ export function CurrencyGrantForm() {
           type="number"
           step={1}
           defaultValue={0}
-          className="rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+          className="rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
         />
       </div>
 
-      <p className="text-xs text-zinc-500">
+      <p className="text-xs text-stone-500">
         Positive to add, negative to remove (balances never go below 0). This only ever affects
         your own account.
       </p>
@@ -53,7 +53,7 @@ export function CurrencyGrantForm() {
       <button
         type="submit"
         disabled={isPending}
-        className="self-start rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-60 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
+        className="self-start rounded-md bg-amber-800 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-60 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
       >
         {isPending ? "Applying…" : "Apply"}
       </button>

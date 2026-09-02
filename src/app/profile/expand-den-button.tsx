@@ -40,12 +40,12 @@ export function ExpandDenButton({
         type="button"
         onClick={handleClick}
         disabled={isPending || !canAfford}
-        className="self-start rounded-md border border-zinc-300 px-4 py-2 text-sm hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-900"
+        className="self-start rounded-md border border-amber-300 px-4 py-2 text-sm hover:bg-amber-100 disabled:opacity-50 dark:border-stone-700 dark:hover:bg-stone-900"
       >
         {isPending ? "Expanding…" : `Expand den (+25 slots) — 🪙 ${cost}`}
       </button>
       {!canAfford ? (
-        <p className="text-xs text-zinc-500">Not enough coins for the next expansion yet.</p>
+        <p className="text-xs text-stone-500">Not enough coins for the next expansion yet.</p>
       ) : null}
       {error ? <p className="text-xs text-red-600 dark:text-red-400">{error}</p> : null}
     </div>

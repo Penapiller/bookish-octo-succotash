@@ -14,7 +14,7 @@ export default async function NewRecipePage() {
   return (
     <div className="flex flex-col gap-4">
       <h2 className="text-lg font-semibold tracking-tight">New potion recipe</h2>
-      <p className="text-sm text-zinc-500">
+      <p className="text-sm text-stone-500">
         You&apos;ll be able to add ingredients (up to the brewing stand&apos;s 3 slots) after
         creating the recipe.
       </p>

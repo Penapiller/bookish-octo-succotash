@@ -22,18 +22,18 @@ export function NewRecipeForm({
 
   return (
     <form action={formAction} className="flex max-w-md flex-col gap-5">
-      <fieldset className="flex flex-col gap-3 rounded-md border border-zinc-200 p-3 dark:border-zinc-800">
+      <fieldset className="flex flex-col gap-3 rounded-md border border-amber-200 p-3 dark:border-stone-800">
         <legend className="px-1 text-sm font-medium">Output potion</legend>
         {existingPotions.length > 0 ? (
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="existing_potion_item_id" className="text-xs text-zinc-500">
+            <label htmlFor="existing_potion_item_id" className="text-xs text-stone-500">
               Use an existing potion item
             </label>
             <select
               id="existing_potion_item_id"
               name="existing_potion_item_id"
               defaultValue=""
-              className="rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+              className="rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
             >
               <option value="">— none —</option>
               {existingPotions.map((p) => (
@@ -44,26 +44,26 @@ export function NewRecipeForm({
             </select>
           </div>
         ) : null}
-        <p className="text-xs text-zinc-500">Or create a new potion item:</p>
+        <p className="text-xs text-stone-500">Or create a new potion item:</p>
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="new_potion_name" className="text-xs text-zinc-500">
+          <label htmlFor="new_potion_name" className="text-xs text-stone-500">
             New potion name
           </label>
           <input
             id="new_potion_name"
             name="new_potion_name"
-            className="rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+            className="rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="new_potion_image_url" className="text-xs text-zinc-500">
+          <label htmlFor="new_potion_image_url" className="text-xs text-stone-500">
             New potion image URL
           </label>
           <input
             id="new_potion_image_url"
             name="new_potion_image_url"
             placeholder="https://…"
-            className="rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+            className="rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
           />
         </div>
       </fieldset>
@@ -76,7 +76,7 @@ export function NewRecipeForm({
           id="effect_type"
           name="effect_type"
           defaultValue="duration_reduction"
-          className="rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+          className="rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
         >
           {EFFECT_TYPES.map((e) => (
             <option key={e.value} value={e.value}>
@@ -98,9 +98,9 @@ export function NewRecipeForm({
           step={0.01}
           defaultValue={1}
           required
-          className="rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+          className="rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
         />
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-stone-500">
           Meaning depends on the effect — e.g. a multiplier for boosts, a fraction for duration
           reduction.
         </p>
@@ -111,7 +111,7 @@ export function NewRecipeForm({
           type="checkbox"
           name="is_active"
           defaultChecked
-          className="h-4 w-4 rounded border-zinc-300 dark:border-zinc-700"
+          className="h-4 w-4 rounded border-amber-300 dark:border-stone-700"
         />
         Active (visible in the recipe book)
       </label>
@@ -123,7 +123,7 @@ export function NewRecipeForm({
       <button
         type="submit"
         disabled={isPending}
-        className="self-start rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-60 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
+        className="self-start rounded-md bg-amber-800 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-60 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
       >
         {isPending ? "Creating…" : "Create recipe"}
       </button>

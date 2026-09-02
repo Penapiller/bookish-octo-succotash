@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { BrewingStand } from "@/components/brewing-stand";
@@ -144,24 +145,27 @@ export default async function BrewingPage() {
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-6 py-12">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Brewing</h1>
-        <p className="text-sm text-zinc-500">
+        <p className="text-sm text-stone-500">
           Place ingredients in the 3 slots below. If they match a recipe from the book, you can
           start brewing it — same recipe book for every player, nothing to unlock.
         </p>
       </div>
       {recipesError || ingredientsError ? (
-        <div className="rounded-md border border-red-400 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
-          <p className="font-medium">Couldn&apos;t load the recipe book.</p>
-          {recipesError ? (
-            <p>
-              potion_recipes ({recipesError.code}): {recipesError.message}
-            </p>
-          ) : null}
-          {ingredientsError ? (
-            <p>
-              potion_recipe_ingredients ({ingredientsError.code}): {ingredientsError.message}
-            </p>
-          ) : null}
+        <div className="flex gap-2 rounded-md border border-red-400 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+          <Image src="/icons/exclamation.png" alt="" width={20} height={20} className="mt-0.5 shrink-0" />
+          <div>
+            <p className="font-medium">Couldn&apos;t load the recipe book.</p>
+            {recipesError ? (
+              <p>
+                potion_recipes ({recipesError.code}): {recipesError.message}
+              </p>
+            ) : null}
+            {ingredientsError ? (
+              <p>
+                potion_recipe_ingredients ({ingredientsError.code}): {ingredientsError.message}
+              </p>
+            ) : null}
+          </div>
         </div>
       ) : null}
       <BrewingStand recipes={recipes} ownedIngredients={ownedIngredients} activeBrew={activeBrew} />

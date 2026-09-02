@@ -56,7 +56,7 @@ export function ExpeditionCountdown({
     return compact ? (
       <span className="text-xs font-medium text-white">…</span>
     ) : (
-      <p className="text-sm text-zinc-500">Loading…</p>
+      <p className="text-sm text-stone-500">Loading…</p>
     );
   }
 
@@ -64,7 +64,7 @@ export function ExpeditionCountdown({
     return compact ? (
       <span className="text-xs font-medium text-white">…</span>
     ) : (
-      <p className="text-sm text-zinc-500">Wrapping up…</p>
+      <p className="text-sm text-stone-500">Wrapping up…</p>
     );
   }
 
@@ -76,6 +76,6 @@ export function ExpeditionCountdown({
   return compact ? (
     <span className="text-xs font-medium text-white">{label}</span>
   ) : (
-    <p className="text-sm text-zinc-500">Ready in {label}</p>
+    <p className="text-sm text-stone-500">Ready in {label}</p>
   );
 }

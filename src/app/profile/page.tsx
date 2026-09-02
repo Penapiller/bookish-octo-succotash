@@ -76,22 +76,22 @@ export default async function ProfilePage() {
             className="h-16 w-16 rounded-full"
           />
         ) : (
-          <div className="h-16 w-16 rounded-full bg-zinc-200 dark:bg-zinc-800" />
+          <div className="h-16 w-16 rounded-full bg-amber-200 dark:bg-stone-800" />
         )}
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">
             {profile.display_name}
           </h1>
-          <p className="text-sm text-zinc-500">Joined {joined}</p>
+          <p className="text-sm text-stone-500">Joined {joined}</p>
         </div>
       </div>
 
       {profile.bio ? (
-        <p className="whitespace-pre-wrap text-zinc-700 dark:text-zinc-300">
+        <p className="whitespace-pre-wrap text-stone-700 dark:text-stone-300">
           {profile.bio}
         </p>
       ) : (
-        <p className="text-zinc-500 italic">
+        <p className="text-stone-500 italic">
           No bio yet.{" "}
           <Link href="/settings" className="underline">
             Add one
@@ -100,21 +100,21 @@ export default async function ProfilePage() {
         </p>
       )}
 
-      <dl className="grid grid-cols-2 gap-4 rounded-lg border border-zinc-200 p-4 text-sm dark:border-zinc-800 sm:grid-cols-4">
+      <dl className="grid grid-cols-2 gap-4 rounded-lg border border-amber-200 p-4 text-sm dark:border-stone-800 sm:grid-cols-4">
         <div>
-          <dt className="text-zinc-500">🪙 Coins</dt>
+          <dt className="text-stone-500">🪙 Coins</dt>
           <dd className="text-lg font-medium">{profile.coin_balance}</dd>
         </div>
         <div>
-          <dt className="text-zinc-500">💎 Gems</dt>
+          <dt className="text-stone-500">💎 Gems</dt>
           <dd className="text-lg font-medium">{profile.gem_balance}</dd>
         </div>
         <div>
-          <dt className="text-zinc-500">Den size</dt>
+          <dt className="text-stone-500">Den size</dt>
           <dd className="text-lg font-medium">{profile.den_size}</dd>
         </div>
         <div>
-          <dt className="text-zinc-500">Pets owned</dt>
+          <dt className="text-stone-500">Pets owned</dt>
           <dd className="text-lg font-medium">
             {petCount ?? 0} / {profile.den_size}
           </dd>
@@ -133,7 +133,7 @@ export default async function ProfilePage() {
           {activeExpeditions.map((expedition) => (
             <div
               key={expedition.id}
-              className="flex items-center gap-4 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800"
+              className="flex items-center gap-4 rounded-lg border border-amber-200 p-4 dark:border-stone-800"
             >
               {expedition.zones?.image_url ? (
                 <Image
@@ -148,7 +148,7 @@ export default async function ProfilePage() {
                 <p className="font-medium">
                   {expedition.is_tutorial ? "Tutorial expedition" : expedition.zones?.name}
                 </p>
-                <p className="text-xs text-zinc-500">
+                <p className="text-xs text-stone-500">
                   {expedition.zones?.description ??
                     "This box is meant to hold this zone's flavor description."}
                 </p>
@@ -162,25 +162,25 @@ export default async function ProfilePage() {
       <div className="flex gap-3">
         <Link
           href="/pets"
-          className="rounded-md border border-zinc-300 px-4 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
+          className="rounded-md border border-amber-300 px-4 py-2 text-sm hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-900"
         >
           View pets
         </Link>
         <Link
           href="/items"
-          className="rounded-md border border-zinc-300 px-4 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
+          className="rounded-md border border-amber-300 px-4 py-2 text-sm hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-900"
         >
           View items
         </Link>
         <Link
           href="/settings"
-          className="rounded-md border border-zinc-300 px-4 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
+          className="rounded-md border border-amber-300 px-4 py-2 text-sm hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-900"
         >
           Edit profile
         </Link>
         <Link
           href={`/u/${profile.id}`}
-          className="rounded-md border border-zinc-300 px-4 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
+          className="rounded-md border border-amber-300 px-4 py-2 text-sm hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-900"
         >
           View public profile
         </Link>

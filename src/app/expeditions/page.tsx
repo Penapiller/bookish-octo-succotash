@@ -123,7 +123,7 @@ export default async function ExpeditionsPage() {
     <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-6 py-12">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Expeditions</h1>
-        <p className="text-sm text-zinc-500">
+        <p className="text-sm text-stone-500">
           Pick an area on the map to see what it offers and send a pet to explore it.
         </p>
       </div>

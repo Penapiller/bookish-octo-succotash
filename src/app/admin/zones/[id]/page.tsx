@@ -71,9 +71,9 @@ export default async function EditZonePage(props: PageProps<"/admin/zones/[id]">
         <>
           <section className="flex flex-col gap-3">
             <h3 className="text-base font-semibold tracking-tight">Pet pool</h3>
-            <div className="overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800">
+            <div className="overflow-hidden rounded-lg border border-amber-200 dark:border-stone-800">
               <table className="w-full text-sm">
-                <thead className="bg-zinc-100 text-left text-xs uppercase tracking-wide text-zinc-500 dark:bg-zinc-900">
+                <thead className="bg-amber-100 text-left text-xs uppercase tracking-wide text-stone-500 dark:bg-stone-900">
                   <tr>
                     <th className="px-4 py-2">Species</th>
                     <th className="px-4 py-2">Drop weight</th>
@@ -84,7 +84,7 @@ export default async function EditZonePage(props: PageProps<"/admin/zones/[id]">
                   {pool.map((entry) => (
                     <tr
                       key={entry.species_id}
-                      className="border-t border-zinc-200 dark:border-zinc-800"
+                      className="border-t border-amber-200 dark:border-stone-800"
                     >
                       <td className="px-4 py-2">
                         <span className="flex items-center gap-2">
@@ -117,7 +117,7 @@ export default async function EditZonePage(props: PageProps<"/admin/zones/[id]">
                   ))}
                   {pool.length === 0 ? (
                     <tr>
-                      <td colSpan={3} className="px-4 py-4 text-center text-zinc-500">
+                      <td colSpan={3} className="px-4 py-4 text-center text-stone-500">
                         No pets in this zone&apos;s pool yet.
                       </td>
                     </tr>
@@ -138,7 +138,7 @@ export default async function EditZonePage(props: PageProps<"/admin/zones/[id]">
                   }))}
                 />
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="pool_drop_weight" className="text-xs text-zinc-500">
+                  <label htmlFor="pool_drop_weight" className="text-xs text-stone-500">
                     Drop weight
                   </label>
                   <input
@@ -149,12 +149,12 @@ export default async function EditZonePage(props: PageProps<"/admin/zones/[id]">
                     step={1}
                     defaultValue={1}
                     required
-                    className="w-24 rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+                    className="w-24 rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
                   />
                 </div>
                 <button
                   type="submit"
-                  className="rounded-md border border-zinc-300 px-3 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                  className="rounded-md border border-amber-300 px-3 py-2 text-sm hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-800"
                 >
                   Add to pool
                 </button>
@@ -164,9 +164,9 @@ export default async function EditZonePage(props: PageProps<"/admin/zones/[id]">
 
           <section className="flex flex-col gap-3">
             <h3 className="text-base font-semibold tracking-tight">Loot table</h3>
-            <div className="overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800">
+            <div className="overflow-hidden rounded-lg border border-amber-200 dark:border-stone-800">
               <table className="w-full text-sm">
-                <thead className="bg-zinc-100 text-left text-xs uppercase tracking-wide text-zinc-500 dark:bg-zinc-900">
+                <thead className="bg-amber-100 text-left text-xs uppercase tracking-wide text-stone-500 dark:bg-stone-900">
                   <tr>
                     <th className="px-4 py-2">Item</th>
                     <th className="px-4 py-2">Drop weight</th>
@@ -177,7 +177,7 @@ export default async function EditZonePage(props: PageProps<"/admin/zones/[id]">
                   {loot.map((entry) => (
                     <tr
                       key={entry.item_id}
-                      className="border-t border-zinc-200 dark:border-zinc-800"
+                      className="border-t border-amber-200 dark:border-stone-800"
                     >
                       <td className="px-4 py-2">
                         <span className="flex items-center gap-2">
@@ -210,7 +210,7 @@ export default async function EditZonePage(props: PageProps<"/admin/zones/[id]">
                   ))}
                   {loot.length === 0 ? (
                     <tr>
-                      <td colSpan={3} className="px-4 py-4 text-center text-zinc-500">
+                      <td colSpan={3} className="px-4 py-4 text-center text-stone-500">
                         No items in this zone&apos;s loot table yet.
                       </td>
                     </tr>
@@ -231,7 +231,7 @@ export default async function EditZonePage(props: PageProps<"/admin/zones/[id]">
                   }))}
                 />
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="loot_drop_weight" className="text-xs text-zinc-500">
+                  <label htmlFor="loot_drop_weight" className="text-xs text-stone-500">
                     Drop weight
                   </label>
                   <input
@@ -242,12 +242,12 @@ export default async function EditZonePage(props: PageProps<"/admin/zones/[id]">
                     step={1}
                     defaultValue={1}
                     required
-                    className="w-24 rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+                    className="w-24 rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
                   />
                 </div>
                 <button
                   type="submit"
-                  className="rounded-md border border-zinc-300 px-3 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                  className="rounded-md border border-amber-300 px-3 py-2 text-sm hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-800"
                 >
                   Add to loot table
                 </button>

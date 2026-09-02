@@ -26,7 +26,7 @@ function PetGrid({
       {list.map((pet) => (
         <li
           key={pet.id}
-          className="flex flex-col items-center gap-2 rounded-lg border border-zinc-200 p-3 text-center dark:border-zinc-800"
+          className="flex flex-col items-center gap-2 rounded-lg border border-amber-200 p-3 text-center dark:border-stone-800"
         >
           {pet.species?.image_url ? (
             <Image
@@ -37,10 +37,10 @@ function PetGrid({
               className="h-24 w-24 rounded border-2 border-blue-600"
             />
           ) : (
-            <div className="h-24 w-24 rounded bg-zinc-200 dark:bg-zinc-800" />
+            <div className="h-24 w-24 rounded bg-amber-200 dark:bg-stone-800" />
           )}
           <PetNameEditor userId={userId} petId={pet.id} customName={pet.custom_name} />
-          <p className="text-xs capitalize text-zinc-500">
+          <p className="text-xs capitalize text-stone-500">
             {pet.species?.name} · {pet.rarity}
           </p>
           <MoveToFolderSelect
@@ -143,7 +143,7 @@ export default async function PetsPage(props: PageProps<"/pets">) {
     <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-6 py-12">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Pets ({totalCount ?? 0})</h1>
-        <p className="text-sm text-zinc-500">
+        <p className="text-sm text-stone-500">
           Group your pets into folders, like a lair.{" "}
           <Link href="/items" className="underline">
             Looking for items?
@@ -153,15 +153,15 @@ export default async function PetsPage(props: PageProps<"/pets">) {
 
       <NewFolderForm />
 
-      <nav className="flex flex-wrap gap-2 border-b border-zinc-200 dark:border-zinc-800">
+      <nav className="flex flex-wrap gap-2 border-b border-amber-200 dark:border-stone-800">
         {tabs.map((tab) => (
           <Link
             key={tab.value}
             href={tab.value === ALL_TAB ? "/pets" : `/pets?folder=${tab.value}`}
             className={`border-b-2 px-3 py-2 text-sm ${
               activeTab === tab.value
-                ? "border-zinc-900 font-medium dark:border-white"
-                : "border-transparent text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
+                ? "border-amber-800 font-medium dark:border-amber-200"
+                : "border-transparent text-stone-500 hover:text-stone-900 dark:hover:text-white"
             }`}
           >
             {tab.label} ({tab.count})
@@ -174,7 +174,7 @@ export default async function PetsPage(props: PageProps<"/pets">) {
       ) : null}
 
       {pets.length === 0 ? (
-        <p className="text-sm text-zinc-500 italic">
+        <p className="text-sm text-stone-500 italic">
           {activeTab === ALL_TAB
             ? "You don't have any pets yet."
             : activeTab === UNSORTED_TAB
@@ -190,24 +190,24 @@ export default async function PetsPage(props: PageProps<"/pets">) {
           <Link
             href={`/pets?folder=${activeTab}&page=${page - 1}`}
             aria-disabled={page <= 1}
-            className={`rounded-md border border-zinc-300 px-3 py-1.5 dark:border-zinc-700 ${
+            className={`rounded-md border border-amber-300 px-3 py-1.5 dark:border-stone-700 ${
               page <= 1
                 ? "pointer-events-none opacity-40"
-                : "hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                : "hover:bg-amber-100 dark:hover:bg-stone-800"
             }`}
           >
             Previous
           </Link>
-          <span className="text-zinc-500">
+          <span className="text-stone-500">
             Page {page} of {totalPages}
           </span>
           <Link
             href={`/pets?folder=${activeTab}&page=${page + 1}`}
             aria-disabled={page >= totalPages}
-            className={`rounded-md border border-zinc-300 px-3 py-1.5 dark:border-zinc-700 ${
+            className={`rounded-md border border-amber-300 px-3 py-1.5 dark:border-stone-700 ${
               page >= totalPages
                 ? "pointer-events-none opacity-40"
-                : "hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                : "hover:bg-amber-100 dark:hover:bg-stone-800"
             }`}
           >
             Next

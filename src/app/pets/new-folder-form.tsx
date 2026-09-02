@@ -19,7 +19,7 @@ export function NewFolderForm() {
       className="flex items-end gap-2"
     >
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="new_folder_name" className="text-xs text-zinc-500">
+        <label htmlFor="new_folder_name" className="text-xs text-stone-500">
           New folder
         </label>
         <input
@@ -28,13 +28,13 @@ export function NewFolderForm() {
           placeholder="e.g. Favorites"
           maxLength={60}
           required
-          className="rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+          className="rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
         />
       </div>
       <button
         type="submit"
         disabled={isPending}
-        className="rounded-md border border-zinc-300 px-3 py-2 text-sm hover:bg-zinc-100 disabled:opacity-60 dark:border-zinc-700 dark:hover:bg-zinc-800"
+        className="rounded-md border border-amber-300 px-3 py-2 text-sm hover:bg-amber-100 disabled:opacity-60 dark:border-stone-700 dark:hover:bg-stone-800"
       >
         {isPending ? "Creating…" : "+ New folder"}
       </button>

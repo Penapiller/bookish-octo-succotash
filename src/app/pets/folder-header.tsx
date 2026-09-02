@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useActionState, useState } from "react";
 import { renameFolder, deleteFolder, type FolderFormState } from "./actions";
 
@@ -28,12 +29,12 @@ export function FolderHeader({
             autoFocus
             maxLength={60}
             required
-            className="rounded-md border border-zinc-300 px-2 py-1 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+            className="rounded-md border border-amber-300 px-2 py-1 text-sm dark:border-stone-700 dark:bg-stone-900"
           />
           <button
             type="submit"
             disabled={isPending}
-            className="text-xs text-zinc-500 hover:underline disabled:opacity-60"
+            className="text-xs text-stone-500 hover:underline disabled:opacity-60"
           >
             Save
           </button>
@@ -41,7 +42,7 @@ export function FolderHeader({
         <button
           type="button"
           onClick={() => setIsRenaming(false)}
-          className="text-xs text-zinc-500 hover:underline"
+          className="text-xs text-stone-500 hover:underline"
         >
           Cancel
         </button>
@@ -60,8 +61,9 @@ export function FolderHeader({
       <button
         type="button"
         onClick={() => setIsRenaming(true)}
-        className="text-xs text-zinc-500 hover:underline"
+        className="flex items-center gap-1 text-xs text-stone-500 hover:underline"
       >
+        <Image src="/icons/edit-pencil.png" alt="" width={12} height={12} />
         Rename
       </button>
       <form action={deleteFolder}>

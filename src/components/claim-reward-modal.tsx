@@ -108,9 +108,9 @@ export function ClaimRewardModal({
         aria-modal="true"
         aria-label="Bonus reward"
       >
-        <div className="flex w-full max-w-sm flex-col items-center gap-4 rounded-lg bg-white p-6 text-center dark:bg-zinc-900">
+        <div className="flex w-full max-w-sm flex-col items-center gap-4 rounded-lg bg-white p-6 text-center dark:bg-stone-900">
           <p className="text-lg font-semibold tracking-tight">🎉 Double reward!</p>
-          <p className="text-sm text-zinc-500">You also got a bonus:</p>
+          <p className="text-sm text-stone-500">You also got a bonus:</p>
           {bonus.bonus_image_url ? (
             <Image
               src={bonus.bonus_image_url}
@@ -120,13 +120,13 @@ export function ClaimRewardModal({
               className={`h-24 w-24 rounded border-2 ${borderColor}`}
             />
           ) : (
-            <div className="h-24 w-24 rounded bg-zinc-200 dark:bg-zinc-800" />
+            <div className="h-24 w-24 rounded bg-amber-200 dark:bg-stone-800" />
           )}
           <p className="font-medium">{bonus.bonus_name}</p>
           <button
             type="button"
             onClick={onClose}
-            className="w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
+            className="w-full rounded-md bg-amber-800 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
           >
             Nice!
           </button>
@@ -142,13 +142,13 @@ export function ClaimRewardModal({
       aria-modal="true"
       aria-label="Expedition reward"
     >
-      <div className="flex w-full max-w-sm flex-col items-center gap-4 rounded-lg bg-white p-6 text-center dark:bg-zinc-900">
-        <p className="text-sm text-zinc-500">Your pet has returned from {zoneName}!</p>
+      <div className="flex w-full max-w-sm flex-col items-center gap-4 rounded-lg bg-white p-6 text-center dark:bg-stone-900">
+        <p className="text-sm text-stone-500">Your pet has returned from {zoneName}!</p>
 
         {loadError ? (
           <p className="text-sm text-red-600 dark:text-red-400">{loadError}</p>
         ) : !reveal ? (
-          <p className="text-sm text-zinc-500">Opening…</p>
+          <p className="text-sm text-stone-500">Opening…</p>
         ) : reveal.species ? (
           <>
             <h2 className="text-lg font-semibold tracking-tight">You found a pet:</h2>
@@ -161,10 +161,10 @@ export function ClaimRewardModal({
                 className="h-28 w-28 rounded border-2 border-blue-600"
               />
             ) : (
-              <div className="h-28 w-28 rounded bg-zinc-200 dark:bg-zinc-800" />
+              <div className="h-28 w-28 rounded bg-amber-200 dark:bg-stone-800" />
             )}
             <p className="font-medium">{reveal.species.name}</p>
-            <p className="text-xs capitalize text-zinc-500">{reveal.species.rarity}</p>
+            <p className="text-xs capitalize text-stone-500">{reveal.species.rarity}</p>
           </>
         ) : reveal.items ? (
           <>
@@ -178,13 +178,13 @@ export function ClaimRewardModal({
                 className="h-28 w-28 rounded border-2 border-green-600"
               />
             ) : (
-              <div className="h-28 w-28 rounded bg-zinc-200 dark:bg-zinc-800" />
+              <div className="h-28 w-28 rounded bg-amber-200 dark:bg-stone-800" />
             )}
             <p className="font-medium">{reveal.items.name}</p>
-            <p className="text-xs capitalize text-zinc-500">{reveal.items.rarity}</p>
+            <p className="text-xs capitalize text-stone-500">{reveal.items.rarity}</p>
           </>
         ) : (
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-stone-500">
             Nothing this time — your pet came back empty-handed.
           </p>
         )}
@@ -200,7 +200,7 @@ export function ClaimRewardModal({
                 type="button"
                 onClick={() => handleChoice(true)}
                 disabled={isSubmitting}
-                className="flex-1 rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-60 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
+                className="flex-1 rounded-md bg-amber-800 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-60 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
               >
                 {isSubmitting ? "…" : "Keep it"}
               </button>
@@ -208,7 +208,7 @@ export function ClaimRewardModal({
                 type="button"
                 onClick={() => handleChoice(false)}
                 disabled={isSubmitting}
-                className="flex-1 rounded-md border border-zinc-300 px-4 py-2 text-sm hover:bg-zinc-100 disabled:opacity-60 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                className="flex-1 rounded-md border border-amber-300 px-4 py-2 text-sm hover:bg-amber-100 disabled:opacity-60 dark:border-stone-700 dark:hover:bg-stone-800"
               >
                 {isSubmitting ? "…" : "Send it away"}
               </button>
@@ -218,7 +218,7 @@ export function ClaimRewardModal({
               type="button"
               onClick={() => handleChoice(false)}
               disabled={isSubmitting}
-              className="flex-1 rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-60 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
+              className="flex-1 rounded-md bg-amber-800 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-60 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
             >
               {isSubmitting ? "…" : "Continue"}
             </button>
@@ -229,7 +229,7 @@ export function ClaimRewardModal({
           type="button"
           onClick={onClose}
           disabled={isSubmitting}
-          className="text-sm text-zinc-500 hover:underline disabled:opacity-60"
+          className="text-sm text-stone-500 hover:underline disabled:opacity-60"
         >
           Close for now
         </button>

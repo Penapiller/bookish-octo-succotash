@@ -34,7 +34,7 @@ export function ItemForm({
           name="name"
           defaultValue={item?.name ?? ""}
           required
-          className="rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+          className="rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
         />
       </div>
 
@@ -46,7 +46,7 @@ export function ItemForm({
           id="type"
           name="type"
           defaultValue={item?.type ?? "ingredient"}
-          className="rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+          className="rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
         >
           {ITEM_TYPES.map((type) => (
             <option key={type} value={type}>
@@ -64,7 +64,7 @@ export function ItemForm({
           id="rarity"
           name="rarity"
           defaultValue={item?.rarity ?? "common"}
-          className="rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+          className="rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
         >
           {ITEM_RARITIES.map((rarity) => (
             <option key={rarity} value={rarity}>
@@ -82,10 +82,10 @@ export function ItemForm({
             <img
               src={previewUrl ?? item!.image_url!}
               alt=""
-              className="h-16 w-16 rounded border border-zinc-300 object-cover dark:border-zinc-700"
+              className="h-16 w-16 rounded border border-amber-300 object-cover dark:border-stone-700"
             />
           ) : (
-            <div className="h-16 w-16 rounded border border-dashed border-zinc-300 dark:border-zinc-700" />
+            <div className="h-16 w-16 rounded border border-dashed border-amber-300 dark:border-stone-700" />
           )}
           <div className="flex flex-col gap-1">
             <input
@@ -99,10 +99,10 @@ export function ItemForm({
               }}
               className="text-sm"
             />
-            <p className="text-xs text-zinc-500">PNG, JPEG, WebP, or GIF — up to 5 MB.</p>
+            <p className="text-xs text-stone-500">PNG, JPEG, WebP, or GIF — up to 5 MB.</p>
           </div>
         </div>
-        <label htmlFor="image_url" className="mt-1 text-xs text-zinc-500">
+        <label htmlFor="image_url" className="mt-1 text-xs text-stone-500">
           Or paste an image URL instead (used only if no file is uploaded above)
         </label>
         <input
@@ -110,7 +110,7 @@ export function ItemForm({
           name="image_url"
           defaultValue={item?.image_url ?? ""}
           placeholder="https://…"
-          className="rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+          className="rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
         />
       </div>
 
@@ -126,7 +126,7 @@ export function ItemForm({
           step={1}
           defaultValue={item?.sell_value ?? 0}
           required
-          className="rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+          className="rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
         />
       </div>
 
@@ -135,7 +135,7 @@ export function ItemForm({
           type="checkbox"
           name="is_active"
           defaultChecked={item?.is_active ?? true}
-          className="h-4 w-4 rounded border-zinc-300 dark:border-zinc-700"
+          className="h-4 w-4 rounded border-amber-300 dark:border-stone-700"
         />
         Active (visible in loot tables / recipes)
       </label>
@@ -147,7 +147,7 @@ export function ItemForm({
       <button
         type="submit"
         disabled={isPending}
-        className="self-start rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-60 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
+        className="self-start rounded-md bg-amber-800 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-60 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
       >
         {isPending ? "Saving…" : submitLabel}
       </button>

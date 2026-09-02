@@ -74,13 +74,13 @@ export default async function EditRecipePage(props: PageProps<"/admin/recipes/[i
 
       <section className="flex flex-col gap-3">
         <h3 className="text-base font-semibold tracking-tight">Ingredients</h3>
-        <p className="text-sm text-zinc-500">
+        <p className="text-sm text-stone-500">
           The brewing stand has 3 slots, and a brew must match a recipe&apos;s ingredients
           exactly — {ingredientTotal} / 3 slots used.
         </p>
-        <div className="overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800">
+        <div className="overflow-hidden rounded-lg border border-amber-200 dark:border-stone-800">
           <table className="w-full text-sm">
-            <thead className="bg-zinc-100 text-left text-xs uppercase tracking-wide text-zinc-500 dark:bg-zinc-900">
+            <thead className="bg-amber-100 text-left text-xs uppercase tracking-wide text-stone-500 dark:bg-stone-900">
               <tr>
                 <th className="px-4 py-2">Item</th>
                 <th className="px-4 py-2">Quantity required</th>
@@ -89,7 +89,7 @@ export default async function EditRecipePage(props: PageProps<"/admin/recipes/[i
             </thead>
             <tbody>
               {ingredients.map((entry) => (
-                <tr key={entry.item_id} className="border-t border-zinc-200 dark:border-zinc-800">
+                <tr key={entry.item_id} className="border-t border-amber-200 dark:border-stone-800">
                   <td className="px-4 py-2">
                     <span className="flex items-center gap-2">
                       {entry.items?.image_url ? (
@@ -121,7 +121,7 @@ export default async function EditRecipePage(props: PageProps<"/admin/recipes/[i
               ))}
               {ingredients.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className="px-4 py-4 text-center text-zinc-500">
+                  <td colSpan={3} className="px-4 py-4 text-center text-stone-500">
                     No ingredients yet — this recipe can&apos;t be brewed until you add some.
                   </td>
                 </tr>
@@ -142,7 +142,7 @@ export default async function EditRecipePage(props: PageProps<"/admin/recipes/[i
               }))}
             />
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="quantity_required" className="text-xs text-zinc-500">
+              <label htmlFor="quantity_required" className="text-xs text-stone-500">
                 Quantity
               </label>
               <input
@@ -154,12 +154,12 @@ export default async function EditRecipePage(props: PageProps<"/admin/recipes/[i
                 step={1}
                 defaultValue={1}
                 required
-                className="w-24 rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+                className="w-24 rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
               />
             </div>
             <button
               type="submit"
-              className="rounded-md border border-zinc-300 px-3 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+              className="rounded-md border border-amber-300 px-3 py-2 text-sm hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-800"
             >
               Add ingredient
             </button>
