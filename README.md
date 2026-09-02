@@ -83,7 +83,10 @@ This project is being built one module at a time. Current state:
       accounts can share one, and changing it costs 15 gems and can only
       be done once every 14 days. See Notes below
 - [ ] Statue offerings
-- [ ] Trading
+- [x] Trading — a "Trades" tab: propose a fixed pets/items/coins/gems
+      offer to another player by username, they decline or accept by
+      building their own counter-offer from their own den/inventory, and
+      accepting executes the swap immediately. See Notes below
 - [ ] Profile customization (sanitized custom CSS/HTML)
 - [ ] Forums
 
@@ -1076,3 +1079,99 @@ signs in.
     change now, on cooldown, insufficient gems, the open edit form) were
     checked visually with headless Chromium against a temporary preview
     route.
+- **Trading (`0015_trading.sql`, `/trades`)** — a fixed offer, not a live
+  negotiation thread. The initiator picks pets/items/coins/gems from
+  their OWN den/inventory to offer, addressed to a recipient by their
+  unique username (resolved client-side to a user id via `user_profiles`
+  before calling `create_trade`), plus an optional free-text note saying
+  what they'd like back. The recipient never sees or picks FROM the
+  initiator's collection and vice versa — neither player can browse the
+  other's private den/inventory (no new RLS was opened up for that), so
+  the only thing either side ever offers is drawn from their own
+  `pets`/`user_inventory`. Accepting means building your own counter
+  from your own collection (or nothing, to accept as a pure gift) and
+  submitting it — that submission executes the swap immediately, there's
+  no further back-and-forth round in this first version.
+  - **Not an escrow system, by design**: `create_trade` only sanity-checks
+    ownership/balance at proposal time — it doesn't lock or reserve
+    anything. The same pet could be offered in two different trades, or
+    spent before either resolves. `respond_to_trade` re-validates
+    everything from scratch (ownership, item quantities, coin/gem
+    balances, for both sides) inside the same transaction that executes
+    the swap, and aborts cleanly with "This trade is no longer valid —
+    the offer has changed" if anything moved in the meantime — verified
+    directly by manufacturing a stale offer (moving the offered pet away
+    via a separate service-role update between `create_trade` and
+    `respond_to_trade`) and confirming the accept fails and the trade
+    stays `pending`, untouched.
+  - Three tables: `trades` (one row per proposal — status, note, and
+    each side's coin/gem amounts), `trade_pets` and `trade_items` (which
+    pets/items are on which `side`). `side` is stored explicitly rather
+    than derived from `pets.owner_id` — that column changes the moment a
+    trade completes, so deriving "who offered this" from current
+    ownership would break a trade's own history the instant it finished.
+  - Three RPCs, same `security definer` + re-validate-`auth.uid()`
+    pattern as every other write path in this app: `create_trade`
+    (propose), `respond_to_trade` (decline, or accept with a
+    counter-offer — one call handles both, `p_accept` switches the
+    branch), `cancel_trade` (initiator only, only while still
+    `pending`). The swap itself — pet ownership transfer, inventory
+    quantity moves both directions, currency moves both directions — all
+    happens inside `respond_to_trade`, in the same transaction as the
+    re-validation, so a failed check can't leave a half-executed trade.
+    Currency updates go through `begin_trusted_user_write()` first, same
+    as every other function that touches `coin_balance`/`gem_balance`.
+  - Both accounts are locked (`for update`) in a consistent order — by
+    `id`, not by role — before either balance is touched, so two trades
+    between the same pair of players can never deadlock against each
+    other.
+  - **A real RLS gap caught before it shipped**: `pets` has only ever
+    let an owner see their own pets (0002). That's fine for everyday use
+    but breaks trading in two ways — a recipient reviewing a pending
+    offer needs to see the initiator's offered pet despite never owning
+    it, and once a trade completes, whoever gave a pet away no longer
+    owns it but should still see it in their own trade history. Added an
+    additional (additive — RLS `SELECT` policies are OR'd together)
+    policy: any pet named in `trade_pets` is visible to either
+    participant of that trade, regardless of current ownership or trade
+    status. Verified directly: after the swap, role-switched as each
+    former owner and confirmed both could still see the pet they gave
+    away, then role-switched as a third, uninvolved account and
+    confirmed it saw neither — this policy widens visibility only for
+    pets that passed through a trade the caller was actually part of,
+    never a stranger's den.
+  - New client-side local Postgres stub needed for this migration's
+    testing: `authenticated`/`anon` roles with real table grants (a real
+    Supabase project grants these by default and lets RLS do the actual
+    enforcement; a bare local Postgres install has neither the roles nor
+    the grants, so `SET ROLE authenticated` failed with a plain
+    "permission denied" before RLS was ever consulted, independent of
+    any policy). Fixed with `ALTER DEFAULT PRIVILEGES ... GRANT SELECT,
+    INSERT, UPDATE, DELETE ON TABLES TO anon, authenticated` in the stub,
+    applied before any migration creates a table.
+  - Verified against local Postgres 16 (both `psql -f` and `psql -1`):
+    role-switched as two + a third uninvolved account through every
+    guard on both `create_trade` and `respond_to_trade` (self-trade,
+    recipient not found, empty offer, offering a pet/item/currency
+    amount you don't have, a non-participant or the wrong side trying to
+    respond, responding to an already-resolved trade, countering with a
+    pet you don't own), then a full successful trade — confirming pets
+    swapped owners with `folder_id` reset, coins/gems moved by exactly
+    the right amount on both sides, and item quantities moved on both
+    sides — then the decline path, the cancel path (including an
+    unauthorized cancel attempt), and the stale-offer re-validation case
+    above. UI states (the trade builder, trade cards in different
+    statuses, the respond form, pet selection toggling, item quantity
+    inputs) were checked visually with headless Chromium against a
+    temporary preview route mounting the client components directly with
+    mock data, since exercising the real pages end-to-end would need a
+    live Supabase project this sandbox doesn't have.
+  - `/trades` is the inbox (incoming pending / outgoing pending /
+    history, newest first). `/trades/new` is the builder, reachable from
+    the nav or via "Propose a trade" on another player's `/u/[id]` (only
+    shown there when signed in and viewing someone else's profile),
+    which pre-fills the recipient field with that player's username.
+    `/trades/[id]` is the detail page — the respond-with-counter-offer
+    form for a pending trade's recipient, a cancel button for a pending
+    trade's initiator, and a read-only summary of both sides once
+    resolved either way.

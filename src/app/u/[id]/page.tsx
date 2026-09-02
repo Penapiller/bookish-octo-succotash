@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
@@ -7,6 +8,9 @@ export default async function PublicProfilePage(
 ) {
   const { id } = await props.params;
   const supabase = await createClient();
+  const {
+    data: { user: viewer },
+  } = await supabase.auth.getUser();
 
   const { data: profile } = await supabase
     .from("user_profiles")
@@ -44,6 +48,14 @@ export default async function PublicProfilePage(
           </h1>
           <p className="text-sm text-stone-500">Joined {joined}</p>
         </div>
+        {viewer && viewer.id !== profile.id ? (
+          <Link
+            href={`/trades/new?to=${encodeURIComponent(profile.display_name)}`}
+            className="ml-auto self-start rounded-md bg-amber-800 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
+          >
+            Propose a trade
+          </Link>
+        ) : null}
       </div>
 
       {profile.bio ? (

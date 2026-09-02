@@ -63,6 +63,12 @@ export async function SiteHeader() {
               Brewing
             </Link>
             <Link
+              href="/trades"
+              className="rounded-full px-3 py-1.5 text-amber-50 hover:bg-amber-950/30 dark:hover:bg-stone-950/50"
+            >
+              Trades
+            </Link>
+            <Link
               href="/settings"
               className="rounded-full px-3 py-1.5 text-amber-50 hover:bg-amber-950/30 dark:hover:bg-stone-950/50"
             >

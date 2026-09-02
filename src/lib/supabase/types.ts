@@ -33,6 +33,8 @@ export type PotionEffectType =
   | "item_find_boost"
   | "double_reward_chance";
 export type BrewStatus = "in_progress" | "awaiting_claim" | "completed";
+export type TradeStatus = "pending" | "completed" | "declined" | "cancelled";
+export type TradeSide = "initiator" | "recipient";
 
 export type SpeciesRow = {
   id: string;
@@ -143,6 +145,34 @@ export type PotionBrewRow = {
   created_at: string;
 };
 
+export type TradeRow = {
+  id: string;
+  initiator_id: string;
+  recipient_id: string;
+  status: TradeStatus;
+  note: string | null;
+  initiator_coins: number;
+  initiator_gems: number;
+  recipient_coins: number;
+  recipient_gems: number;
+  created_at: string;
+  responded_at: string | null;
+  resolved_at: string | null;
+};
+
+export type TradePetRow = {
+  trade_id: string;
+  side: TradeSide;
+  pet_id: string;
+};
+
+export type TradeItemRow = {
+  trade_id: string;
+  side: TradeSide;
+  item_id: string;
+  quantity: number;
+};
+
 export type ExpeditionRow = {
   id: string;
   user_id: string;
@@ -233,6 +263,11 @@ export type ChangeDisplayNameResult = {
   next_change_available_at: string;
 };
 
+// What respond_to_trade returns — see 0015_trading.sql.
+export type RespondToTradeResult = {
+  status: "declined" | "completed";
+};
+
 // A zone's pool preview ("what you might get") — pets and items are drawn
 // from the same weighted roll (see pick_weighted_zone_reward), so the
 // preview is one merged, kind-tagged list rather than two separate ones.
@@ -280,6 +315,47 @@ export type OwnedIngredient = {
   image_url: string | null;
   rarity: ItemRarity;
   quantity: number;
+};
+
+// One pet or item line on one side of a trade, resolved with display
+// details for the trade detail page.
+export type TradePetLine = {
+  side: TradeSide;
+  petId: string;
+  speciesName: string;
+  imageUrl: string | null;
+  rarity: PetRarity;
+  customName: string | null;
+};
+
+export type TradeItemLine = {
+  side: TradeSide;
+  itemId: string;
+  name: string;
+  imageUrl: string | null;
+  quantity: number;
+};
+
+// A trade with both participants' display names resolved, as shown on
+// /trades (the inbox list) and /trades/[id] (the detail page).
+export type TradeWithParticipants = Pick<
+  TradeRow,
+  | "id"
+  | "status"
+  | "note"
+  | "initiator_coins"
+  | "initiator_gems"
+  | "recipient_coins"
+  | "recipient_gems"
+  | "created_at"
+  | "resolved_at"
+> & {
+  initiatorId: string;
+  recipientId: string;
+  initiatorName: string;
+  recipientName: string;
+  pets: TradePetLine[];
+  items: TradeItemLine[];
 };
 
 // The player's one active (in_progress or awaiting_claim) brew, if any —
@@ -355,6 +431,9 @@ export type Database = {
         }
       >;
       admin_audit_log: TableOf<AdminAuditLogRow>;
+      trades: TableOf<TradeRow>;
+      trade_pets: TableOf<TradePetRow>;
+      trade_items: TableOf<TradeItemRow>;
     };
     Views: {
       user_profiles: {
@@ -440,6 +519,39 @@ export type Database = {
           p_new_name: string;
         };
         Returns: ChangeDisplayNameResult;
+      };
+      create_trade: {
+        Args: {
+          p_initiator_id: string;
+          p_recipient_id: string;
+          p_pet_ids: string[];
+          p_item_ids: string[];
+          p_item_quantities: number[];
+          p_coins: number;
+          p_gems: number;
+          p_note: string | null;
+        };
+        Returns: string;
+      };
+      respond_to_trade: {
+        Args: {
+          p_user_id: string;
+          p_trade_id: string;
+          p_accept: boolean;
+          p_pet_ids?: string[];
+          p_item_ids?: string[];
+          p_item_quantities?: number[];
+          p_coins?: number;
+          p_gems?: number;
+        };
+        Returns: RespondToTradeResult;
+      };
+      cancel_trade: {
+        Args: {
+          p_user_id: string;
+          p_trade_id: string;
+        };
+        Returns: null;
       };
     };
   };
