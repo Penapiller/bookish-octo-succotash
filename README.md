@@ -78,6 +78,10 @@ This project is being built one module at a time. Current state:
       distinct account panel, plus real icon art (recipe book, edit
       pencil, error banners) replacing emoji/placeholder shapes in a
       few spots. See Notes below for exactly what did and didn't change
+- [x] Unique, rate-limited usernames — `display_name` is now a unique
+      handle (case-insensitive) rather than a free-form label: no two
+      accounts can share one, and changing it costs 15 gems and can only
+      be done once every 14 days. See Notes below
 - [ ] Statue offerings
 - [ ] Trading
 - [ ] Profile customization (sanitized custom CSS/HTML)
@@ -1013,3 +1017,62 @@ signs in.
     the hover crossfade fires, the correct arrow dims at each end of the
     page range, and the printed page numbers advance correctly across a
     spread turn.
+- **Unique, rate-limited usernames (`0014_unique_display_names.sql`)** —
+  `display_name` (previously free-form, unconstrained, changeable anytime
+  via a plain client `.update()`) is now the player's unique handle.
+  - **Uniqueness is case-insensitive**: a `unique index` on
+    `lower(display_name)`, so "Bob" and "bob" can't both exist. Any
+    pre-existing duplicates (this column had no constraint before) are
+    resolved by the migration itself before the index is created —
+    grouped by lowercased name, the earliest-created row in each group
+    keeps its name, every later one gets a numeric suffix appended
+    (`-2`, `-3`, ...) until it's free.
+  - **The rule is uniform, no free first customization window**: every
+    change — including a brand-new account's very first change away from
+    its auto-assigned signup name — costs 15 gems and can only happen
+    once every 14 days. `display_name_changed_at` is backfilled to
+    `created_at` for existing rows and set at signup for new ones, so the
+    14-day clock always starts at account creation.
+  - `change_display_name(p_user_id, p_new_name)` is the only way to
+    change it: re-validates `auth.uid()`, trims/collapses whitespace,
+    enforces a 3–40 character length, checks the 14-day cooldown against
+    `display_name_changed_at`, checks the caller has ≥15 gems, checks the
+    trimmed name isn't already taken (case-insensitively, excluding the
+    caller's own row), then spends the gems and updates both columns in
+    one `security definer` transaction. Returns the new name, new gem
+    balance, and `next_change_available_at` so the UI doesn't need a
+    second round-trip to know when the cooldown clears.
+  - `display_name` and `display_name_changed_at` were added to
+    `protect_privileged_user_fields`'s guarded-column list (same pattern
+    as `coin_balance`/`gem_balance`/`den_size` since 0001/0011) —
+    otherwise a plain client `.update()` on `users` could change the name
+    directly and skip every check above. `src/app/settings/actions.ts`'s
+    `updateProfile` now only ever touches `bio`.
+  - `handle_new_user()` (the Google-sign-in trigger from 0001) was
+    redefined to sanitize the candidate name from Google's `full_name`
+    (collapsing whitespace, capping length) and append a numeric suffix
+    if it collides with an existing name, looping until unique — the same
+    logic as the backfill above — so two people who happen to share a
+    real name never fail to sign up.
+  - New client component `src/app/settings/display-name-editor.tsx`
+    (same edit/save/cancel shape as `PetNameEditor`) calls
+    `change_display_name` directly via `supabase.rpc(...)`, shows the
+    gem cost on the button, and — when the cooldown hasn't elapsed —
+    replaces the button with "You can change your name again on
+    &lt;date&gt;" instead of showing a control that would just error.
+  - Verified at the database level (both `psql -f` and `psql -1` against
+    a local Postgres 16 instance stubbed with a minimal `auth.users` /
+    `auth.uid()` / `auth.role()` / `storage.buckets`, since this is real
+    Supabase platform schema this app's migrations depend on but a bare
+    Postgres install doesn't have): role-switched as an authenticated
+    user through every guard (cooldown not yet elapsed, wrong user,
+    name-already-taken, too-short, not-enough-gems, then a real
+    success), confirmed the cooldown re-arms immediately after a
+    successful change, confirmed a plain `UPDATE` from an authenticated
+    role is silently reverted by the trigger while the same `UPDATE` as
+    `service_role` (the Supabase SQL Editor / an admin script) goes
+    through, and confirmed both the signup-time and migration-time
+    dedup logic against manufactured duplicate names. UI states (can
+    change now, on cooldown, insufficient gems, the open edit form) were
+    checked visually with headless Chromium against a temporary preview
+    route.

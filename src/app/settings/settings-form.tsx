@@ -5,13 +5,7 @@ import { updateProfile, type SettingsFormState } from "./actions";
 
 const initialState: SettingsFormState = null;
 
-export function SettingsForm({
-  displayName,
-  bio,
-}: {
-  displayName: string;
-  bio: string;
-}) {
+export function SettingsForm({ bio }: { bio: string }) {
   const [state, formAction, isPending] = useActionState(
     updateProfile,
     initialState,
@@ -19,20 +13,6 @@ export function SettingsForm({
 
   return (
     <form action={formAction} className="flex flex-col gap-5">
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="display_name" className="text-sm font-medium">
-          Display name
-        </label>
-        <input
-          id="display_name"
-          name="display_name"
-          defaultValue={displayName}
-          maxLength={40}
-          required
-          className="rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
-        />
-      </div>
-
       <div className="flex flex-col gap-1.5">
         <label htmlFor="bio" className="text-sm font-medium">
           Bio

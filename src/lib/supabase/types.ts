@@ -3,6 +3,7 @@ export type UserRow = {
   google_sub: string | null;
   email: string;
   display_name: string;
+  display_name_changed_at: string;
   avatar_url: string | null;
   bio: string | null;
   coin_balance: number;
@@ -225,6 +226,13 @@ export type AdminCurrencyGrantResult = {
   gem_balance: number;
 };
 
+// What change_display_name returns — see 0014_unique_display_names.sql.
+export type ChangeDisplayNameResult = {
+  display_name: string;
+  gem_balance: number;
+  next_change_available_at: string;
+};
+
 // A zone's pool preview ("what you might get") — pets and items are drawn
 // from the same weighted roll (see pick_weighted_zone_reward), so the
 // preview is one merged, kind-tagged list rather than two separate ones.
@@ -425,6 +433,13 @@ export type Database = {
           p_name: string;
         };
         Returns: null;
+      };
+      change_display_name: {
+        Args: {
+          p_user_id: string;
+          p_new_name: string;
+        };
+        Returns: ChangeDisplayNameResult;
       };
     };
   };
