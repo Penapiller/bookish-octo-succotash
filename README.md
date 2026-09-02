@@ -974,3 +974,38 @@ signs in.
     loads from Supabase Storage) but did mean earlier verification
     screenshots showed broken images where the layout mattered more than
     the pixels.
+- **Recipe book: fill-width icons, page-turn arrows, page numbers** —
+  three follow-up refinements once the two-page-spread layout (above)
+  was in place and felt too small.
+  - Each image slot in a `RecipeCell` (every ingredient + the output
+    potion) went from a fixed pixel size to `flex-1` width + `h-full`
+    (bounded to the row's fixed height, itself fixed by the 3-row split
+    of the calibrated page box) — a full recipe's 4 slots (3 ingredients
+    + potion) now always fill the row edge-to-edge, and a recipe with
+    fewer ingredients ends up with even *larger* slots rather than
+    leaving unused width, since fewer flex items divide the same space.
+    `object-cover` on the actual `<Image>` (switched from fixed
+    width/height to `fill`) means a slot that ends up wider than tall
+    (the 1-ingredient case can get quite wide) just crops the source art
+    to fit instead of stretching it — no distortion.
+  - Page-turn arrows (`PageArrowButton`) replaced the old Previous/Next
+    text buttons below the book — they now sit directly beside it,
+    using art the user dropped into `game-assets/` (a plain "brown
+    outline" arrow for rest state and a bolder "double outline" variant
+    for hover). The hover swap is two stacked `fill` images with a CSS
+    opacity crossfade on `group`/`group-hover` — no JS state — and the
+    disabled (first/last page) state just dims the button and skips
+    rendering the hover image entirely, so a disabled arrow can't
+    visually swap on hover.
+  - Page numbers are printed directly on the page art (bottom-center of
+    each half, inside the same calibrated safe zone as the recipe
+    cells) rather than only in a caption below the book — left page
+    always odd, right always even, counting up across spreads
+    (`page * 2 + 1` / `page * 2 + 2`), matching how a real book numbers
+    its pages.
+  - Verified the same way as the rest of this feature: headless Chromium
+    against a temporary preview route with mocked recipes deliberately
+    covering the 4-image, 3-image, and 2-image cases, confirming the
+    full-width fill behaves correctly at each size, the hover crossfade
+    fires, the correct arrow dims at each end of the page range, and the
+    printed page numbers advance correctly across a spread turn.
