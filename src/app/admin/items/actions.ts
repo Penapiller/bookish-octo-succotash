@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin";
+import { uploadGameImage } from "@/lib/game-image-upload";
 import type { ItemRarity, ItemType } from "@/lib/supabase/types";
 
 const ITEM_TYPES: ItemType[] = ["ingredient", "cosmetic", "potion"];
@@ -51,9 +52,31 @@ export async function createItem(
   const parsed = readItemFields(formData);
   if (!parsed.ok) return { error: parsed.error };
 
-  const { error } = await supabase.from("items").insert(parsed.fields);
-  if (error) {
-    return { error: `Could not create item: ${error.message}` };
+  const { data, error } = await supabase
+    .from("items")
+    .insert(parsed.fields)
+    .select("id")
+    .single();
+  if (error || !data) {
+    return { error: `Could not create item: ${error?.message ?? "unknown error"}` };
+  }
+
+  // The uploaded file is keyed by the item's id, so the item has to exist
+  // first — upload after insert, then patch image_url in a second write.
+  const imageFile = formData.get("image_file");
+  if (imageFile instanceof File && imageFile.size > 0) {
+    try {
+      const uploadedUrl = await uploadGameImage(supabase, "items", data.id, imageFile);
+      if (uploadedUrl) {
+        await supabase.from("items").update({ image_url: uploadedUrl }).eq("id", data.id);
+      }
+    } catch (uploadError) {
+      return {
+        error: `Item created, but the image upload failed: ${
+          uploadError instanceof Error ? uploadError.message : "unknown error"
+        }`,
+      };
+    }
   }
 
   revalidatePath("/admin/items");
@@ -71,6 +94,20 @@ export async function updateItem(
 
   const parsed = readItemFields(formData);
   if (!parsed.ok) return { error: parsed.error };
+
+  const imageFile = formData.get("image_file");
+  if (imageFile instanceof File && imageFile.size > 0) {
+    try {
+      const uploadedUrl = await uploadGameImage(supabase, "items", itemId, imageFile);
+      if (uploadedUrl) {
+        parsed.fields.image_url = uploadedUrl;
+      }
+    } catch (uploadError) {
+      return {
+        error: uploadError instanceof Error ? uploadError.message : "Image upload failed.",
+      };
+    }
+  }
 
   const { error } = await supabase.from("items").update(parsed.fields).eq("id", itemId);
   if (error) {

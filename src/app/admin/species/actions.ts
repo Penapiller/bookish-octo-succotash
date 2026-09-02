@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin";
+import { uploadGameImage } from "@/lib/game-image-upload";
 import type { PetRarity } from "@/lib/supabase/types";
 
 const RARITIES: PetRarity[] = ["common", "uncommon", "rare", "epic", "legendary"];
@@ -39,9 +40,29 @@ export async function createSpecies(
   const parsed = readSpeciesFields(formData);
   if (!parsed.ok) return { error: parsed.error };
 
-  const { error } = await supabase.from("species").insert(parsed.fields);
-  if (error) {
-    return { error: `Could not create species: ${error.message}` };
+  const { data, error } = await supabase
+    .from("species")
+    .insert(parsed.fields)
+    .select("id")
+    .single();
+  if (error || !data) {
+    return { error: `Could not create species: ${error?.message ?? "unknown error"}` };
+  }
+
+  const imageFile = formData.get("image_file");
+  if (imageFile instanceof File && imageFile.size > 0) {
+    try {
+      const uploadedUrl = await uploadGameImage(supabase, "species", data.id, imageFile);
+      if (uploadedUrl) {
+        await supabase.from("species").update({ image_url: uploadedUrl }).eq("id", data.id);
+      }
+    } catch (uploadError) {
+      return {
+        error: `Species created, but the image upload failed: ${
+          uploadError instanceof Error ? uploadError.message : "unknown error"
+        }`,
+      };
+    }
   }
 
   revalidatePath("/admin/species");
@@ -59,6 +80,20 @@ export async function updateSpecies(
 
   const parsed = readSpeciesFields(formData);
   if (!parsed.ok) return { error: parsed.error };
+
+  const imageFile = formData.get("image_file");
+  if (imageFile instanceof File && imageFile.size > 0) {
+    try {
+      const uploadedUrl = await uploadGameImage(supabase, "species", speciesId, imageFile);
+      if (uploadedUrl) {
+        parsed.fields.image_url = uploadedUrl;
+      }
+    } catch (uploadError) {
+      return {
+        error: uploadError instanceof Error ? uploadError.message : "Image upload failed.",
+      };
+    }
+  }
 
   const { error } = await supabase.from("species").update(parsed.fields).eq("id", speciesId);
   if (error) {

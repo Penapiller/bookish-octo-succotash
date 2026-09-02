@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/admin";
 import { EditRecipeForm } from "../edit-recipe-form";
 import { addIngredient, removeIngredient } from "../actions";
+import { SearchablePicker } from "@/components/admin/searchable-picker";
 import type { PotionEffectType } from "@/lib/supabase/types";
 
 type IngredientRow = {
@@ -39,7 +40,7 @@ export default async function EditRecipePage(props: PageProps<"/admin/recipes/[i
       .from("potion_recipe_ingredients")
       .select("item_id, quantity_required, items(name, image_url)")
       .eq("recipe_id", id),
-    supabase.from("items").select("id, name").eq("is_active", true).order("name"),
+    supabase.from("items").select("id, name, image_url").eq("is_active", true).order("name"),
   ]);
 
   const recipe = recipeData as unknown as RecipeDetailRow | null;
@@ -131,23 +132,15 @@ export default async function EditRecipePage(props: PageProps<"/admin/recipes/[i
         {availableItems.length > 0 && ingredientTotal < 3 ? (
           <form action={addIngredient} className="flex flex-wrap items-end gap-3">
             <input type="hidden" name="recipe_id" value={recipe.id} />
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="item_id" className="text-xs text-zinc-500">
-                Item
-              </label>
-              <select
-                id="item_id"
-                name="item_id"
-                required
-                className="rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-              >
-                {availableItems.map((i) => (
-                  <option key={i.id} value={i.id}>
-                    {i.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <SearchablePicker
+              name="item_id"
+              placeholder="Search items…"
+              options={availableItems.map((i) => ({
+                id: i.id,
+                label: i.name,
+                imageUrl: i.image_url,
+              }))}
+            />
             <div className="flex flex-col gap-1.5">
               <label htmlFor="quantity_required" className="text-xs text-zinc-500">
                 Quantity

@@ -46,6 +46,12 @@ This project is being built one module at a time. Current state:
       every admin write. See Notes below for the architecture and the
       one-time SQL snippet that makes your account the admin — there's no
       in-app way to grant admin to anyone else, by design
+- [x] Admin image uploads & search-to-add — item/species edit pages now
+      have a real file upload (PNG/JPEG/WebP/GIF, 5 MB max) that replaces
+      the placehold.co placeholder art, backed by a new Supabase Storage
+      bucket; and the "add to pool" / "add to loot table" / "add
+      ingredient" pickers are now type-to-search instead of a giant
+      dropdown, so they stay usable as the catalog grows
 - [ ] Layered pet art rendering, accessory equip/unequip
 - [ ] Currency & den expansion (den cap is temporarily raised to 25 for
       testing — see Notes below to find where to lower it back down)
@@ -652,3 +658,42 @@ signs in.
     self-contained — changed to `security definer` to match the
     convention every other cross-cutting helper in this codebase already
     follows.
+- **Admin image uploads (`0010_game_image_storage.sql`,
+  `src/lib/game-image-upload.ts`)** — a Supabase Storage bucket
+  (`game-images`, public, 5 MB/file cap, PNG/JPEG/WebP/GIF only) that
+  admins can upload item/species art into from `/admin/items/[id]` and
+  `/admin/species/[id]`. Read access is public (players need to load the
+  images); write access is gated by the same `current_user_is_admin()`
+  RLS pattern as every other admin table in 0009 — verified locally the
+  same way, by role-switching as an admin vs. a non-admin account against
+  `storage.objects`.
+  - Each row gets exactly **one** file, at a stable path
+    (`items/<id>.<ext>` / `species/<id>.<ext>`) uploaded with
+    `upsert: true` — re-uploading replaces it rather than accumulating
+    orphaned files. Since the path doesn't change on re-upload, the
+    stored `image_url` has a `?v=<timestamp>` cache-busting query param
+    appended so browsers/next/image actually pick up the new file instead
+    of serving a cached copy of the old one at the same URL.
+  - The upload happens **inside the same Server Action** as
+    creating/editing the row (`createItem`/`updateItem`,
+    `createSpecies`/`updateSpecies`), using the admin's own session — not
+    a separate client-side upload step — so it's covered by the same
+    `requireAdmin()` check and storage RLS as everything else. On create,
+    the row is inserted first (to get an id to key the file's path on),
+    then the file is uploaded and `image_url` is patched in a second
+    write.
+  - The old "Image URL" text field is still there as a fallback — paste
+    an external URL (still handy for `placehold.co` placeholders while
+    testing) and it's used whenever no file is uploaded.
+  - `next.config.ts` already allowlisted `*.supabase.co/storage/v1/object/**`
+    for `next/image` from the very first module, anticipating this.
+- **Search-to-add pickers (`src/components/admin/searchable-picker.tsx`)**
+  — the zone pet-pool/loot-table "add" forms and the recipe ingredient
+  "add" form used to be a plain `<select>` listing every active
+  species/item, which stops being usable once the catalog grows past a
+  screenful. `SearchablePicker` is a small client component that filters
+  a passed-in option list by name as you type and, once you pick one,
+  renders a plain hidden `<input>` with that id — so it drops into the
+  existing native `<form action={serverAction}>` (a Server Component)
+  without needing to convert the whole form into a client component or
+  change the Server Action at all.

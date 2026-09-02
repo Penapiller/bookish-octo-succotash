@@ -2,6 +2,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/admin";
 import { ZoneForm } from "../zone-form";
+import { SearchablePicker } from "@/components/admin/searchable-picker";
 import {
   addLootEntry,
   addPoolEntry,
@@ -39,8 +40,8 @@ export default async function EditZonePage(props: PageProps<"/admin/zones/[id]">
       .from("zone_loot_table")
       .select("item_id, drop_weight, items(name, image_url)")
       .eq("zone_id", id),
-    supabase.from("species").select("id, name").eq("is_active", true).order("name"),
-    supabase.from("items").select("id, name").eq("is_active", true).order("name"),
+    supabase.from("species").select("id, name, image_url").eq("is_active", true).order("name"),
+    supabase.from("items").select("id, name, image_url").eq("is_active", true).order("name"),
   ]);
 
   if (!zone) {
@@ -127,23 +128,15 @@ export default async function EditZonePage(props: PageProps<"/admin/zones/[id]">
             {availableSpecies.length > 0 ? (
               <form action={addPoolEntry} className="flex flex-wrap items-end gap-3">
                 <input type="hidden" name="zone_id" value={zone.id} />
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor="species_id" className="text-xs text-zinc-500">
-                    Species
-                  </label>
-                  <select
-                    id="species_id"
-                    name="species_id"
-                    required
-                    className="rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-                  >
-                    {availableSpecies.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <SearchablePicker
+                  name="species_id"
+                  placeholder="Search species…"
+                  options={availableSpecies.map((s) => ({
+                    id: s.id,
+                    label: s.name,
+                    imageUrl: s.image_url,
+                  }))}
+                />
                 <div className="flex flex-col gap-1.5">
                   <label htmlFor="pool_drop_weight" className="text-xs text-zinc-500">
                     Drop weight
@@ -228,23 +221,15 @@ export default async function EditZonePage(props: PageProps<"/admin/zones/[id]">
             {availableItems.length > 0 ? (
               <form action={addLootEntry} className="flex flex-wrap items-end gap-3">
                 <input type="hidden" name="zone_id" value={zone.id} />
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor="item_id" className="text-xs text-zinc-500">
-                    Item
-                  </label>
-                  <select
-                    id="item_id"
-                    name="item_id"
-                    required
-                    className="rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-                  >
-                    {availableItems.map((i) => (
-                      <option key={i.id} value={i.id}>
-                        {i.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <SearchablePicker
+                  name="item_id"
+                  placeholder="Search items…"
+                  options={availableItems.map((i) => ({
+                    id: i.id,
+                    label: i.name,
+                    imageUrl: i.image_url,
+                  }))}
+                />
                 <div className="flex flex-col gap-1.5">
                   <label htmlFor="loot_drop_weight" className="text-xs text-zinc-500">
                     Drop weight

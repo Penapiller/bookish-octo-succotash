@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import type { SpeciesFormState } from "./actions";
 import type { PetRarity, SpeciesRow } from "@/lib/supabase/types";
 
@@ -18,6 +18,7 @@ export function SpeciesForm({
   submitLabel: string;
 }) {
   const [state, formAction, isPending] = useActionState(action, initialState);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   return (
     <form action={formAction} className="flex max-w-md flex-col gap-5">
@@ -55,8 +56,35 @@ export function SpeciesForm({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="image_url" className="text-sm font-medium">
-          Image URL
+        <span className="text-sm font-medium">Image</span>
+        <div className="flex items-center gap-3">
+          {previewUrl || species?.image_url ? (
+            // eslint-disable-next-line @next/next/no-img-element -- previewUrl is a local blob: URL, which next/image can't optimize
+            <img
+              src={previewUrl ?? species!.image_url!}
+              alt=""
+              className="h-16 w-16 rounded border border-zinc-300 object-cover dark:border-zinc-700"
+            />
+          ) : (
+            <div className="h-16 w-16 rounded border border-dashed border-zinc-300 dark:border-zinc-700" />
+          )}
+          <div className="flex flex-col gap-1">
+            <input
+              id="image_file"
+              name="image_file"
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                setPreviewUrl(file ? URL.createObjectURL(file) : null);
+              }}
+              className="text-sm"
+            />
+            <p className="text-xs text-zinc-500">PNG, JPEG, WebP, or GIF — up to 5 MB.</p>
+          </div>
+        </div>
+        <label htmlFor="image_url" className="mt-1 text-xs text-zinc-500">
+          Or paste an image URL instead (used only if no file is uploaded above)
         </label>
         <input
           id="image_url"
