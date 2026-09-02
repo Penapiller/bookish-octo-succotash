@@ -1,5 +1,17 @@
 @import "tailwindcss";
 
+/* Tailwind v4 defaults dark: to @media (prefers-color-scheme: dark) —
+   meaning every dark:* class in the app (and the block below) would
+   auto-activate for any visitor whose OS/browser is in dark mode. The
+   cream/parchment theme is meant to be the site's theme for now, not
+   one half of a light/dark toggle, so dark mode is switched to
+   class-based instead: dark:* only ever applies if something adds a
+   `dark` class to <html>, which nothing in this app does (yet). This
+   keeps all the existing dark:* work in the codebase intact and ready,
+   without it silently overriding the cream theme for anyone whose
+   system happens to prefer dark. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   /* amber-50 / stone-900 — kept in sync with the bg-amber-50 on <body>
      in layout.tsx; this rule (unlayered CSS) otherwise wins the cascade
@@ -13,14 +25,6 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* stone-950 / stone-50 — kept in sync with dark:bg-stone-950. */
-    --background: #0c0a09;
-    --foreground: #fafaf9;
-  }
 }
 
 body {

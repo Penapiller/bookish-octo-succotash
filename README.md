@@ -916,3 +916,45 @@ signs in.
     both the logged-out `/` and `/login` pages for real, and a temporary
     throwaway route for the logged-in header state (deleted before
     finishing, along with the stub `.env.local` — neither was committed).
+  - **Follow-up fix**: that first verification pass used Playwright's
+    default color scheme (light), which is exactly why it missed a real
+    bug — Tailwind v4 defaults `dark:` to `@media (prefers-color-scheme:
+    dark)`, and `globals.css` had its own separate `@media
+    (prefers-color-scheme: dark)` block setting `--background` back to
+    near-black. Anyone with their OS/browser in dark mode saw a black
+    site regardless of the new theme. Since cream is meant to be *the*
+    theme for now, not one half of a light/dark toggle, the fix switches
+    Tailwind to class-based dark mode (`@custom-variant dark
+    (&:where(.dark, .dark *));`) and drops the CSS media-query override
+    — `dark:*` classes and dark-mode colors now only ever apply if
+    something adds a `dark` class to `<html>`, which nothing does yet.
+    All the `dark:` work already in the codebase stays intact and ready,
+    just dormant. Re-verified by re-running the same Playwright check
+    with the browser's color scheme explicitly forced to `dark` this
+    time — confirms the page stays cream regardless of system
+    preference.
+  - **Recipe book, redesigned again**: the open-book illustration
+    (`book-container.png`) as a fixed-aspect-ratio backdrop with content
+    absolutely positioned over it looked bad and clipped — an open
+    book's curved page/spine art doesn't leave a clean, predictable
+    rectangle to lay arbitrary content inside, and a scrolling list
+    could overflow past where the illustration's edges implied and
+    visibly clip. Replaced with `parchment-panel.png` (an actual
+    rectangle with a dashed border baked into the art) set as a
+    `background-size: 100% 100%` background on a normally-flowing
+    container — the image stretches to fit whatever height the content
+    needs instead of content being constrained to fit the image, and a
+    flat rectangle stretches cleanly where a spined book illustration
+    wouldn't. Paired with pagination (`RECIPES_PER_PAGE = 3`, plain
+    `useState` page index, Previous/Next buttons) instead of scrolling,
+    per feedback — a "page" is always a small, predictable amount of
+    content, so there's nothing to overflow. Each recipe now shows
+    visually as its ingredients (icon + a `×N` quantity badge per
+    distinct ingredient) → an arrow → the output potion, with the
+    potion's effect (`describeEffect()`) in a CSS-only hover tooltip
+    (`group`/`group-hover`, no JS state) instead of buried in a text
+    line. Verified the same way — drove headless Chromium to open the
+    book, page forward, and hover a potion, screenshotting each step —
+    using a temporary preview route with mocked recipe data (deleted
+    before finishing) since exercising this needs real inventory data
+    this sandbox doesn't have a live Supabase project for.

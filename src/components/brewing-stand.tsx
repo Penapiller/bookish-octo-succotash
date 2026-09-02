@@ -362,6 +362,8 @@ function IngredientPickerModal({
   );
 }
 
+const RECIPES_PER_PAGE = 3;
+
 function RecipeBookModal({
   recipes,
   onFillSlots,
@@ -371,6 +373,10 @@ function RecipeBookModal({
   onFillSlots: (recipe: RecipeWithDetails) => void;
   onClose: () => void;
 }) {
+  const [page, setPage] = useState(0);
+  const totalPages = Math.max(1, Math.ceil(recipes.length / RECIPES_PER_PAGE));
+  const pageRecipes = recipes.slice(page * RECIPES_PER_PAGE, page * RECIPES_PER_PAGE + RECIPES_PER_PAGE);
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
@@ -378,52 +384,83 @@ function RecipeBookModal({
       aria-modal="true"
       aria-label="Recipe book"
     >
-      <div className="relative w-full max-w-3xl">
-        <Image
-          src="/ui/book-container.png"
-          alt=""
-          width={1720}
-          height={1021}
-          className="h-auto w-full"
-          priority
-        />
-        <div className="absolute inset-0 flex flex-col gap-3 overflow-y-auto px-[9%] py-[13%] text-stone-900">
+      <div className="flex w-full max-w-2xl flex-col gap-3">
+        <div
+          className="flex min-h-[380px] flex-col gap-3 rounded-2xl p-8 text-stone-900 shadow-xl"
+          style={{
+            backgroundImage: "url(/ui/parchment-panel.png)",
+            backgroundSize: "100% 100%",
+            backgroundRepeat: "no-repeat",
+          }}
+        >
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold tracking-tight">Recipe book</h2>
+            <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight">
+              <Image src="/icons/book.png" alt="" width={22} height={19} />
+              Recipe book
+            </h2>
             <button type="button" onClick={onClose} className="text-sm text-stone-600 hover:underline">
               Close
             </button>
           </div>
           <p className="text-xs text-stone-600">
             Every recipe is visible here for testing — nothing is locked or discovered per player.
+            Hover a potion to see what it does.
           </p>
+
           {recipes.length === 0 ? (
-            <p className="text-sm italic text-stone-600">No recipes yet.</p>
+            <p className="flex-1 text-sm italic text-stone-600">No recipes yet.</p>
           ) : (
-            <ul className="flex flex-col gap-3">
-              {recipes.map((recipe) => (
+            <ul className="flex flex-1 flex-col justify-center gap-3">
+              {pageRecipes.map((recipe) => (
                 <li
                   key={recipe.id}
-                  className="flex items-center gap-4 rounded-lg border border-amber-800/20 bg-amber-50/60 p-3"
+                  className="flex items-center gap-3 rounded-xl bg-white/50 p-3"
                 >
-                  {recipe.potion?.image_url ? (
-                    <Image
-                      src={recipe.potion.image_url}
-                      alt={recipe.potion.name}
-                      width={56}
-                      height={56}
-                      className="h-14 w-14 rounded border-2 border-purple-600"
-                    />
-                  ) : null}
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{recipe.potion?.name}</p>
-                    <p className="text-xs text-stone-600">
-                      {recipe.ingredients
-                        .map((ing) => `${ing.quantityRequired}× ${ing.item?.name}`)
-                        .join(" + ")}
-                    </p>
-                    <p className="text-xs text-stone-600">{describeEffect(recipe)}</p>
+                  <div className="flex items-center gap-1.5">
+                    {recipe.ingredients.map((ing) =>
+                      ing.item ? (
+                        <div key={ing.item.id} className="relative shrink-0">
+                          {ing.item.image_url ? (
+                            <Image
+                              src={ing.item.image_url}
+                              alt={ing.item.name}
+                              width={40}
+                              height={40}
+                              className="h-10 w-10 rounded border-2 border-green-600"
+                            />
+                          ) : (
+                            <div className="h-10 w-10 rounded bg-amber-200" />
+                          )}
+                          <span className="absolute -bottom-1 -right-1 rounded-full bg-stone-900 px-1 text-[10px] font-medium leading-tight text-white">
+                            ×{ing.quantityRequired}
+                          </span>
+                        </div>
+                      ) : null,
+                    )}
                   </div>
+
+                  <span className="shrink-0 text-lg text-stone-500" aria-hidden="true">
+                    →
+                  </span>
+
+                  <div className="group relative shrink-0">
+                    {recipe.potion?.image_url ? (
+                      <Image
+                        src={recipe.potion.image_url}
+                        alt={recipe.potion.name}
+                        width={48}
+                        height={48}
+                        className="h-12 w-12 rounded border-2 border-purple-600"
+                      />
+                    ) : (
+                      <div className="h-12 w-12 rounded bg-amber-200" />
+                    )}
+                    <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-44 -translate-x-1/2 rounded-md bg-stone-900 px-2 py-1.5 text-center text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+                      <p className="font-medium">{recipe.potion?.name}</p>
+                      <p>{describeEffect(recipe)}</p>
+                    </div>
+                  </div>
+
                   <button
                     type="button"
                     onClick={() => onFillSlots(recipe)}
@@ -433,7 +470,7 @@ function RecipeBookModal({
                         ? "Fill the slots with this recipe's ingredients"
                         : "You don't have enough ingredients"
                     }
-                    className="rounded-md border border-purple-600 px-3 py-1.5 text-xs font-medium text-purple-700 hover:bg-purple-50 disabled:opacity-40"
+                    className="ml-auto shrink-0 rounded-md border border-purple-600 px-3 py-1.5 text-xs font-medium text-purple-700 hover:bg-purple-50 disabled:opacity-40"
                   >
                     Fill slots
                   </button>
@@ -442,6 +479,30 @@ function RecipeBookModal({
             </ul>
           )}
         </div>
+
+        {totalPages > 1 ? (
+          <div className="flex items-center justify-center gap-4 text-sm text-white">
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              disabled={page === 0}
+              className="rounded-md bg-white/20 px-3 py-1.5 hover:bg-white/30 disabled:opacity-40"
+            >
+              ← Previous page
+            </button>
+            <span>
+              Page {page + 1} of {totalPages}
+            </span>
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+              disabled={page === totalPages - 1}
+              className="rounded-md bg-white/20 px-3 py-1.5 hover:bg-white/30 disabled:opacity-40"
+            >
+              Next page →
+            </button>
+          </div>
+        ) : null}
       </div>
     </div>
   );
