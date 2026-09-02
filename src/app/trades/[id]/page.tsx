@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { TRADING_ENABLED } from "@/lib/feature-flags";
 import { loadTrades } from "../load-trades";
 import { TradeSideSummary } from "./trade-side-summary";
 import { RespondForm } from "./respond-form";
@@ -14,6 +15,10 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export default async function TradeDetailPage(props: PageProps<"/trades/[id]">) {
+  if (!TRADING_ENABLED) {
+    notFound();
+  }
+
   const { id } = await props.params;
   const supabase = await createClient();
   const {

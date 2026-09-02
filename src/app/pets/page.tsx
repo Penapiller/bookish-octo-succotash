@@ -8,6 +8,7 @@ import { MoveToFolderSelect } from "./move-to-folder-select";
 import { PetNameEditor } from "./pet-name-editor";
 import { ForTradeToggle } from "./for-trade-toggle";
 import { BulkForTradeButton } from "./bulk-for-trade-button";
+import { TRADING_ENABLED } from "@/lib/feature-flags";
 import type { PetFolderRow, PetWithSpecies } from "@/lib/supabase/types";
 
 const PAGE_SIZE = 25;
@@ -51,7 +52,9 @@ function PetGrid({
             currentFolderId={pet.folder_id}
             folders={folderOptions}
           />
-          <ForTradeToggle userId={userId} petId={pet.id} isForTrade={pet.is_for_trade} />
+          {TRADING_ENABLED ? (
+            <ForTradeToggle userId={userId} petId={pet.id} isForTrade={pet.is_for_trade} />
+          ) : null}
         </li>
       ))}
     </ul>
@@ -178,7 +181,7 @@ export default async function PetsPage(props: PageProps<"/pets">) {
         <FolderHeader folderId={activeFolder.id} name={activeFolder.name} petCount={activeCount} />
       ) : null}
 
-      {activeTab !== ALL_TAB ? (
+      {TRADING_ENABLED && activeTab !== ALL_TAB ? (
         <div className="flex gap-2">
           <BulkForTradeButton
             userId={userId}

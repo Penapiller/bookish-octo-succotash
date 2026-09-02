@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { PetPickerModal, ItemPickerModal, type PickerPet, type PickerItem } from "../picker-modal";
+import { PetPickerModal, ItemPickerModal, type PickerPet, type PickerItem } from "@/components/picker-modal";
 import type { ItemWithQuantity, PetWithSpecies } from "@/lib/supabase/types";
 
 function toPickerPets(pets: PetWithSpecies[]): PickerPet[] {

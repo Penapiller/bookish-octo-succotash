@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { TRADING_ENABLED } from "@/lib/feature-flags";
 
 export async function SiteHeader() {
   const supabase = await createClient();
@@ -63,11 +64,19 @@ export async function SiteHeader() {
               Brewing
             </Link>
             <Link
-              href="/trades"
+              href="/marketplace"
               className="rounded-full px-3 py-1.5 text-amber-50 hover:bg-amber-950/30 dark:hover:bg-stone-950/50"
             >
-              Trades
+              Marketplace
             </Link>
+            {TRADING_ENABLED ? (
+              <Link
+                href="/trades"
+                className="rounded-full px-3 py-1.5 text-amber-50 hover:bg-amber-950/30 dark:hover:bg-stone-950/50"
+              >
+                Trades
+              </Link>
+            ) : null}
             <Link
               href="/settings"
               className="rounded-full px-3 py-1.5 text-amber-50 hover:bg-amber-950/30 dark:hover:bg-stone-950/50"

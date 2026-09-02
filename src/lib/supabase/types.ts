@@ -35,6 +35,8 @@ export type PotionEffectType =
 export type BrewStatus = "in_progress" | "awaiting_claim" | "completed";
 export type TradeStatus = "pending" | "completed" | "declined" | "cancelled";
 export type TradeSide = "initiator" | "recipient";
+export type ListingType = "pet" | "item";
+export type ListingStatus = "active" | "sold" | "cancelled";
 
 export type SpeciesRow = {
   id: string;
@@ -175,6 +177,24 @@ export type TradeItemRow = {
   quantity: number;
 };
 
+export type MarketplaceListingRow = {
+  id: string;
+  seller_id: string;
+  buyer_id: string | null;
+  listing_type: ListingType;
+  price_coins: number;
+  status: ListingStatus;
+  pet_id: string | null;
+  pet_species_name: string | null;
+  pet_species_image_url: string | null;
+  pet_rarity: PetRarity | null;
+  pet_custom_name: string | null;
+  item_id: string | null;
+  item_quantity: number | null;
+  created_at: string;
+  sold_at: string | null;
+};
+
 export type ExpeditionRow = {
   id: string;
   user_id: string;
@@ -295,6 +315,15 @@ export type RespondToTradeResult = {
   status: "declined" | "completed";
 };
 
+// What buy_listing returns — see 0018_marketplace.sql. "unavailable"
+// means the seller could no longer deliver (already sold/spent
+// elsewhere) — buy_listing cancels the listing itself in that case and
+// returns this rather than raising, since an exception would roll back
+// that cancellation along with everything else in the call.
+export type BuyListingResult =
+  | { status: "sold"; price_coins: number }
+  | { status: "unavailable"; reason: string };
+
 // A zone's pool preview ("what you might get") — pets and items are drawn
 // from the same weighted roll (see pick_weighted_zone_reward), so the
 // preview is one merged, kind-tagged list rather than two separate ones.
@@ -385,6 +414,39 @@ export type TradeWithParticipants = Pick<
   items: TradeItemLine[];
 };
 
+// A marketplace listing with the seller/buyer names resolved (same
+// user_profiles-lookup pattern as TradeWithParticipants — `users` only
+// lets a player see their own row) and, for item listings, the item
+// catalog details joined in. One shape covers both listing types —
+// listingType says which of the pet*/item* fields are populated — so
+// /marketplace/browse and /marketplace/mine can render mixed lists
+// without two parallel types.
+export type MarketplaceListing = Pick<
+  MarketplaceListingRow,
+  | "id"
+  | "listing_type"
+  | "status"
+  | "price_coins"
+  | "pet_id"
+  | "pet_species_name"
+  | "pet_species_image_url"
+  | "pet_rarity"
+  | "pet_custom_name"
+  | "item_quantity"
+  | "created_at"
+  | "sold_at"
+> & {
+  sellerId: string;
+  sellerName: string;
+  buyerId: string | null;
+  buyerName: string | null;
+  itemId: string | null;
+  itemName: string | null;
+  itemImageUrl: string | null;
+  itemRarity: ItemRarity | null;
+  itemType: ItemType | null;
+};
+
 // The player's one active (in_progress or awaiting_claim) brew, if any —
 // there's only one brewing stand, so at most one of these exists per
 // player at a time.
@@ -461,6 +523,7 @@ export type Database = {
       trades: TableOf<TradeRow>;
       trade_pets: TableOf<TradePetRow>;
       trade_items: TableOf<TradeItemRow>;
+      marketplace_listings: TableOf<MarketplaceListingRow>;
     };
     Views: {
       user_profiles: {
@@ -608,6 +671,37 @@ export type Database = {
           p_is_for_trade: boolean;
         };
         Returns: null;
+      };
+      create_pet_listing: {
+        Args: {
+          p_seller_id: string;
+          p_pet_id: string;
+          p_price_coins: number;
+        };
+        Returns: string;
+      };
+      create_item_listing: {
+        Args: {
+          p_seller_id: string;
+          p_item_id: string;
+          p_quantity: number;
+          p_price_coins: number;
+        };
+        Returns: string;
+      };
+      cancel_listing: {
+        Args: {
+          p_user_id: string;
+          p_listing_id: string;
+        };
+        Returns: null;
+      };
+      buy_listing: {
+        Args: {
+          p_buyer_id: string;
+          p_listing_id: string;
+        };
+        Returns: BuyListingResult;
       };
     };
   };

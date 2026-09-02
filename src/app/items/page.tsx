@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { ItemType, ItemWithQuantity } from "@/lib/supabase/types";
 import { ForTradeToggle } from "./for-trade-toggle";
+import { TRADING_ENABLED } from "@/lib/feature-flags";
 
 const TABS: { value: ItemType | "all"; label: string }[] = [
   { value: "all", label: "All" },
@@ -108,11 +109,13 @@ export default async function ItemsPage(props: PageProps<"/items">) {
                 <p className="text-xs capitalize text-stone-500">
                   {entry.item.type} · {entry.item.rarity}
                 </p>
-                <ForTradeToggle
-                  userId={user.id}
-                  itemId={entry.item.id}
-                  isForTrade={entry.is_for_trade}
-                />
+                {TRADING_ENABLED ? (
+                  <ForTradeToggle
+                    userId={user.id}
+                    itemId={entry.item.id}
+                    isForTrade={entry.is_for_trade}
+                  />
+                ) : null}
               </li>
             ) : null,
           )}

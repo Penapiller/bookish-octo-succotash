@@ -5,9 +5,12 @@ import { useMemo, useState } from "react";
 import type { PetRarity } from "@/lib/supabase/types";
 
 // Normalized shapes the modal renders — callers adapt whatever query
-// result they have (own collection vs. another player's for-trade
-// pool) into these before opening the picker, so the modal itself
-// doesn't need to know which source it's browsing.
+// result they have (own collection vs. another player's pool) into
+// these before opening the picker, so the modal itself doesn't need to
+// know which source it's browsing. Originally built for trading (see
+// src/app/trades/, currently hidden behind TRADING_ENABLED), reused by
+// the marketplace's sell flow — kept here rather than under either
+// feature's folder so neither depends on the other.
 export type PickerPet = {
   id: string;
   name: string;

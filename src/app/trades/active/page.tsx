@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { TRADING_ENABLED } from "@/lib/feature-flags";
 import { createClient } from "@/lib/supabase/server";
 import { loadTrades } from "../load-trades";
 import { TradeCard } from "../trade-card";
@@ -35,6 +36,10 @@ function TradeSection({
 }
 
 export default async function ActiveTradesPage() {
+  if (!TRADING_ENABLED) {
+    notFound();
+  }
+
   const supabase = await createClient();
   const {
     data: { user },

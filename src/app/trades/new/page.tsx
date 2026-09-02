@@ -1,9 +1,14 @@
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { TRADING_ENABLED } from "@/lib/feature-flags";
 import { createClient } from "@/lib/supabase/server";
 import { TradeBuilderForm } from "./trade-builder-form";
 import type { ItemWithQuantity, PetWithSpecies } from "@/lib/supabase/types";
 
 export default async function NewTradePage(props: PageProps<"/trades/new">) {
+  if (!TRADING_ENABLED) {
+    notFound();
+  }
+
   const searchParams = await props.searchParams;
   const toParam = Array.isArray(searchParams.to) ? searchParams.to[0] : searchParams.to;
   const petIdParam = Array.isArray(searchParams.petId) ? searchParams.petId[0] : searchParams.petId;

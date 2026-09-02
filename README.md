@@ -83,15 +83,19 @@ This project is being built one module at a time. Current state:
       accounts can share one, and changing it costs 15 gems and can only
       be done once every 14 days. See Notes below
 - [ ] Statue offerings
-- [x] Trading — a Chicken-Smoothie-style Trading Center (`/trades`), split
-      across `/trades/active`, `/trades/history`, `/trades/browse`,
-      `/trades/new`, and `/trades/[id]`. Players mark pets/items
-      "for trade" (individually or a whole folder at once) so anyone can
-      browse and search them; proposing a trade lets you pick specific
-      pets/items from the other player's for-trade collection via a
-      searchable/filterable popup picker, not just describe what you
-      want. Accepting fills in what was requested by default but can be
-      freely adjusted first. See Notes below
+- [~] Trading — **built, tested, but currently disabled** behind
+      `TRADING_ENABLED` in `src/lib/feature-flags.ts` (set to `false`) —
+      superseded by the Marketplace below per a later change of
+      direction, kept intact rather than deleted in case it comes back.
+      No nav link, no entry points anywhere, and every `/trades/*` route
+      404s while disabled. See Notes below for what it was
+- [x] Marketplace — Flight-Rising-style fixed-price listings (not a
+      timed-bid auction): list a pet or a stack of items for coins,
+      anyone can buy instantly at the listed price. `/marketplace`
+      (browse, filterable by name/rarity/price), `/marketplace/sell`
+      (list something via the same searchable picker trading used),
+      `/marketplace/mine` (your active/sold/cancelled listings and
+      purchase history). See Notes below
 - [ ] Profile customization (sanitized custom CSS/HTML)
 - [ ] Forums
 
@@ -1272,3 +1276,90 @@ signs in.
     items, the pre-filled request chips), since exercising the real
     pages end-to-end would need a live Supabase project this sandbox
     doesn't have.
+- **Trading disabled, Marketplace added instead
+  (`src/lib/feature-flags.ts`, `0018_marketplace.sql`)** — after using
+  the redesigned trading feature above, decided to hold off on
+  player-to-player trading for now and build a currency marketplace
+  instead, referencing how Flight Rising's Marketplace works (their
+  fixed-price listings, not their timed-bid Auction House).
+  - **Trading was disabled, not deleted.** `TRADING_ENABLED` in
+    `src/lib/feature-flags.ts` is the single switch: every trading nav
+    link, the "Propose a trade" button on `/u/[id]`, and the for-trade
+    toggles on `/pets`/`/items` are conditional on it, and every
+    `/trades/*` page calls `notFound()` at the top when it's off — so
+    direct navigation to a trading URL 404s the same for a player as
+    for an admin (there's no trading-specific admin UI to separately
+    hide). Flipping the flag back to `true` is the entire re-enable;
+    nothing else changes. The underlying RPCs
+    (`create_trade`/`respond_to_trade`/etc.) still exist and would still
+    work if called directly — same as any other RPC in this app, they
+    require real auth and real ownership — but with every UI entry
+    point gone, nothing in the app ever calls them.
+  - **Fixed-price, not an auction**: a seller lists a pet or a stack of
+    items at a coin price; any other player buys the whole listing
+    instantly for that price. No bidding, no timers, no partial
+    purchases (a seller who wants to sell some of a stack now and some
+    later just lists twice) — deliberately the simpler of Flight
+    Rising's two systems, chosen over timed bidding to avoid needing a
+    bid-resolution job, outbid refunds, and anti-snipe extensions for a
+    first version. Coins only, matching the rest of the economy — gems
+    still have no earn path outside admin testing grants, so nothing to
+    spend them on here either.
+  - **Pet listings snapshot their display info at listing time**
+    (`pet_species_name`/`pet_species_image_url`/`pet_rarity`/
+    `pet_custom_name` columns on the listing itself) instead of joining
+    the live `pets` row. `pets` has been owner-gated since 0002, and
+    trading's fix for the same problem (0015) was to add another
+    permissive `SELECT` policy scoped to trade participants — doing
+    that again here would mean every future feature that needs to show
+    someone else's pet adds its own carve-out. Denormalizing instead
+    means a listing is fully self-contained for display and needs zero
+    new policies on `pets`; item listings didn't need this treatment
+    since the item catalog (`items`, not any one player's stack of it)
+    has been publicly readable since 0005.
+  - **A real bug caught by the local Postgres verification, not by
+    reasoning about the code**: `buy_listing`'s stale-listing path
+    tried to `UPDATE ... SET status = 'cancelled'` and then
+    `RAISE EXCEPTION` in the same breath, intending "clean up the dead
+    listing, then tell the buyer why." A raised exception in `plpgsql`
+    aborts the *whole function call* and rolls back everything since
+    entry — including that same cancellation update — so the listing
+    was silently left `active` instead, forever failing the same way
+    for the next buyer too. plpgsql has no way to make one write outlive
+    an exception without a genuinely separate (autonomous) transaction,
+    which isn't worth reaching for here. Fixed by not raising for this
+    specific case: the function returns normally with
+    `{"status": "unavailable", "reason": "..."}` instead, the same
+    non-exception-status pattern `respond_to_trade` already uses for
+    "declined" (0015) — so the cancellation commits, and the client
+    checks the returned `status` rather than only `error`. Verified by
+    re-running the exact repro (list a pet, give it away via a separate
+    service-role update before purchase, then attempt to buy) and
+    confirming the listing now actually flips to `cancelled`.
+  - Every other write path follows the same conventions as trading and
+    everything before it: `security definer` RPCs re-validating
+    `auth.uid()`, `for update` row locks (both accounts locked in a
+    consistent order by id, so two purchases between the same pair of
+    players can't deadlock), `begin_trusted_user_write()` before
+    touching `coin_balance`, and sanity-check-at-listing/re-verify-at-
+    purchase rather than a reservation system (the same caveat as
+    trading's offers — a listed pet or item quantity isn't locked, just
+    checked again for real when someone actually buys).
+  - The shared pet/item picker modal moved from `src/app/trades/` to
+    `src/components/picker-modal.tsx` so the marketplace's sell flow
+    could reuse it without depending on a folder that's now hidden
+    behind a feature flag — trading's own usages were repointed at the
+    new location, nothing about the component itself changed.
+  - Verified against local Postgres 16 (both `psql -f` and `psql -1`):
+    listing ownership checks for both pets and items, listing an
+    already-actively-listed pet again, listing more items than owned,
+    a buyer with insufficient coins, buying your own listing, buying an
+    already-sold or cancelled listing, the cancel-your-own-listing path
+    (including an unauthorized attempt), a full successful pet purchase
+    (owner transferred, `folder_id`/`is_for_trade` reset, coins moved
+    both directions), a full item purchase (quantities moved both
+    directions), and the stale-listing case above. UI states (listing
+    cards in different statuses, the buy confirm/cancel flow, the sell
+    form's pet/item picker) were checked visually with headless
+    Chromium against a temporary preview route mounting the client
+    components with mock data.

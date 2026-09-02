@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { TRADING_ENABLED } from "@/lib/feature-flags";
 
 export default async function PublicProfilePage(
   props: PageProps<"/u/[id]">,
@@ -48,7 +49,7 @@ export default async function PublicProfilePage(
           </h1>
           <p className="text-sm text-stone-500">Joined {joined}</p>
         </div>
-        {viewer && viewer.id !== profile.id ? (
+        {TRADING_ENABLED && viewer && viewer.id !== profile.id ? (
           <Link
             href={`/trades/new?to=${encodeURIComponent(profile.display_name)}`}
             className="ml-auto self-start rounded-md bg-amber-800 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
