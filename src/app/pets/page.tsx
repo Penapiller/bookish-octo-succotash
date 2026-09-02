@@ -6,6 +6,8 @@ import { NewFolderForm } from "./new-folder-form";
 import { FolderHeader } from "./folder-header";
 import { MoveToFolderSelect } from "./move-to-folder-select";
 import { PetNameEditor } from "./pet-name-editor";
+import { ForTradeToggle } from "./for-trade-toggle";
+import { BulkForTradeButton } from "./bulk-for-trade-button";
 import type { PetFolderRow, PetWithSpecies } from "@/lib/supabase/types";
 
 const PAGE_SIZE = 25;
@@ -49,6 +51,7 @@ function PetGrid({
             currentFolderId={pet.folder_id}
             folders={folderOptions}
           />
+          <ForTradeToggle userId={userId} petId={pet.id} isForTrade={pet.is_for_trade} />
         </li>
       ))}
     </ul>
@@ -118,7 +121,9 @@ export default async function PetsPage(props: PageProps<"/pets">) {
 
   let petsQuery = supabase
     .from("pets")
-    .select("id, rarity, color_variant, folder_id, custom_name, created_at, species(name, image_url)")
+    .select(
+      "id, rarity, color_variant, folder_id, custom_name, is_for_trade, created_at, species(name, image_url)",
+    )
     .eq("owner_id", userId);
 
   if (activeTab === UNSORTED_TAB) {
@@ -171,6 +176,21 @@ export default async function PetsPage(props: PageProps<"/pets">) {
 
       {activeFolder ? (
         <FolderHeader folderId={activeFolder.id} name={activeFolder.name} petCount={activeCount} />
+      ) : null}
+
+      {activeTab !== ALL_TAB ? (
+        <div className="flex gap-2">
+          <BulkForTradeButton
+            userId={userId}
+            folderId={activeTab === UNSORTED_TAB ? null : activeTab}
+            isForTrade={true}
+          />
+          <BulkForTradeButton
+            userId={userId}
+            folderId={activeTab === UNSORTED_TAB ? null : activeTab}
+            isForTrade={false}
+          />
+        </div>
       ) : null}
 
       {pets.length === 0 ? (

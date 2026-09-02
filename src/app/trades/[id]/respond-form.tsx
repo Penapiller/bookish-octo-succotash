@@ -4,7 +4,29 @@ import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { PetPickerModal, ItemPickerModal, type PickerPet, type PickerItem } from "../picker-modal";
 import type { ItemWithQuantity, PetWithSpecies } from "@/lib/supabase/types";
+
+function toPickerPets(pets: PetWithSpecies[]): PickerPet[] {
+  return pets.map((p) => ({
+    id: p.id,
+    name: p.custom_name ?? p.species?.name ?? "Unknown pet",
+    imageUrl: p.species?.image_url ?? null,
+    rarity: p.rarity,
+  }));
+}
+
+function toPickerItems(inventory: ItemWithQuantity[]): PickerItem[] {
+  return inventory
+    .filter((entry) => entry.item)
+    .map((entry) => ({
+      id: entry.item!.id,
+      name: entry.item!.name,
+      imageUrl: entry.item!.image_url,
+      rarity: entry.item!.rarity,
+      maxQuantity: entry.quantity,
+    }));
+}
 
 export function RespondForm({
   userId,
@@ -13,6 +35,10 @@ export function RespondForm({
   inventory,
   coinBalance,
   gemBalance,
+  requestedPetIds,
+  requestedItemQuantities,
+  requestedCoins,
+  requestedGems,
 }: {
   userId: string;
   tradeId: string;
@@ -20,40 +46,57 @@ export function RespondForm({
   inventory: ItemWithQuantity[];
   coinBalance: number;
   gemBalance: number;
+  requestedPetIds: string[];
+  requestedItemQuantities: Record<string, number>;
+  requestedCoins: number;
+  requestedGems: number;
 }) {
   const router = useRouter();
-  const [selectedPetIds, setSelectedPetIds] = useState<Set<string>>(new Set());
-  const [itemQuantities, setItemQuantities] = useState<Record<string, number>>({});
-  const [coins, setCoins] = useState(0);
-  const [gems, setGems] = useState(0);
+  const pickerPets = toPickerPets(pets);
+  const pickerItems = toPickerItems(inventory);
+
+  // Pre-filled from what was requested, but only for pets/items the
+  // recipient still actually owns in enough quantity — a stale request
+  // (they already spent/traded something) shouldn't silently offer more
+  // than they have; respond_to_trade re-validates this for real anyway,
+  // this just keeps the pre-fill honest.
+  const [selectedPetIds, setSelectedPetIds] = useState<Set<string>>(
+    () => new Set(requestedPetIds.filter((id) => pickerPets.some((p) => p.id === id))),
+  );
+  const [itemQuantities, setItemQuantities] = useState<Record<string, number>>(() => {
+    const initial: Record<string, number> = {};
+    for (const [id, qty] of Object.entries(requestedItemQuantities)) {
+      const match = pickerItems.find((i) => i.id === id);
+      if (match) initial[id] = Math.min(qty, match.maxQuantity);
+    }
+    return initial;
+  });
+  const [coins, setCoins] = useState(Math.min(requestedCoins, coinBalance));
+  const [gems, setGems] = useState(Math.min(requestedGems, gemBalance));
+
+  const [modalTarget, setModalTarget] = useState<"pets" | "items" | null>(null);
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  function togglePet(petId: string) {
+  function togglePet(id: string) {
     setSelectedPetIds((prev) => {
       const next = new Set(prev);
-      if (next.has(petId)) {
-        next.delete(petId);
-      } else {
-        next.add(petId);
-      }
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   }
 
-  function setItemQuantity(itemId: string, quantity: number, max: number) {
-    const clamped = Math.max(0, Math.min(quantity, max));
-    setItemQuantities((prev) => ({ ...prev, [itemId]: clamped }));
+  function setItemQuantity(id: string, quantity: number, max: number) {
+    setItemQuantities((prev) => ({ ...prev, [id]: Math.max(0, Math.min(quantity, max)) }));
   }
 
   async function respond(accept: boolean) {
     setIsPending(true);
     setError(null);
 
-    const itemIds = Object.entries(itemQuantities)
-      .filter(([, qty]) => qty > 0)
-      .map(([itemId]) => itemId);
-    const itemQtys = itemIds.map((itemId) => itemQuantities[itemId]);
+    const itemIds = Object.entries(itemQuantities).filter(([, q]) => q > 0).map(([id]) => id);
+    const itemQtys = itemIds.map((id) => itemQuantities[id]);
 
     const supabase = createClient();
     const { error } = await supabase.rpc("respond_to_trade", {
@@ -77,11 +120,25 @@ export function RespondForm({
     router.refresh();
   }
 
+  const requestedNothing =
+    requestedPetIds.length === 0 &&
+    Object.values(requestedItemQuantities).every((q) => q === 0) &&
+    requestedCoins === 0 &&
+    requestedGems === 0;
+
   return (
     <div className="flex flex-col gap-4 rounded-lg border border-amber-200 p-4 dark:border-stone-800">
-      <h3 className="text-sm font-semibold">
-        Accept and give back (optional — leave empty to accept as a gift)
-      </h3>
+      <h3 className="text-sm font-semibold">Respond to this trade</h3>
+      {requestedNothing ? (
+        <p className="text-xs text-stone-500">
+          Nothing specific was requested — accepting below gives it as a gift, or add something
+          from your own collection first.
+        </p>
+      ) : (
+        <p className="text-xs text-stone-500">
+          Pre-filled with what was requested — remove or add anything before accepting.
+        </p>
+      )}
 
       <div className="flex gap-4">
         <label className="flex items-center gap-2 text-sm">
@@ -110,81 +167,70 @@ export function RespondForm({
         </label>
       </div>
 
-      {pets.length > 0 ? (
-        <div className="flex flex-col gap-2">
-          <span className="text-xs font-medium text-stone-500">
-            Pets ({selectedPetIds.size} selected)
-          </span>
-          <ul className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-            {pets.map((pet) => {
-              const selected = selectedPetIds.has(pet.id);
-              return (
-                <li key={pet.id}>
-                  <button
-                    type="button"
-                    onClick={() => togglePet(pet.id)}
-                    className={`flex w-full flex-col items-center gap-1 rounded-lg border-2 p-2 text-center ${
-                      selected
-                        ? "border-amber-800 bg-amber-100 dark:border-amber-200 dark:bg-stone-800"
-                        : "border-transparent hover:bg-amber-50 dark:hover:bg-stone-900"
-                    }`}
-                  >
-                    {pet.species?.image_url ? (
-                      <Image
-                        src={pet.species.image_url}
-                        alt={pet.species?.name ?? ""}
-                        width={56}
-                        height={56}
-                        className="h-14 w-14 rounded border-2 border-blue-600"
-                      />
-                    ) : (
-                      <div className="h-14 w-14 rounded bg-amber-200 dark:bg-stone-800" />
-                    )}
-                    <span className="text-xs">{pet.custom_name ?? pet.species?.name}</span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      ) : null}
+      <div className="flex flex-wrap gap-2">
+        {[...selectedPetIds].map((id) => {
+          const pet = pickerPets.find((p) => p.id === id);
+          if (!pet) return null;
+          return (
+            <span
+              key={id}
+              className="flex items-center gap-1.5 rounded-full border border-amber-300 py-1 pl-1 pr-2 text-xs dark:border-stone-700"
+            >
+              {pet.imageUrl ? (
+                <Image src={pet.imageUrl} alt="" width={20} height={20} className="h-5 w-5 rounded" />
+              ) : null}
+              {pet.name}
+              <button type="button" onClick={() => togglePet(id)} className="text-stone-500 hover:text-red-600">
+                ×
+              </button>
+            </span>
+          );
+        })}
+        {Object.entries(itemQuantities)
+          .filter(([, q]) => q > 0)
+          .map(([id, qty]) => {
+            const item = pickerItems.find((i) => i.id === id);
+            if (!item) return null;
+            return (
+              <span
+                key={id}
+                className="flex items-center gap-1.5 rounded-full border border-amber-300 py-1 pl-1 pr-2 text-xs dark:border-stone-700"
+              >
+                {item.imageUrl ? (
+                  <Image src={item.imageUrl} alt="" width={20} height={20} className="h-5 w-5 rounded" />
+                ) : null}
+                {item.name} ×{qty}
+                <button
+                  type="button"
+                  onClick={() => setItemQuantity(id, 0, 0)}
+                  className="text-stone-500 hover:text-red-600"
+                >
+                  ×
+                </button>
+              </span>
+            );
+          })}
+        {selectedPetIds.size === 0 && Object.values(itemQuantities).every((q) => q === 0) ? (
+          <span className="text-sm italic text-stone-500">Nothing added.</span>
+        ) : null}
+      </div>
 
-      {inventory.length > 0 ? (
-        <div className="flex flex-col gap-2">
-          <span className="text-xs font-medium text-stone-500">Items</span>
-          <ul className="flex flex-col gap-2">
-            {inventory.map((entry) =>
-              entry.item ? (
-                <li key={entry.item.id} className="flex items-center gap-3">
-                  {entry.item.image_url ? (
-                    <Image
-                      src={entry.item.image_url}
-                      alt={entry.item.name}
-                      width={32}
-                      height={32}
-                      className="h-8 w-8 rounded border-2 border-green-600"
-                    />
-                  ) : (
-                    <div className="h-8 w-8 rounded bg-amber-200 dark:bg-stone-800" />
-                  )}
-                  <span className="flex-1 text-sm">{entry.item.name}</span>
-                  <input
-                    type="number"
-                    min={0}
-                    max={entry.quantity}
-                    value={itemQuantities[entry.item.id] ?? 0}
-                    onChange={(e) =>
-                      setItemQuantity(entry.item!.id, Number(e.target.value) || 0, entry.quantity)
-                    }
-                    className="w-16 rounded-md border border-amber-300 px-2 py-1 text-sm dark:border-stone-700 dark:bg-stone-900"
-                  />
-                  <span className="text-xs text-stone-500">/ {entry.quantity}</span>
-                </li>
-              ) : null,
-            )}
-          </ul>
-        </div>
-      ) : null}
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => setModalTarget("pets")}
+          className="rounded-md border border-amber-300 px-3 py-1.5 text-xs hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-800"
+        >
+          + Add pet
+        </button>
+        <button
+          type="button"
+          onClick={() => setModalTarget("items")}
+          className="rounded-md border border-amber-300 px-3 py-1.5 text-xs hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-800"
+        >
+          + Add item
+        </button>
+      </div>
 
       {error ? <p className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
 
@@ -206,6 +252,27 @@ export function RespondForm({
           Decline
         </button>
       </div>
+
+      {modalTarget === "pets" ? (
+        <PetPickerModal
+          title="Add your pets"
+          pets={pickerPets}
+          selectedIds={selectedPetIds}
+          onToggle={togglePet}
+          onClose={() => setModalTarget(null)}
+          emptyText="You don't have any pets."
+        />
+      ) : null}
+      {modalTarget === "items" ? (
+        <ItemPickerModal
+          title="Add your items"
+          items={pickerItems}
+          quantities={itemQuantities}
+          onSetQuantity={setItemQuantity}
+          onClose={() => setModalTarget(null)}
+          emptyText="You don't have any items."
+        />
+      ) : null}
     </div>
   );
 }

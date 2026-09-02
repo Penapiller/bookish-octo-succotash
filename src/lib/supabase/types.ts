@@ -53,6 +53,7 @@ export type PetRow = {
   rarity: PetRarity;
   folder_id: string | null;
   custom_name: string | null;
+  is_for_trade: boolean;
   created_at: string;
 };
 
@@ -100,6 +101,7 @@ export type UserInventoryRow = {
   user_id: string;
   item_id: string;
   quantity: number;
+  is_for_trade: boolean;
 };
 
 export type ZoneLootTableRow = {
@@ -196,7 +198,7 @@ export type ExpeditionRow = {
 // `supabase gen types`. Query call sites cast to these explicitly.
 export type PetWithSpecies = Pick<
   PetRow,
-  "id" | "rarity" | "color_variant" | "folder_id" | "custom_name" | "created_at"
+  "id" | "rarity" | "color_variant" | "folder_id" | "custom_name" | "is_for_trade" | "created_at"
 > & {
   species: Pick<SpeciesRow, "name" | "image_url"> | null;
 };
@@ -204,7 +206,32 @@ export type PetWithSpecies = Pick<
 // A stack in the player's inventory, as shown on /items.
 export type ItemWithQuantity = {
   quantity: number;
+  is_for_trade: boolean;
   item: Pick<ItemRow, "id" | "name" | "image_url" | "rarity" | "type"> | null;
+};
+
+// A pet another player has marked for_trade, as shown on /trades/browse
+// and in the "their pets" tab of the trade picker modal — never exposes
+// anything beyond what the for-trade RLS policy (0016) already makes
+// visible to any signed-in player (folder_id is deliberately left out;
+// it's not for-trade-relevant and it's the new owner's to set anyway
+// once a trade completes).
+export type ForTradePet = Pick<PetRow, "id" | "rarity" | "custom_name"> & {
+  ownerId: string;
+  ownerName: string;
+  speciesName: string;
+  imageUrl: string | null;
+};
+
+export type ForTradeItem = {
+  itemId: string;
+  ownerId: string;
+  ownerName: string;
+  name: string;
+  imageUrl: string | null;
+  rarity: ItemRarity;
+  type: ItemType;
+  quantity: number;
 };
 
 export type ExpeditionWithZone = Pick<
@@ -530,6 +557,11 @@ export type Database = {
           p_coins: number;
           p_gems: number;
           p_note: string | null;
+          p_requested_pet_ids?: string[];
+          p_requested_item_ids?: string[];
+          p_requested_item_quantities?: number[];
+          p_requested_coins?: number;
+          p_requested_gems?: number;
         };
         Returns: string;
       };
@@ -550,6 +582,30 @@ export type Database = {
         Args: {
           p_user_id: string;
           p_trade_id: string;
+        };
+        Returns: null;
+      };
+      set_pet_for_trade: {
+        Args: {
+          p_user_id: string;
+          p_pet_id: string;
+          p_is_for_trade: boolean;
+        };
+        Returns: null;
+      };
+      set_item_for_trade: {
+        Args: {
+          p_user_id: string;
+          p_item_id: string;
+          p_is_for_trade: boolean;
+        };
+        Returns: null;
+      };
+      set_folder_pets_for_trade: {
+        Args: {
+          p_user_id: string;
+          p_folder_id: string | null;
+          p_is_for_trade: boolean;
         };
         Returns: null;
       };

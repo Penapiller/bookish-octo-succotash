@@ -3,38 +3,37 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { loadTrades } from "./load-trades";
 import { TradeCard } from "./trade-card";
-import type { TradeWithParticipants } from "@/lib/supabase/types";
 
-function TradeSection({
+function HubCard({
+  href,
   title,
-  emptyText,
-  trades,
-  viewerId,
+  description,
+  badge,
 }: {
+  href: string;
   title: string;
-  emptyText: string;
-  trades: TradeWithParticipants[];
-  viewerId: string;
+  description: string;
+  badge?: number;
 }) {
   return (
-    <section className="flex flex-col gap-3">
-      <h2 className="text-lg font-semibold">
-        {title} ({trades.length})
-      </h2>
-      {trades.length === 0 ? (
-        <p className="text-sm italic text-stone-500">{emptyText}</p>
-      ) : (
-        <div className="flex flex-col gap-2">
-          {trades.map((trade) => (
-            <TradeCard key={trade.id} trade={trade} viewerId={viewerId} />
-          ))}
-        </div>
-      )}
-    </section>
+    <Link
+      href={href}
+      className="flex flex-col gap-1 rounded-lg border border-amber-200 p-4 hover:bg-amber-50 dark:border-stone-800 dark:hover:bg-stone-900"
+    >
+      <div className="flex items-center justify-between">
+        <span className="font-semibold">{title}</span>
+        {badge ? (
+          <span className="rounded-full bg-amber-800 px-2 py-0.5 text-xs font-medium text-white dark:bg-amber-200 dark:text-amber-950">
+            {badge}
+          </span>
+        ) : null}
+      </div>
+      <span className="text-sm text-stone-500">{description}</span>
+    </Link>
   );
 }
 
-export default async function TradesPage() {
+export default async function TradingCenterPage() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -44,55 +43,76 @@ export default async function TradesPage() {
     redirect("/login");
   }
 
-  const { data: idRows } = await supabase
-    .from("trades")
-    .select("id")
-    .or(`initiator_id.eq.${user.id},recipient_id.eq.${user.id}`);
+  const [{ count: incomingCount }, { count: outgoingCount }, { data: recentIdRows }] =
+    await Promise.all([
+      supabase
+        .from("trades")
+        .select("*", { count: "exact", head: true })
+        .eq("recipient_id", user.id)
+        .eq("status", "pending"),
+      supabase
+        .from("trades")
+        .select("*", { count: "exact", head: true })
+        .eq("initiator_id", user.id)
+        .eq("status", "pending"),
+      supabase
+        .from("trades")
+        .select("id")
+        .or(`initiator_id.eq.${user.id},recipient_id.eq.${user.id}`)
+        .order("created_at", { ascending: false })
+        .limit(5),
+    ]);
 
-  const trades = await loadTrades(
+  const recentTrades = await loadTrades(
     supabase,
-    (idRows ?? []).map((r) => r.id),
+    (recentIdRows ?? []).map((r) => r.id),
   );
-
-  const incoming = trades.filter((t) => t.recipientId === user.id && t.status === "pending");
-  const outgoing = trades.filter((t) => t.initiatorId === user.id && t.status === "pending");
-  const history = trades.filter((t) => t.status !== "pending");
 
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-8 px-6 py-12">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Trades</h1>
-          <p className="text-sm text-stone-500">
-            Trade pets, items, coins, and gems with other players.
-          </p>
-        </div>
-        <Link
-          href="/trades/new"
-          className="rounded-md bg-amber-800 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
-        >
-          Propose a trade
-        </Link>
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Trading Center</h1>
+        <p className="text-sm text-stone-500">
+          Trade pets, items, coins, and gems with other players.
+        </p>
       </div>
 
-      <TradeSection
-        title="Incoming"
-        emptyText="No trade offers waiting on you."
-        trades={incoming}
-        viewerId={user.id}
-      />
-      <TradeSection
-        title="Outgoing"
-        emptyText="You haven't proposed any trades."
-        trades={outgoing}
-        viewerId={user.id}
-      />
-      <TradeSection
-        title="History"
-        emptyText="No completed, declined, or cancelled trades yet."
-        trades={history}
-        viewerId={user.id}
-      />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <HubCard
+          href="/trades/active"
+          title="Active trades"
+          description="Offers waiting on you or a response from someone else."
+          badge={(incomingCount ?? 0) + (outgoingCount ?? 0) || undefined}
+        />
+        <HubCard
+          href="/trades/browse"
+          title="Browse trades"
+          description="See every pet and item other players have marked for trade."
+        />
+        <HubCard
+          href="/trades/new"
+          title="Propose a trade"
+          description="Start a new trade with another player by username."
+        />
+        <HubCard
+          href="/trades/history"
+          title="Trade history"
+          description="Completed, declined, and cancelled trades."
+        />
+      </div>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="text-lg font-semibold">Recent activity</h2>
+        {recentTrades.length === 0 ? (
+          <p className="text-sm italic text-stone-500">No trades yet.</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {recentTrades.map((trade) => (
+              <TradeCard key={trade.id} trade={trade} viewerId={user.id} />
+            ))}
+          </div>
+        )}
+      </section>
     </main>
   );
 }

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { ItemType, ItemWithQuantity } from "@/lib/supabase/types";
+import { ForTradeToggle } from "./for-trade-toggle";
 
 const TABS: { value: ItemType | "all"; label: string }[] = [
   { value: "all", label: "All" },
@@ -31,7 +32,7 @@ export default async function ItemsPage(props: PageProps<"/items">) {
 
   const { data: inventoryData } = await supabase
     .from("user_inventory")
-    .select("quantity, item:items(id, name, image_url, rarity, type)")
+    .select("quantity, is_for_trade, item:items(id, name, image_url, rarity, type)")
     .eq("user_id", user.id)
     .gt("quantity", 0)
     .order("item_id", { ascending: true });
@@ -107,6 +108,11 @@ export default async function ItemsPage(props: PageProps<"/items">) {
                 <p className="text-xs capitalize text-stone-500">
                   {entry.item.type} · {entry.item.rarity}
                 </p>
+                <ForTradeToggle
+                  userId={user.id}
+                  itemId={entry.item.id}
+                  isForTrade={entry.is_for_trade}
+                />
               </li>
             ) : null,
           )}

@@ -33,22 +33,25 @@ export default async function TradeDetailPage(props: PageProps<"/trades/[id]">) 
   const isInitiator = trade.initiatorId === user.id;
   const isRecipient = trade.recipientId === user.id;
   const counterpartName = isInitiator ? trade.recipientName : trade.initiatorName;
+  const isPending = trade.status === "pending";
 
   let pets: PetWithSpecies[] = [];
   let inventory: ItemWithQuantity[] = [];
   let coinBalance = 0;
   let gemBalance = 0;
 
-  if (isRecipient && trade.status === "pending") {
+  if (isRecipient && isPending) {
     const [{ data: petsData }, { data: inventoryData }, { data: profile }] = await Promise.all([
       supabase
         .from("pets")
-        .select("id, rarity, color_variant, folder_id, custom_name, created_at, species(name, image_url)")
+        .select(
+          "id, rarity, color_variant, folder_id, custom_name, is_for_trade, created_at, species(name, image_url)",
+        )
         .eq("owner_id", user.id)
         .order("created_at", { ascending: true }),
       supabase
         .from("user_inventory")
-        .select("quantity, item:items(id, name, image_url, rarity, type)")
+        .select("quantity, is_for_trade, item:items(id, name, image_url, rarity, type)")
         .eq("user_id", user.id)
         .gt("quantity", 0)
         .order("item_id", { ascending: true }),
@@ -60,6 +63,14 @@ export default async function TradeDetailPage(props: PageProps<"/trades/[id]">) 
     coinBalance = profile?.coin_balance ?? 0;
     gemBalance = profile?.gem_balance ?? 0;
   }
+
+  const recipientHeading = isPending
+    ? isRecipient
+      ? "What they're asking you for"
+      : `What you're asking ${trade.recipientName} for`
+    : isRecipient
+      ? "You gave"
+      : `${trade.recipientName} gave`;
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-6 py-12">
@@ -85,14 +96,10 @@ export default async function TradeDetailPage(props: PageProps<"/trades/[id]">) 
           side="initiator"
           heading={isInitiator ? "You're offering" : `${trade.initiatorName} is offering`}
         />
-        <TradeSideSummary
-          trade={trade}
-          side="recipient"
-          heading={isRecipient ? "You're giving" : `${trade.recipientName} is giving`}
-        />
+        <TradeSideSummary trade={trade} side="recipient" heading={recipientHeading} />
       </div>
 
-      {trade.status === "pending" && isRecipient ? (
+      {isPending && isRecipient ? (
         <RespondForm
           userId={user.id}
           tradeId={trade.id}
@@ -100,10 +107,16 @@ export default async function TradeDetailPage(props: PageProps<"/trades/[id]">) 
           inventory={inventory}
           coinBalance={coinBalance}
           gemBalance={gemBalance}
+          requestedPetIds={trade.pets.filter((p) => p.side === "recipient").map((p) => p.petId)}
+          requestedItemQuantities={Object.fromEntries(
+            trade.items.filter((i) => i.side === "recipient").map((i) => [i.itemId, i.quantity]),
+          )}
+          requestedCoins={trade.recipient_coins}
+          requestedGems={trade.recipient_gems}
         />
       ) : null}
 
-      {trade.status === "pending" && isInitiator ? (
+      {isPending && isInitiator ? (
         <div className="flex flex-col gap-2">
           <p className="text-sm text-stone-500">
             Waiting for {trade.recipientName} to respond.

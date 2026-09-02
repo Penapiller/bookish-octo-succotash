@@ -6,6 +6,10 @@ import type { ItemWithQuantity, PetWithSpecies } from "@/lib/supabase/types";
 export default async function NewTradePage(props: PageProps<"/trades/new">) {
   const searchParams = await props.searchParams;
   const toParam = Array.isArray(searchParams.to) ? searchParams.to[0] : searchParams.to;
+  const petIdParam = Array.isArray(searchParams.petId) ? searchParams.petId[0] : searchParams.petId;
+  const itemIdParam = Array.isArray(searchParams.itemId)
+    ? searchParams.itemId[0]
+    : searchParams.itemId;
 
   const supabase = await createClient();
   const {
@@ -19,12 +23,14 @@ export default async function NewTradePage(props: PageProps<"/trades/new">) {
   const [{ data: petsData }, { data: inventoryData }, { data: profile }] = await Promise.all([
     supabase
       .from("pets")
-      .select("id, rarity, color_variant, folder_id, custom_name, created_at, species(name, image_url)")
+      .select(
+        "id, rarity, color_variant, folder_id, custom_name, is_for_trade, created_at, species(name, image_url)",
+      )
       .eq("owner_id", user.id)
       .order("created_at", { ascending: true }),
     supabase
       .from("user_inventory")
-      .select("quantity, item:items(id, name, image_url, rarity, type)")
+      .select("quantity, is_for_trade, item:items(id, name, image_url, rarity, type)")
       .eq("user_id", user.id)
       .gt("quantity", 0)
       .order("item_id", { ascending: true }),
@@ -47,6 +53,8 @@ export default async function NewTradePage(props: PageProps<"/trades/new">) {
       <TradeBuilderForm
         userId={user.id}
         initialRecipientName={toParam ?? ""}
+        initialPetId={petIdParam}
+        initialItemId={itemIdParam}
         pets={pets}
         inventory={inventory}
         coinBalance={profile?.coin_balance ?? 0}

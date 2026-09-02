@@ -83,10 +83,15 @@ This project is being built one module at a time. Current state:
       accounts can share one, and changing it costs 15 gems and can only
       be done once every 14 days. See Notes below
 - [ ] Statue offerings
-- [x] Trading — a "Trades" tab: propose a fixed pets/items/coins/gems
-      offer to another player by username, they decline or accept by
-      building their own counter-offer from their own den/inventory, and
-      accepting executes the swap immediately. See Notes below
+- [x] Trading — a Chicken-Smoothie-style Trading Center (`/trades`), split
+      across `/trades/active`, `/trades/history`, `/trades/browse`,
+      `/trades/new`, and `/trades/[id]`. Players mark pets/items
+      "for trade" (individually or a whole folder at once) so anyone can
+      browse and search them; proposing a trade lets you pick specific
+      pets/items from the other player's for-trade collection via a
+      searchable/filterable popup picker, not just describe what you
+      want. Accepting fills in what was requested by default but can be
+      freely adjusted first. See Notes below
 - [ ] Profile customization (sanitized custom CSS/HTML)
 - [ ] Forums
 
@@ -1166,12 +1171,104 @@ signs in.
     temporary preview route mounting the client components directly with
     mock data, since exercising the real pages end-to-end would need a
     live Supabase project this sandbox doesn't have.
-  - `/trades` is the inbox (incoming pending / outgoing pending /
-    history, newest first). `/trades/new` is the builder, reachable from
-    the nav or via "Propose a trade" on another player's `/u/[id]` (only
-    shown there when signed in and viewing someone else's profile),
-    which pre-fills the recipient field with that player's username.
-    `/trades/[id]` is the detail page — the respond-with-counter-offer
-    form for a pending trade's recipient, a cancel button for a pending
-    trade's initiator, and a read-only summary of both sides once
-    resolved either way.
+  - Original page layout (superseded by the Trading Center redesign
+    directly below): a single `/trades` inbox page with incoming/
+    outgoing/history sections, and a builder that only ever took a
+    free-text "what I want" note since neither side could see into the
+    other's collection.
+- **Trading Center redesign, for-trade browsing, and the trade picker
+  modal (`0016_for_trade_flags.sql`, `0017_trade_requests.sql`)** — three
+  follow-ups after using the first version of trading, modeled on how
+  Chicken Smoothie's trading actually works: players mark specific
+  pets/items available to trade, anyone can browse and search that pool,
+  and proposing a trade means picking concretely from it rather than
+  hoping a free-text note gets read.
+  - **`is_for_trade`** (`0016`) is a plain boolean on `pets` and
+    `user_inventory`, toggled by the owner via `set_pet_for_trade`/
+    `set_item_for_trade` (both the same narrow-RPC-per-mutation pattern
+    as `rename_pet`/`move_pet_to_folder`, since neither table has ever
+    had a client `UPDATE` policy) plus a bulk `set_folder_pets_for_trade`
+    for tagging a whole folder ("pet group") at once — the "mark all in
+    this group for trade" button on `/pets`. **It only gates discovery,
+    never what can actually be offered**: once two players are already
+    building a trade, either side can still offer anything they own,
+    flagged or not — see `create_trade`'s comment for why (nothing here
+    is a reservation, only a visibility rule).
+  - **Browse visibility**: two new additive `SELECT` policies (`pets`,
+    `user_inventory`) let any signed-in player see a for-trade pet/item
+    regardless of who owns it — the first time either table has ever
+    been visible beyond its owner. `/trades/browse` is the Trading-Post-
+    style page this enables: tabs for pets/items, filterable by name/
+    rarity/owner username, paginated, each result linking to
+    `/trades/new` pre-targeted at that owner and that specific pet/item.
+  - **The initiator can now request specific things from the recipient's
+    side too** (`0017` extends `create_trade` with five trailing
+    defaulted params — the one signature change `CREATE OR REPLACE`
+    allows without dropping the function — so old callers still work
+    unchanged), validated against what the recipient has actually
+    marked `is_for_trade` and inserted as `side = 'recipient'` rows at
+    proposal time, same sanity-check-now/re-verify-at-accept-time
+    caveat as everything else on this table. This is a *request*, not a
+    lock: the recipient's response form pre-fills from it but can freely
+    swap in something else before accepting.
+  - **A real bug this surfaced**: `respond_to_trade` previously always
+    `INSERT`ed the recipient's submitted pets/items, which worked when
+    the recipient side started empty — but now `create_trade` may have
+    already inserted `side = 'recipient'` rows as the request, and
+    re-confirming (or partially reusing) the same pet/item id would hit
+    `trade_pets`/`trade_items`'s primary key. Fixed by having
+    `respond_to_trade` `DELETE` any existing `side = 'recipient'` rows
+    before inserting whatever the recipient actually chose to give —
+    verified directly by having a recipient swap in a completely
+    different pet and a different currency amount than what was
+    requested, and confirming exactly one row lands (no duplicate/
+    leftover) and the trade's final `recipient_coins` reflects what was
+    actually given, not the original ask.
+  - Newly-received pets also get `is_for_trade` reset to `false` on
+    both sides of a completed swap — a pet doesn't stay publicly
+    browsable under its new owner just because its previous owner had
+    flagged it.
+  - **The shared picker modal** (`src/app/trades/picker-modal.tsx`,
+    `PetPickerModal`/`ItemPickerModal`) is what "search and filter
+    through their and their partner's items/pets" turned into: a name
+    search box + rarity dropdown over a normalized `PickerPet`/
+    `PickerItem` shape, so the same component renders a player's own
+    collection (already loaded server-side) or another player's
+    for-trade pool (fetched client-side once a recipient is resolved,
+    since only then is their user id known) identically. Used in three
+    places: the trade builder's "You give" (own collection, unfiltered
+    by `is_for_trade` — see above) and "You want" (recipient's
+    for-trade pool only) columns, and the respond form's own-collection
+    picker.
+  - **A real bug this surfaced, caught by the Playwright pass, not the
+    type checker**: the trade builder's "You give" chips initially read
+    straight from the raw `PetWithSpecies[]`/`ItemWithQuantity[]` props
+    (which don't have a top-level `.name`/`.imageUrl`) instead of the
+    normalized picker shape used everywhere else — the `as PickerPet[]`
+    cast silenced TypeScript, so it built and typechecked cleanly, but
+    every added-pet chip rendered as an empty circle with no name or
+    image. Fixed by normalizing once (`toPickerPets`/`toPickerItems`)
+    and reusing that everywhere instead of passing the raw query result
+    into a component that expects the normalized shape.
+  - `/trades` is now the **Trading Center** hub — pending-trade counts,
+    quick links, and a short recent-activity list — with the actual
+    trade lists split out: `/trades/active` (incoming/outgoing pending),
+    `/trades/history` (resolved), `/trades/browse` (the for-trade
+    marketplace above), `/trades/new` (the builder), `/trades/[id]`
+    (detail — unchanged in structure, just relabels the recipient side
+    "What they're asking you for" / "What you're asking ... for" while
+    `pending`, versus "gave" once resolved, since that side may now be a
+    live request rather than a settled fact).
+  - Verified the same way as the original trading feature: local
+    Postgres 16 (both `psql -f` and `psql -1`) for the schema/RPC
+    changes — role-switched through the for-trade toggle ownership
+    check, confirmed a stranger can see only the specific pets/items an
+    owner marked for trade (not the rest of their den), a full
+    create-request-then-accept-as-is trade, and the swap-in-something-
+    different case that caught the delete-before-insert bug above — then
+    headless Chromium against a temporary preview route mounting the
+    real trade builder and respond form components with mock data
+    (search/filter inside the picker modal, adding/removing pets and
+    items, the pre-filled request chips), since exercising the real
+    pages end-to-end would need a live Supabase project this sandbox
+    doesn't have.
