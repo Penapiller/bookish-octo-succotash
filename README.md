@@ -59,13 +59,19 @@ This project is being built one module at a time. Current state:
       an "Expand den" button on the profile page spends coins for +25
       more slots at a time, at an escalating cost. `/admin/currency` lets
       you grant yourself coins/gems for testing in the meantime
-- [x] Pets/items split & pet folders — the old "Inventory" tab is now two
-      separate tabs, "Pets" and "Items" (`/inventory` still works, just
-      redirects to `/pets`). Pets can be grouped into folders like Flight
-      Rising's lairs — create/rename/delete a folder, and move any pet
-      into one via a dropdown on its card; pets outside any folder show
-      under "Unsorted". The items page has type tabs (All / Ingredients /
-      Potions / Cosmetics)
+- [x] Pets/items split, pet folders, and pet naming — the old
+      "Inventory" tab is now two separate tabs, "Pets" and "Items"
+      (`/inventory` still works, just redirects to `/pets`). Pets can be
+      grouped into folders like Flight Rising's lairs, shown as tabs on
+      `/pets` (All / each folder / Unsorted), each paginated at 25 pets
+      per page — create/rename/delete a folder, and move any pet into
+      one via a dropdown on its card. The items page has type tabs (All
+      / Ingredients / Potions / Cosmetics). Chicken Smoothie-style pet
+      naming: every pet starts unnamed (no species-name placeholder
+      shown in its place, just a "+ Name this pet" prompt) until the
+      owner sets a nickname
+- [x] `game-assets/` drop folder for real art — see
+      [`game-assets/README.md`](./game-assets/README.md)
 - [ ] Statue offerings
 - [ ] Trading
 - [ ] Profile customization (sanitized custom CSS/HTML)
@@ -801,3 +807,45 @@ signs in.
     see `node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/page.md`)
     filtering the same inventory query the old page already ran — no new
     table or RPC needed for this part.
+  - **`/pets` was redesigned again shortly after** to fix a real UX
+    problem the first version had: every folder rendered as its own
+    always-expanded section stacked on one page, which doesn't scale.
+    It's now `?folder=<id|all|unsorted>` + `?page=<n>` driven — folders
+    are tabs (`All` / each folder / `Unsorted`, each showing its own
+    count), and the active tab is paginated at 25 pets per page via
+    `.range()`. Tab counts come from `{count:"exact",head:true}` queries
+    (one per folder, run in parallel) rather than fetching every pet's
+    row just to count them; the actual pet data query only ever fetches
+    the current tab's current page.
+- **Pet naming (`0013_pet_names.sql`)** — Chicken Smoothie-style: every
+  pet starts unnamed (`custom_name` defaults to null, never backfilled
+  from the species name) and stays that way until the owner sets one.
+  The species name is never treated as the pet's display name — it's
+  shown as smaller secondary/breed-style text under the name slot, which
+  itself shows a "+ Name this pet" prompt (not a placeholder title) when
+  unnamed, and becomes an inline-editable name once set
+  (`pet-name-editor.tsx`).
+  - **`rename_pet(p_user_id, p_pet_id, p_name)`** follows the exact same
+    shape as `move_pet_to_folder` (0012) and for the same reason: `pets`
+    has never had a client `UPDATE` policy, so this is a narrow RPC that
+    only ever touches `custom_name` rather than a blanket owner-update
+    policy that would also reopen `species_id`/`rarity`/etc. to client
+    writes. Blank/whitespace-only input clears the name back to
+    null — that's how a player "un-names" a pet — rather than being
+    rejected.
+  - A `check` constraint on the column itself (null, or 1-40 chars)
+    backs up the RPC's own length check — defense in depth, same
+    reasoning as the length checks already used elsewhere in this app.
+  - Verified locally the same way as every other migration: both
+    `psql -f`/`psql -1` apply cleanly; role-switched as two different
+    accounts, one user can't rename another's pet, a name gets trimmed
+    and saved correctly, blank input clears it back to null, a
+    41-character name is rejected, and a direct client `UPDATE` to
+    `custom_name` still does nothing (no RLS policy allows it).
+- **`game-assets/` drop folder** — a place to hand over real art in
+  future turns instead of describing it in chat. See
+  [`game-assets/README.md`](./game-assets/README.md) for the convention
+  (subfolder by kind, filename loosely matched to the existing
+  species/item/zone name) — not itself app code, just a documented
+  workflow for getting art into Storage without going through the admin
+  UI's file picker one image at a time.

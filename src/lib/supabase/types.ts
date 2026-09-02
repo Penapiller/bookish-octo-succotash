@@ -49,6 +49,7 @@ export type PetRow = {
   color_variant: string | null;
   rarity: PetRarity;
   folder_id: string | null;
+  custom_name: string | null;
   created_at: string;
 };
 
@@ -164,7 +165,7 @@ export type ExpeditionRow = {
 // `supabase gen types`. Query call sites cast to these explicitly.
 export type PetWithSpecies = Pick<
   PetRow,
-  "id" | "rarity" | "color_variant" | "folder_id" | "created_at"
+  "id" | "rarity" | "color_variant" | "folder_id" | "custom_name" | "created_at"
 > & {
   species: Pick<SpeciesRow, "name" | "image_url"> | null;
 };
@@ -414,6 +415,14 @@ export type Database = {
           p_user_id: string;
           p_pet_id: string;
           p_folder_id: string | null;
+        };
+        Returns: null;
+      };
+      rename_pet: {
+        Args: {
+          p_user_id: string;
+          p_pet_id: string;
+          p_name: string;
         };
         Returns: null;
       };
