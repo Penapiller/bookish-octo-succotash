@@ -372,6 +372,14 @@ const RECIPES_PER_SPREAD = RECIPES_PER_SIDE * 2;
 const LEFT_PAGE_BOX = { left: "10%", top: "12%", width: "35%", height: "74%" };
 const RIGHT_PAGE_BOX = { left: "55%", top: "12%", width: "35%", height: "74%" };
 
+// Every image slot (each ingredient + the output potion) is flex-1 with a
+// fixed row height (h-full, bounded by the 3-row split of the page box
+// above) rather than a fixed width/height — so a full recipe (3
+// ingredients + 1 potion = 4 image slots) always stretches edge-to-edge
+// across the row, and a shorter recipe's fewer slots grow to fill the
+// same width instead of leaving empty space. object-cover on the actual
+// <Image> means a slot that ends up wider than tall just crops the art
+// instead of stretching it.
 function RecipeCell({
   recipe,
   onFillSlots,
@@ -389,54 +397,97 @@ function RecipeCell({
           ? "Fill the slots with this recipe's ingredients"
           : "You don't have enough ingredients"
       }
-      className="flex flex-1 items-center justify-center gap-2 rounded-lg hover:bg-white/40 disabled:opacity-50"
+      className="flex h-full w-full items-center gap-1.5 rounded-lg p-1 hover:bg-white/40 disabled:opacity-50"
     >
-      <div className="flex items-center gap-1.5">
-        {recipe.ingredients.map((ing) =>
-          ing.item ? (
-            <div key={ing.item.id} className="relative shrink-0">
-              {ing.item.image_url ? (
-                <Image
-                  src={ing.item.image_url}
-                  alt={ing.item.name}
-                  width={44}
-                  height={44}
-                  className="h-11 w-11 rounded border-2 border-green-600"
-                />
-              ) : (
-                <div className="h-11 w-11 rounded bg-amber-200" />
-              )}
-              {ing.quantityRequired > 1 ? (
-                <span className="absolute -bottom-1 -right-1 rounded-full bg-stone-900 px-1.5 text-xs font-medium leading-tight text-white">
-                  ×{ing.quantityRequired}
-                </span>
-              ) : null}
-            </div>
-          ) : null,
-        )}
-      </div>
+      {recipe.ingredients.map((ing) =>
+        ing.item ? (
+          <div key={ing.item.id} className="relative h-full min-w-0 flex-1">
+            {ing.item.image_url ? (
+              <Image
+                src={ing.item.image_url}
+                alt={ing.item.name}
+                fill
+                sizes="150px"
+                className="rounded border-2 border-green-600 object-cover"
+              />
+            ) : (
+              <div className="absolute inset-0 rounded bg-amber-200" />
+            )}
+            {ing.quantityRequired > 1 ? (
+              <span className="absolute -bottom-1 -right-1 rounded-full bg-stone-900 px-1.5 text-xs font-medium leading-tight text-white">
+                ×{ing.quantityRequired}
+              </span>
+            ) : null}
+          </div>
+        ) : null,
+      )}
 
       <span className="shrink-0 text-2xl text-stone-500" aria-hidden="true">
         →
       </span>
 
-      <div className="group relative shrink-0">
+      <div className="group relative h-full min-w-0 flex-1">
         {recipe.potion?.image_url ? (
           <Image
             src={recipe.potion.image_url}
             alt={recipe.potion.name}
-            width={56}
-            height={56}
-            className="h-14 w-14 rounded border-2 border-purple-600"
+            fill
+            sizes="150px"
+            className="rounded border-2 border-purple-600 object-cover"
           />
         ) : (
-          <div className="h-14 w-14 rounded bg-amber-200" />
+          <div className="absolute inset-0 rounded bg-amber-200" />
         )}
         <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-44 -translate-x-1/2 rounded-md bg-stone-900 px-2 py-1.5 text-center text-sm text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
           <p className="font-medium">{recipe.potion?.name}</p>
           <p>{describeEffect(recipe)}</p>
         </div>
       </div>
+    </button>
+  );
+}
+
+// The two arrow assets swap on hover via a plain CSS opacity crossfade
+// (group/group-hover) — no JS state needed. Each button gets a fixed
+// pixel box (the art's own ~48:104 aspect ratio) since both images use
+// `fill` and need something concrete to size against.
+function PageArrowButton({
+  direction,
+  disabled,
+  onClick,
+}: {
+  direction: "left" | "right";
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  const base = direction === "left" ? "/icons/page-arrow-left.png" : "/icons/page-arrow-right.png";
+  const hover =
+    direction === "left" ? "/icons/page-arrow-left-hover.png" : "/icons/page-arrow-right-hover.png";
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={direction === "left" ? "Previous page" : "Next page"}
+      className="group relative h-24 w-11 shrink-0 disabled:opacity-30"
+    >
+      <Image
+        src={base}
+        alt=""
+        fill
+        sizes="44px"
+        className="object-contain transition-opacity group-hover:opacity-0"
+      />
+      {!disabled ? (
+        <Image
+          src={hover}
+          alt=""
+          fill
+          sizes="44px"
+          className="object-contain opacity-0 transition-opacity group-hover:opacity-100"
+        />
+      ) : null}
     </button>
   );
 }
@@ -477,58 +528,63 @@ function RecipeBookModal({
           Every recipe is visible here for testing. Hover a potion to see what it does.
         </p>
 
-        <div className="relative w-full">
-          <Image
-            src="/ui/book-container.png"
-            alt=""
-            width={1720}
-            height={1021}
-            className="h-auto w-full"
-            priority
+        <div className="flex items-center gap-2">
+          <PageArrowButton
+            direction="left"
+            disabled={page === 0}
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
           />
-          {recipes.length === 0 ? (
-            <p className="absolute inset-0 flex items-center justify-center text-sm italic text-stone-600">
-              No recipes yet.
-            </p>
-          ) : (
-            <>
-              <div className="absolute flex flex-col" style={LEFT_PAGE_BOX}>
-                {leftRecipes.map((recipe) => (
-                  <RecipeCell key={recipe.id} recipe={recipe} onFillSlots={onFillSlots} />
-                ))}
-              </div>
-              <div className="absolute flex flex-col" style={RIGHT_PAGE_BOX}>
-                {rightRecipes.map((recipe) => (
-                  <RecipeCell key={recipe.id} recipe={recipe} onFillSlots={onFillSlots} />
-                ))}
-              </div>
-            </>
-          )}
-        </div>
 
-        {totalPages > 1 ? (
-          <div className="flex items-center justify-center gap-4 text-sm text-white">
-            <button
-              type="button"
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-              disabled={page === 0}
-              className="rounded-md bg-white/20 px-3 py-1.5 hover:bg-white/30 disabled:opacity-40"
-            >
-              ← Previous page
-            </button>
-            <span>
-              Page {page + 1} of {totalPages}
-            </span>
-            <button
-              type="button"
-              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-              disabled={page === totalPages - 1}
-              className="rounded-md bg-white/20 px-3 py-1.5 hover:bg-white/30 disabled:opacity-40"
-            >
-              Next page →
-            </button>
+          <div className="relative flex-1">
+            <Image
+              src="/ui/book-container.png"
+              alt=""
+              width={1720}
+              height={1021}
+              className="h-auto w-full"
+              priority
+            />
+            {recipes.length === 0 ? (
+              <p className="absolute inset-0 flex items-center justify-center text-sm italic text-stone-600">
+                No recipes yet.
+              </p>
+            ) : (
+              <>
+                <div className="absolute flex flex-col" style={LEFT_PAGE_BOX}>
+                  {leftRecipes.map((recipe) => (
+                    <RecipeCell key={recipe.id} recipe={recipe} onFillSlots={onFillSlots} />
+                  ))}
+                </div>
+                <div className="absolute flex flex-col" style={RIGHT_PAGE_BOX}>
+                  {rightRecipes.map((recipe) => (
+                    <RecipeCell key={recipe.id} recipe={recipe} onFillSlots={onFillSlots} />
+                  ))}
+                </div>
+                {/* Printed-on-the-page numbers, like a real book — left
+                    page is always odd, right always even, counting up
+                    across spreads. */}
+                <span
+                  className="absolute text-center text-sm font-medium text-stone-500"
+                  style={{ left: "10%", width: "35%", top: "88%" }}
+                >
+                  {page * 2 + 1}
+                </span>
+                <span
+                  className="absolute text-center text-sm font-medium text-stone-500"
+                  style={{ left: "55%", width: "35%", top: "88%" }}
+                >
+                  {page * 2 + 2}
+                </span>
+              </>
+            )}
           </div>
-        ) : null}
+
+          <PageArrowButton
+            direction="right"
+            disabled={page === totalPages - 1}
+            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+          />
+        </div>
       </div>
     </div>
   );
