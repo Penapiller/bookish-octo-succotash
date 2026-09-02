@@ -974,20 +974,23 @@ signs in.
     loads from Supabase Storage) but did mean earlier verification
     screenshots showed broken images where the layout mattered more than
     the pixels.
-- **Recipe book: fill-width icons, page-turn arrows, page numbers** —
-  three follow-up refinements once the two-page-spread layout (above)
+- **Recipe book: larger fixed-size icons, page-turn arrows, page numbers**
+  — three follow-up refinements once the two-page-spread layout (above)
   was in place and felt too small.
   - Each image slot in a `RecipeCell` (every ingredient + the output
-    potion) went from a fixed pixel size to `flex-1` width + `h-full`
-    (bounded to the row's fixed height, itself fixed by the 3-row split
-    of the calibrated page box) — a full recipe's 4 slots (3 ingredients
-    + potion) now always fill the row edge-to-edge, and a recipe with
-    fewer ingredients ends up with even *larger* slots rather than
-    leaving unused width, since fewer flex items divide the same space.
-    `object-cover` on the actual `<Image>` (switched from fixed
-    width/height to `fill`) means a slot that ends up wider than tall
-    (the 1-ingredient case can get quite wide) just crops the source art
-    to fit instead of stretching it — no distortion.
+    potion) first tried `flex-1` width + `h-full` so a full recipe's 4
+    slots (3 ingredients + potion) would fill the row edge-to-edge — but
+    that meant recipes with *fewer* ingredients got *larger* slots than
+    ones with more, since fewer flex items divide the same row width
+    between them. That's not what was wanted: every icon should read as
+    the same size everywhere in the book, and a short recipe should just
+    leave empty space rather than growing to fill it. Reverted to fixed
+    pixel sizing (`CELL_ICON_SIZE = 52`, `CELL_POTION_SIZE = 64` — a
+    modest bump over the original 44px/56px) via `<Image>` `width`/
+    `height` plus matching inline `style`, with `shrink-0` wrapper divs
+    instead of `flex-1`. A recipe with fewer ingredients now just
+    produces a shorter, left-aligned row at the same icon size as every
+    other row.
   - Page-turn arrows (`PageArrowButton`) replaced the old Previous/Next
     text buttons below the book — they now sit directly beside it,
     using art the user dropped into `game-assets/` (a plain "brown
@@ -1005,7 +1008,8 @@ signs in.
     its pages.
   - Verified the same way as the rest of this feature: headless Chromium
     against a temporary preview route with mocked recipes deliberately
-    covering the 4-image, 3-image, and 2-image cases, confirming the
-    full-width fill behaves correctly at each size, the hover crossfade
-    fires, the correct arrow dims at each end of the page range, and the
-    printed page numbers advance correctly across a spread turn.
+    covering the 4-image, 3-image, and 2-image cases, confirming every
+    icon renders at the same fixed size regardless of ingredient count,
+    the hover crossfade fires, the correct arrow dims at each end of the
+    page range, and the printed page numbers advance correctly across a
+    spread turn.

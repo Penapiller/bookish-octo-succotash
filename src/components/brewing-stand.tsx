@@ -372,14 +372,15 @@ const RECIPES_PER_SPREAD = RECIPES_PER_SIDE * 2;
 const LEFT_PAGE_BOX = { left: "10%", top: "12%", width: "35%", height: "74%" };
 const RIGHT_PAGE_BOX = { left: "55%", top: "12%", width: "35%", height: "74%" };
 
-// Every image slot (each ingredient + the output potion) is flex-1 with a
-// fixed row height (h-full, bounded by the 3-row split of the page box
-// above) rather than a fixed width/height — so a full recipe (3
-// ingredients + 1 potion = 4 image slots) always stretches edge-to-edge
-// across the row, and a shorter recipe's fewer slots grow to fill the
-// same width instead of leaving empty space. object-cover on the actual
-// <Image> means a slot that ends up wider than tall just crops the art
-// instead of stretching it.
+// Every image slot (each ingredient + the output potion) is a fixed
+// size, the same for every recipe regardless of how many ingredients it
+// has — a recipe with fewer ingredients just leaves the row shorter, it
+// doesn't get bigger icons. (An earlier version made slots flex to fill
+// the row's width, which stretched a 1-ingredient recipe's icons much
+// larger than a 3-ingredient recipe's — not what was wanted here.)
+const CELL_ICON_SIZE = 52;
+const CELL_POTION_SIZE = 64;
+
 function RecipeCell({
   recipe,
   onFillSlots,
@@ -401,17 +402,21 @@ function RecipeCell({
     >
       {recipe.ingredients.map((ing) =>
         ing.item ? (
-          <div key={ing.item.id} className="relative h-full min-w-0 flex-1">
+          <div key={ing.item.id} className="relative shrink-0">
             {ing.item.image_url ? (
               <Image
                 src={ing.item.image_url}
                 alt={ing.item.name}
-                fill
-                sizes="150px"
-                className="rounded border-2 border-green-600 object-cover"
+                width={CELL_ICON_SIZE}
+                height={CELL_ICON_SIZE}
+                className="rounded border-2 border-green-600"
+                style={{ width: CELL_ICON_SIZE, height: CELL_ICON_SIZE }}
               />
             ) : (
-              <div className="absolute inset-0 rounded bg-amber-200" />
+              <div
+                className="rounded bg-amber-200"
+                style={{ width: CELL_ICON_SIZE, height: CELL_ICON_SIZE }}
+              />
             )}
             {ing.quantityRequired > 1 ? (
               <span className="absolute -bottom-1 -right-1 rounded-full bg-stone-900 px-1.5 text-xs font-medium leading-tight text-white">
@@ -426,17 +431,21 @@ function RecipeCell({
         →
       </span>
 
-      <div className="group relative h-full min-w-0 flex-1">
+      <div className="group relative shrink-0">
         {recipe.potion?.image_url ? (
           <Image
             src={recipe.potion.image_url}
             alt={recipe.potion.name}
-            fill
-            sizes="150px"
-            className="rounded border-2 border-purple-600 object-cover"
+            width={CELL_POTION_SIZE}
+            height={CELL_POTION_SIZE}
+            className="rounded border-2 border-purple-600"
+            style={{ width: CELL_POTION_SIZE, height: CELL_POTION_SIZE }}
           />
         ) : (
-          <div className="absolute inset-0 rounded bg-amber-200" />
+          <div
+            className="rounded bg-amber-200"
+            style={{ width: CELL_POTION_SIZE, height: CELL_POTION_SIZE }}
+          />
         )}
         <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-44 -translate-x-1/2 rounded-md bg-stone-900 px-2 py-1.5 text-center text-sm text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
           <p className="font-medium">{recipe.potion?.name}</p>
