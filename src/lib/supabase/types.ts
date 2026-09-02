@@ -48,6 +48,14 @@ export type PetRow = {
   species_id: string;
   color_variant: string | null;
   rarity: PetRarity;
+  folder_id: string | null;
+  created_at: string;
+};
+
+export type PetFolderRow = {
+  id: string;
+  owner_id: string;
+  name: string;
   created_at: string;
 };
 
@@ -156,12 +164,12 @@ export type ExpeditionRow = {
 // `supabase gen types`. Query call sites cast to these explicitly.
 export type PetWithSpecies = Pick<
   PetRow,
-  "id" | "rarity" | "color_variant" | "created_at"
+  "id" | "rarity" | "color_variant" | "folder_id" | "created_at"
 > & {
   species: Pick<SpeciesRow, "name" | "image_url"> | null;
 };
 
-// A stack in the player's inventory, as shown on /inventory.
+// A stack in the player's inventory, as shown on /items.
 export type ItemWithQuantity = {
   quantity: number;
   item: Pick<ItemRow, "id" | "name" | "image_url" | "rarity" | "type"> | null;
@@ -310,6 +318,10 @@ export type Database = {
         PetRow,
         Partial<PetRow> & { owner_id: string; species_id: string; rarity: PetRarity }
       >;
+      pet_folders: TableOf<
+        PetFolderRow,
+        Partial<PetFolderRow> & { owner_id: string; name: string }
+      >;
       zones: TableOf<ZoneRow, Partial<ZoneRow> & { name: string }>;
       zone_pet_pool: TableOf<ZonePetPoolRow>;
       items: TableOf<ItemRow, Partial<ItemRow> & { name: string }>;
@@ -396,6 +408,14 @@ export type Database = {
           p_gem_delta: number;
         };
         Returns: AdminCurrencyGrantResult;
+      };
+      move_pet_to_folder: {
+        Args: {
+          p_user_id: string;
+          p_pet_id: string;
+          p_folder_id: string | null;
+        };
+        Returns: null;
       };
     };
   };

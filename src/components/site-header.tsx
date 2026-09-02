@@ -34,8 +34,11 @@ export async function SiteHeader() {
             <Link href="/expeditions" className="hover:underline">
               Expeditions
             </Link>
-            <Link href="/inventory" className="hover:underline">
-              Inventory
+            <Link href="/pets" className="hover:underline">
+              Pets
+            </Link>
+            <Link href="/items" className="hover:underline">
+              Items
             </Link>
             <Link href="/brewing" className="hover:underline">
               Brewing

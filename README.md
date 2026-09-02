@@ -29,8 +29,7 @@ This project is being built one module at a time. Current state:
       per zone at a time), and a return-to-claim popup once it resolves
       (keep the reward or send it away)
 - [x] Items + inventory — zones now sometimes drop a crafting item instead
-      of a pet (blue = pet art, green = item art, for easy testing), and a
-      new "Inventory" tab shows owned pets and item stacks
+      of a pet (blue = pet art, green = item art, for easy testing)
 - [x] Potions & brewing — a "Brewing" tab: a 3-slot brewing stand players
       fill with owned ingredients, a recipe-book popup (📖 icon) showing
       every fixed, shared recipe for reference/testing, and matching the
@@ -60,6 +59,13 @@ This project is being built one module at a time. Current state:
       an "Expand den" button on the profile page spends coins for +25
       more slots at a time, at an escalating cost. `/admin/currency` lets
       you grant yourself coins/gems for testing in the meantime
+- [x] Pets/items split & pet folders — the old "Inventory" tab is now two
+      separate tabs, "Pets" and "Items" (`/inventory` still works, just
+      redirects to `/pets`). Pets can be grouped into folders like Flight
+      Rising's lairs — create/rename/delete a folder, and move any pet
+      into one via a dropdown on its card; pets outside any folder show
+      under "Unsorted". The items page has type tabs (All / Ingredients /
+      Potions / Cosmetics)
 - [ ] Statue offerings
 - [ ] Trading
 - [ ] Profile customization (sanitized custom CSS/HTML)
@@ -756,3 +762,42 @@ signs in.
     real grant lands both balances and is audit-logged, and two
     successive `expand_den` calls charge 500 then 750 exactly as the
     cost curve intends.
+- **Pets/items split & pet folders (`0012_pet_folders.sql`, `/pets`,
+  `/items`)** — `/inventory` (a single page mixing two increasingly
+  different systems) is now two pages; the old route just `redirect()`s
+  to `/pets` so old links/bookmarks still land somewhere.
+  - **Folders are a simple owned table** (`pet_folders`: `owner_id`,
+    `name`) with plain owner-scoped RLS CRUD policies — unlike most
+    player-facing writes elsewhere in this app, folder create/rename/
+    delete don't need a security-definer RPC, since a folder holds
+    nothing sensitive or invariant-bearing (just a name), the same
+    reasoning that already let `settings/actions.ts` write
+    `display_name`/`bio` directly through RLS instead of via an RPC.
+  - **Moving a pet between folders is an RPC** (`move_pet_to_folder`),
+    not a client `UPDATE` policy on `pets` — `pets` has never had a
+    client-facing write policy (species/rarity/etc. must never be
+    client-writable; see 0002), and adding a broad "owner can update own
+    pets" policy just to allow `folder_id` changes would reopen that.
+    The RPC only ever touches `folder_id`, verifies the caller owns both
+    the pet and the target folder, and — like several player RPCs
+    already in this app — the request just fails outright with an
+    exception on ownership mismatch rather than silently no-op'ing,
+    since there's no legitimate case where it's called for someone
+    else's pet or folder.
+  - A pet with `folder_id = null` shows under "Unsorted" — not a real
+    folder row, so no folder needs to be auto-created for new users.
+    Deleting a folder (`on delete set null` on `pets.folder_id`) drops
+    its pets back to Unsorted automatically; nothing else needs to move
+    them out first.
+  - Verified locally the same way as every other migration: both
+    `psql -f`/`psql -1` apply cleanly, and — as two different simulated
+    accounts — one user can't see, rename, or delete another's folders,
+    can't move another user's pet, and deleting a folder correctly
+    clears `folder_id` back to null on its pets rather than cascading
+    the delete to the pets themselves.
+  - The items page's type tabs (All / Ingredients / Potions / Cosmetics)
+    are a plain `?type=` query param read via `props.searchParams` (Next
+    16's `PageProps` helper, same `await`-a-Promise shape as `params` —
+    see `node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/page.md`)
+    filtering the same inventory query the old page already ran — no new
+    table or RPC needed for this part.
