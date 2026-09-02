@@ -41,9 +41,10 @@ export async function updateProfile(
     return { error: `Bio must be ${MAX_BIO_LENGTH} characters or fewer.` };
   }
 
-  // Only display_name and bio are ever written here — currency_balance,
-  // den_size, is_admin, google_sub, and email are never taken from client
-  // input. The DB trigger also enforces this server-side as a second layer.
+  // Only display_name and bio are ever written here — coin_balance,
+  // gem_balance, den_size, is_admin, google_sub, and email are never taken
+  // from client input. The DB trigger also enforces this server-side as a
+  // second layer.
   const { error } = await supabase
     .from("users")
     .update({ display_name: displayName, bio: bio.length > 0 ? bio : null })

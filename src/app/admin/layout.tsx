@@ -28,6 +28,9 @@ export default async function AdminLayout({
           <Link href="/admin/recipes" className="hover:underline">
             Potion recipes
           </Link>
+          <Link href="/admin/currency" className="hover:underline">
+            Currency
+          </Link>
           <Link href="/admin/audit-log" className="hover:underline">
             Audit log
           </Link>

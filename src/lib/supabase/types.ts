@@ -5,7 +5,8 @@ export type UserRow = {
   display_name: string;
   avatar_url: string | null;
   bio: string | null;
-  currency_balance: number;
+  coin_balance: number;
+  gem_balance: number;
   den_size: number;
   is_admin: boolean;
   starter_granted: boolean;
@@ -203,6 +204,18 @@ export type ClaimExpeditionResult = {
   bonus_image_url?: string | null;
 };
 
+// What expand_den returns after a successful purchase.
+export type ExpandDenResult = {
+  new_den_size: number;
+  coins_spent: number;
+};
+
+// What admin_grant_self_currency returns — the admin's new balances.
+export type AdminCurrencyGrantResult = {
+  coin_balance: number;
+  gem_balance: number;
+};
+
 // A zone's pool preview ("what you might get") — pets and items are drawn
 // from the same weighted roll (see pick_weighted_zone_reward), so the
 // preview is one merged, kind-tagged list rather than two separate ones.
@@ -371,6 +384,18 @@ export type Database = {
           p_brew_id: string;
         };
         Returns: null;
+      };
+      expand_den: {
+        Args: { p_user_id: string };
+        Returns: ExpandDenResult;
+      };
+      admin_grant_self_currency: {
+        Args: {
+          p_admin_user_id: string;
+          p_coin_delta: number;
+          p_gem_delta: number;
+        };
+        Returns: AdminCurrencyGrantResult;
       };
     };
   };

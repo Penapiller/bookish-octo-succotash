@@ -3,7 +3,16 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ExpeditionCountdown } from "@/components/expedition-countdown";
+import { ExpandDenButton } from "./expand-den-button";
 import type { ExpeditionWithZone } from "@/lib/supabase/types";
+
+// Mirrors the cost curve in expand_den() (0011_currency_and_den_expansion.sql)
+// exactly — display-only, the RPC re-derives and enforces the real cost
+// server-side regardless of what this shows.
+function nextDenExpansionCost(denSize: number): number {
+  const expansionsBought = Math.max(0, Math.floor((denSize - 25) / 25));
+  return Math.round(500 * Math.pow(1.5, expansionsBought));
+}
 
 export default async function ProfilePage() {
   const supabase = await createClient();
@@ -91,10 +100,14 @@ export default async function ProfilePage() {
         </p>
       )}
 
-      <dl className="grid grid-cols-2 gap-4 rounded-lg border border-zinc-200 p-4 text-sm dark:border-zinc-800 sm:grid-cols-3">
+      <dl className="grid grid-cols-2 gap-4 rounded-lg border border-zinc-200 p-4 text-sm dark:border-zinc-800 sm:grid-cols-4">
         <div>
-          <dt className="text-zinc-500">Currency</dt>
-          <dd className="text-lg font-medium">{profile.currency_balance}</dd>
+          <dt className="text-zinc-500">🪙 Coins</dt>
+          <dd className="text-lg font-medium">{profile.coin_balance}</dd>
+        </div>
+        <div>
+          <dt className="text-zinc-500">💎 Gems</dt>
+          <dd className="text-lg font-medium">{profile.gem_balance}</dd>
         </div>
         <div>
           <dt className="text-zinc-500">Den size</dt>
@@ -107,6 +120,12 @@ export default async function ProfilePage() {
           </dd>
         </div>
       </dl>
+
+      <ExpandDenButton
+        userId={user.id}
+        cost={nextDenExpansionCost(profile.den_size)}
+        canAfford={profile.coin_balance >= nextDenExpansionCost(profile.den_size)}
+      />
 
       {activeExpeditions.length > 0 ? (
         <section className="flex flex-col gap-3">

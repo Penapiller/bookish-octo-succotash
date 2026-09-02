@@ -53,8 +53,13 @@ This project is being built one module at a time. Current state:
       ingredient" pickers are now type-to-search instead of a giant
       dropdown, so they stay usable as the catalog grows
 - [ ] Layered pet art rendering, accessory equip/unequip
-- [ ] Currency & den expansion (den cap is temporarily raised to 25 for
-      testing — see Notes below to find where to lower it back down)
+- [x] Currency & den expansion — two currencies, coins (base) and gems
+      (premium), shown on the profile page; no real-money purchase flow
+      yet (a later module). Den size's flat 25 default is now the
+      permanent free baseline (not a temporary testing value anymore) —
+      an "Expand den" button on the profile page spends coins for +25
+      more slots at a time, at an escalating cost. `/admin/currency` lets
+      you grant yourself coins/gems for testing in the meantime
 - [ ] Statue offerings
 - [ ] Trading
 - [ ] Profile customization (sanitized custom CSS/HTML)
@@ -555,14 +560,12 @@ signs in.
   the file can touch them, regardless of how the file is executed. Any
   future migration that both adds an enum value **and** inserts/updates a
   row using that value needs the same `commit;` in between.
-- `users.den_size` is temporarily defaulted to **25** instead of 3
-  (`0006_potions_and_brewing.sql`, both the column default and a one-time
-  `UPDATE` on existing rows) to make testing easier with more pets in
-  flight. Lower it back with another migration — `ALTER TABLE users ALTER
-  COLUMN den_size SET DEFAULT <n>;` plus an `UPDATE` for existing accounts
-  — once real balancing starts; the currency/den-expansion module will
-  likely replace this flat default with the spec's cost-curve-driven
-  expansion anyway.
+- `users.den_size` was raised from 3 to **25** in `0006_potions_and_brewing.sql`,
+  originally called out there as a temporary testing value to lower back
+  down later. `0011_currency_and_den_expansion.sql` settled that instead
+  of reverting it: 25 is now the permanent free baseline, with real
+  coin-based expansion (`expand_den`) built on top — see the Currency &
+  den expansion note below.
 - A next/image quirk worth knowing if you add more images: Tailwind's
   Preflight CSS resets `img { height: auto }` globally, which fights with
   next/image's fixed `width`/`height` props unless you *also* pin both
@@ -697,3 +700,59 @@ signs in.
   existing native `<form action={serverAction}>` (a Server Component)
   without needing to convert the whole form into a client component or
   change the Server Action at all.
+- **Currency & den expansion (`0011_currency_and_den_expansion.sql`)** —
+  two currencies on `users`: `coin_balance` (base, renamed from
+  `currency_balance` now that a second currency exists) and `gem_balance`
+  (premium, new). Neither has a real-money purchase path yet — that's a
+  deliberately deferred later module — so for now gems only ever move via
+  the admin testing grant below, and coins only ever move via
+  `expand_den`.
+  - `protect_privileged_user_fields` (0001, extended in 0002 with the
+    trusted-write escape hatch) already blocked client writes to
+    privileged columns including the old `currency_balance`/`den_size`;
+    redefined again here for the rename plus `gem_balance`. Any RPC that
+    writes one of these columns must call `begin_trusted_user_write()`
+    first (inside the same transaction) or the trigger silently resets
+    the column back to its old value — this bit both new functions below
+    during local testing before that call was added, exactly as intended
+    (it's the same protection that stops a compromised/malicious client
+    from writing these columns directly).
+  - **`expand_den(p_user_id)`** — a normal self-only player RPC (`auth.uid()
+    = p_user_id`, same pattern as `start_expedition`/`claim_brew`/etc.),
+    row-locks the caller's own row, and adds 25 to `den_size` for an
+    escalating coin cost: 500 for the first expansion, ×1.5 per
+    expansion already bought (500, 750, 1125, 1688, 2531, …), derived
+    from `den_size` itself rather than a separately stored counter — one
+    less thing that could drift out of sync. No hard cap on how many
+    times it can be bought; the escalating cost is the only limiter.
+    `/profile` shows an "Expand den" button computing the same cost
+    formula client-side for display (`nextDenExpansionCost` in
+    `src/app/profile/page.tsx`, kept in a comment-linked lockstep with
+    the SQL) — but the RPC re-derives and enforces the real cost
+    server-side regardless of what the client shows or sends.
+  - **`admin_grant_self_currency(p_admin_user_id, p_coin_delta, p_gem_delta)`**
+    (`/admin/currency`) — a testing tool for granting yourself coins/gems
+    without a purchase flow yet, and likely still useful later for
+    support/compensation even once one exists. Deliberately scoped to
+    the calling admin's **own** account only — there's no target-user
+    parameter anywhere in this path, matching the "no in-app way to
+    affect any account but mine" rule the rest of the admin panel
+    follows. This is also why it's a narrow RPC that only ever touches
+    `coin_balance`/`gem_balance` (hardcoded in the function body) rather
+    than a general admin `UPDATE` policy on `users` — a blanket policy
+    would let an admin's REST client touch `is_admin`/`email`/`den_size`
+    on any account too, which would defeat the single-admin guarantee at
+    the database level. Deltas can be negative (balances clamp at 0, never
+    go negative) and every grant is logged to `admin_audit_log` the same
+    as every other admin action, just with a synthetic
+    `target_table = 'users.currency'` since it isn't a plain
+    trigger-logged table write.
+  - Verified locally the same way as every other migration: both
+    `psql -f`/`psql -1` apply cleanly, and — role-switched as both an
+    admin and non-admin account — a direct client `UPDATE` to
+    `coin_balance`/`gem_balance`/`den_size` is still silently reset,
+    `expand_den` rejects insufficient coins and rejects being called for
+    a different user, `admin_grant_self_currency` rejects non-admins, a
+    real grant lands both balances and is audit-logged, and two
+    successive `expand_den` calls charge 500 then 750 exactly as the
+    cost curve intends.
