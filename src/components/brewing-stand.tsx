@@ -362,7 +362,84 @@ function IngredientPickerModal({
   );
 }
 
-const RECIPES_PER_PAGE = 3;
+// 3 recipes per page-side (6 per two-page spread) — a fixed, small
+// amount of content per spread so nothing ever needs to scroll past
+// the book art's safe zone (see the page-box insets below, calibrated
+// against the actual illustration so cells never overlap the spine or
+// the curved page edges).
+const RECIPES_PER_SIDE = 3;
+const RECIPES_PER_SPREAD = RECIPES_PER_SIDE * 2;
+const LEFT_PAGE_BOX = { left: "10%", top: "12%", width: "35%", height: "74%" };
+const RIGHT_PAGE_BOX = { left: "55%", top: "12%", width: "35%", height: "74%" };
+
+function RecipeCell({
+  recipe,
+  onFillSlots,
+}: {
+  recipe: RecipeWithDetails;
+  onFillSlots: (recipe: RecipeWithDetails) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onFillSlots(recipe)}
+      disabled={!recipe.canBrew}
+      title={
+        recipe.canBrew
+          ? "Fill the slots with this recipe's ingredients"
+          : "You don't have enough ingredients"
+      }
+      className="flex flex-1 items-center justify-center gap-1 rounded-lg hover:bg-white/40 disabled:opacity-50"
+    >
+      <div className="flex items-center gap-1">
+        {recipe.ingredients.map((ing) =>
+          ing.item ? (
+            <div key={ing.item.id} className="relative shrink-0">
+              {ing.item.image_url ? (
+                <Image
+                  src={ing.item.image_url}
+                  alt={ing.item.name}
+                  width={30}
+                  height={30}
+                  className="h-[30px] w-[30px] rounded border-2 border-green-600"
+                />
+              ) : (
+                <div className="h-[30px] w-[30px] rounded bg-amber-200" />
+              )}
+              {ing.quantityRequired > 1 ? (
+                <span className="absolute -bottom-1 -right-1 rounded-full bg-stone-900 px-1 text-[9px] font-medium leading-tight text-white">
+                  ×{ing.quantityRequired}
+                </span>
+              ) : null}
+            </div>
+          ) : null,
+        )}
+      </div>
+
+      <span className="shrink-0 text-sm text-stone-500" aria-hidden="true">
+        →
+      </span>
+
+      <div className="group relative shrink-0">
+        {recipe.potion?.image_url ? (
+          <Image
+            src={recipe.potion.image_url}
+            alt={recipe.potion.name}
+            width={36}
+            height={36}
+            className="h-9 w-9 rounded border-2 border-purple-600"
+          />
+        ) : (
+          <div className="h-9 w-9 rounded bg-amber-200" />
+        )}
+        <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-40 -translate-x-1/2 rounded-md bg-stone-900 px-2 py-1.5 text-center text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+          <p className="font-medium">{recipe.potion?.name}</p>
+          <p>{describeEffect(recipe)}</p>
+        </div>
+      </div>
+    </button>
+  );
+}
 
 function RecipeBookModal({
   recipes,
@@ -374,8 +451,10 @@ function RecipeBookModal({
   onClose: () => void;
 }) {
   const [page, setPage] = useState(0);
-  const totalPages = Math.max(1, Math.ceil(recipes.length / RECIPES_PER_PAGE));
-  const pageRecipes = recipes.slice(page * RECIPES_PER_PAGE, page * RECIPES_PER_PAGE + RECIPES_PER_PAGE);
+  const totalPages = Math.max(1, Math.ceil(recipes.length / RECIPES_PER_SPREAD));
+  const spreadRecipes = recipes.slice(page * RECIPES_PER_SPREAD, page * RECIPES_PER_SPREAD + RECIPES_PER_SPREAD);
+  const leftRecipes = spreadRecipes.slice(0, RECIPES_PER_SIDE);
+  const rightRecipes = spreadRecipes.slice(RECIPES_PER_SIDE);
 
   return (
     <div
@@ -385,98 +464,45 @@ function RecipeBookModal({
       aria-label="Recipe book"
     >
       <div className="flex w-full max-w-2xl flex-col gap-3">
-        <div
-          className="flex min-h-[380px] flex-col gap-3 rounded-2xl p-8 text-stone-900 shadow-xl"
-          style={{
-            backgroundImage: "url(/ui/parchment-panel.png)",
-            backgroundSize: "100% 100%",
-            backgroundRepeat: "no-repeat",
-          }}
-        >
-          <div className="flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight">
-              <Image src="/icons/book.png" alt="" width={22} height={19} />
-              Recipe book
-            </h2>
-            <button type="button" onClick={onClose} className="text-sm text-stone-600 hover:underline">
-              Close
-            </button>
-          </div>
-          <p className="text-xs text-stone-600">
-            Every recipe is visible here for testing — nothing is locked or discovered per player.
-            Hover a potion to see what it does.
-          </p>
+        <div className="flex items-center justify-between text-white">
+          <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight">
+            <Image src="/icons/book.png" alt="" width={22} height={19} />
+            Recipe book
+          </h2>
+          <button type="button" onClick={onClose} className="text-sm hover:underline">
+            Close
+          </button>
+        </div>
+        <p className="text-xs text-white/80">
+          Every recipe is visible here for testing. Hover a potion to see what it does.
+        </p>
 
+        <div className="relative w-full">
+          <Image
+            src="/ui/book-container.png"
+            alt=""
+            width={1720}
+            height={1021}
+            className="h-auto w-full"
+            priority
+          />
           {recipes.length === 0 ? (
-            <p className="flex-1 text-sm italic text-stone-600">No recipes yet.</p>
+            <p className="absolute inset-0 flex items-center justify-center text-sm italic text-stone-600">
+              No recipes yet.
+            </p>
           ) : (
-            <ul className="flex flex-1 flex-col justify-center gap-3">
-              {pageRecipes.map((recipe) => (
-                <li
-                  key={recipe.id}
-                  className="flex items-center gap-3 rounded-xl bg-white/50 p-3"
-                >
-                  <div className="flex items-center gap-1.5">
-                    {recipe.ingredients.map((ing) =>
-                      ing.item ? (
-                        <div key={ing.item.id} className="relative shrink-0">
-                          {ing.item.image_url ? (
-                            <Image
-                              src={ing.item.image_url}
-                              alt={ing.item.name}
-                              width={40}
-                              height={40}
-                              className="h-10 w-10 rounded border-2 border-green-600"
-                            />
-                          ) : (
-                            <div className="h-10 w-10 rounded bg-amber-200" />
-                          )}
-                          <span className="absolute -bottom-1 -right-1 rounded-full bg-stone-900 px-1 text-[10px] font-medium leading-tight text-white">
-                            ×{ing.quantityRequired}
-                          </span>
-                        </div>
-                      ) : null,
-                    )}
-                  </div>
-
-                  <span className="shrink-0 text-lg text-stone-500" aria-hidden="true">
-                    →
-                  </span>
-
-                  <div className="group relative shrink-0">
-                    {recipe.potion?.image_url ? (
-                      <Image
-                        src={recipe.potion.image_url}
-                        alt={recipe.potion.name}
-                        width={48}
-                        height={48}
-                        className="h-12 w-12 rounded border-2 border-purple-600"
-                      />
-                    ) : (
-                      <div className="h-12 w-12 rounded bg-amber-200" />
-                    )}
-                    <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-44 -translate-x-1/2 rounded-md bg-stone-900 px-2 py-1.5 text-center text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
-                      <p className="font-medium">{recipe.potion?.name}</p>
-                      <p>{describeEffect(recipe)}</p>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => onFillSlots(recipe)}
-                    disabled={!recipe.canBrew}
-                    title={
-                      recipe.canBrew
-                        ? "Fill the slots with this recipe's ingredients"
-                        : "You don't have enough ingredients"
-                    }
-                    className="ml-auto shrink-0 rounded-md border border-purple-600 px-3 py-1.5 text-xs font-medium text-purple-700 hover:bg-purple-50 disabled:opacity-40"
-                  >
-                    Fill slots
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <>
+              <div className="absolute flex flex-col" style={LEFT_PAGE_BOX}>
+                {leftRecipes.map((recipe) => (
+                  <RecipeCell key={recipe.id} recipe={recipe} onFillSlots={onFillSlots} />
+                ))}
+              </div>
+              <div className="absolute flex flex-col" style={RIGHT_PAGE_BOX}>
+                {rightRecipes.map((recipe) => (
+                  <RecipeCell key={recipe.id} recipe={recipe} onFillSlots={onFillSlots} />
+                ))}
+              </div>
+            </>
           )}
         </div>
 

@@ -933,28 +933,44 @@ signs in.
     with the browser's color scheme explicitly forced to `dark` this
     time — confirms the page stays cream regardless of system
     preference.
-  - **Recipe book, redesigned again**: the open-book illustration
-    (`book-container.png`) as a fixed-aspect-ratio backdrop with content
-    absolutely positioned over it looked bad and clipped — an open
-    book's curved page/spine art doesn't leave a clean, predictable
-    rectangle to lay arbitrary content inside, and a scrolling list
-    could overflow past where the illustration's edges implied and
-    visibly clip. Replaced with `parchment-panel.png` (an actual
-    rectangle with a dashed border baked into the art) set as a
-    `background-size: 100% 100%` background on a normally-flowing
-    container — the image stretches to fit whatever height the content
-    needs instead of content being constrained to fit the image, and a
-    flat rectangle stretches cleanly where a spined book illustration
-    wouldn't. Paired with pagination (`RECIPES_PER_PAGE = 3`, plain
-    `useState` page index, Previous/Next buttons) instead of scrolling,
-    per feedback — a "page" is always a small, predictable amount of
-    content, so there's nothing to overflow. Each recipe now shows
-    visually as its ingredients (icon + a `×N` quantity badge per
-    distinct ingredient) → an arrow → the output potion, with the
-    potion's effect (`describeEffect()`) in a CSS-only hover tooltip
-    (`group`/`group-hover`, no JS state) instead of buried in a text
-    line. Verified the same way — drove headless Chromium to open the
-    book, page forward, and hover a potion, screenshotting each step —
-    using a temporary preview route with mocked recipe data (deleted
-    before finishing) since exercising this needs real inventory data
-    this sandbox doesn't have a live Supabase project for.
+  - **Recipe book, redesigned twice**: round one used the open-book
+    illustration (`book-container.png`) as a fixed-aspect-ratio backdrop
+    with content absolutely positioned over it — looked bad and clipped,
+    since an open book's curved page/spine art doesn't leave a clean,
+    predictable rectangle for arbitrary (and scrolling) content to sit
+    inside without overflowing past where the art implied its edges
+    were. Round two swapped it for `parchment-panel.png` (a plain
+    rectangle) plus pagination instead of scrolling — fixed the clipping,
+    but dropped the actual book art the user wanted, and looked plain.
+    Round three (the current design) keeps `book-container.png`, but
+    instead of one large content area, lays out two small,
+    precisely-bounded content boxes — one per page-half — positioned via
+    percentage insets calibrated directly against the artwork (a Python
+    script drew gridlines at candidate percentages onto the image so the
+    safe cream area, clear of the spine and curved top/bottom edges,
+    could be read off exactly: each page's content box is
+    `left/right: 10%/55%, width: 35%, top: 12%, height: 74%`). Each page
+    holds exactly 3 fixed-size recipe cells (`RECIPES_PER_SIDE = 3`, 6
+    per two-page spread) rather than a variable-length list, so there's
+    a hard upper bound on content per page and nothing can ever overflow
+    the calibrated box — pagination (plain `useState` page index,
+    Previous/Next buttons) flips between spreads of 6. Each cell is
+    itself a button showing the recipe's ingredients (icon + a `×N`
+    badge when quantity > 1) → an arrow → the output potion, clicking it
+    fills the brewing slots (replacing the old separate "Fill slots"
+    button, since cell space is tight), and hovering the potion shows
+    its effect (`describeEffect()`) in a CSS-only tooltip
+    (`group`/`group-hover`, no JS state).
+  - Verified the same way both times — drove headless Chromium to open
+    the book, page forward, and hover a potion, screenshotting each
+    step, using a temporary preview route with mocked recipe data
+    (deleted before finishing) since exercising this needs real
+    inventory data this sandbox doesn't have a live Supabase project
+    for. For round three, used same-origin local image files as the
+    mock recipes' art (rather than an external placeholder host) so the
+    screenshots showed real rendered images instead of broken-image
+    icons — this sandbox's network policy blocks the external host used
+    in earlier rounds' mocks, which isn't a real app issue (real art
+    loads from Supabase Storage) but did mean earlier verification
+    screenshots showed broken images where the layout mattered more than
+    the pixels.
