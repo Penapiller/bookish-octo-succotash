@@ -86,7 +86,7 @@ export function PetNameEditor({
       className="flex items-center gap-1 text-sm font-medium hover:underline"
     >
       {customName}
-      <Image src="/icons/edit-pencil.png" alt="" width={12} height={12} />
+      <Image src="/icons/edit-pencil.png" alt="" width={16} height={16} />
     </button>
   ) : (
     <button
@@ -94,7 +94,7 @@ export function PetNameEditor({
       onClick={() => setIsEditing(true)}
       className="flex items-center gap-1 text-xs italic text-stone-500 hover:underline"
     >
-      <Image src="/icons/edit-pencil.png" alt="" width={12} height={12} />
+      <Image src="/icons/edit-pencil.png" alt="" width={16} height={16} />
       Name this pet
     </button>
   );

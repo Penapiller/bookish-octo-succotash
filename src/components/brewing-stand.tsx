@@ -176,9 +176,9 @@ export function BrewingStand({
           onClick={() => setIsBookOpen(true)}
           aria-label="Open recipe book"
           title="Recipe book"
-          className="absolute right-3 top-3 flex h-12 w-12 items-center justify-center rounded-full bg-white/90 shadow-md hover:bg-white dark:bg-stone-900/90 dark:hover:bg-stone-900"
+          className="absolute right-3 top-3 flex h-14 w-14 items-center justify-center rounded-full bg-white/90 shadow-md hover:bg-white dark:bg-stone-900/90 dark:hover:bg-stone-900"
         >
-          <Image src="/icons/book.png" alt="" width={30} height={26} />
+          <Image src="/icons/book.png" alt="" width={38} height={33} />
         </button>
       </div>
 
@@ -389,9 +389,9 @@ function RecipeCell({
           ? "Fill the slots with this recipe's ingredients"
           : "You don't have enough ingredients"
       }
-      className="flex flex-1 items-center justify-center gap-1 rounded-lg hover:bg-white/40 disabled:opacity-50"
+      className="flex flex-1 items-center justify-center gap-2 rounded-lg hover:bg-white/40 disabled:opacity-50"
     >
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1.5">
         {recipe.ingredients.map((ing) =>
           ing.item ? (
             <div key={ing.item.id} className="relative shrink-0">
@@ -399,15 +399,15 @@ function RecipeCell({
                 <Image
                   src={ing.item.image_url}
                   alt={ing.item.name}
-                  width={30}
-                  height={30}
-                  className="h-[30px] w-[30px] rounded border-2 border-green-600"
+                  width={44}
+                  height={44}
+                  className="h-11 w-11 rounded border-2 border-green-600"
                 />
               ) : (
-                <div className="h-[30px] w-[30px] rounded bg-amber-200" />
+                <div className="h-11 w-11 rounded bg-amber-200" />
               )}
               {ing.quantityRequired > 1 ? (
-                <span className="absolute -bottom-1 -right-1 rounded-full bg-stone-900 px-1 text-[9px] font-medium leading-tight text-white">
+                <span className="absolute -bottom-1 -right-1 rounded-full bg-stone-900 px-1.5 text-xs font-medium leading-tight text-white">
                   ×{ing.quantityRequired}
                 </span>
               ) : null}
@@ -416,7 +416,7 @@ function RecipeCell({
         )}
       </div>
 
-      <span className="shrink-0 text-sm text-stone-500" aria-hidden="true">
+      <span className="shrink-0 text-2xl text-stone-500" aria-hidden="true">
         →
       </span>
 
@@ -425,14 +425,14 @@ function RecipeCell({
           <Image
             src={recipe.potion.image_url}
             alt={recipe.potion.name}
-            width={36}
-            height={36}
-            className="h-9 w-9 rounded border-2 border-purple-600"
+            width={56}
+            height={56}
+            className="h-14 w-14 rounded border-2 border-purple-600"
           />
         ) : (
-          <div className="h-9 w-9 rounded bg-amber-200" />
+          <div className="h-14 w-14 rounded bg-amber-200" />
         )}
-        <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-40 -translate-x-1/2 rounded-md bg-stone-900 px-2 py-1.5 text-center text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+        <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-44 -translate-x-1/2 rounded-md bg-stone-900 px-2 py-1.5 text-center text-sm text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
           <p className="font-medium">{recipe.potion?.name}</p>
           <p>{describeEffect(recipe)}</p>
         </div>
@@ -463,17 +463,17 @@ function RecipeBookModal({
       aria-modal="true"
       aria-label="Recipe book"
     >
-      <div className="flex w-full max-w-2xl flex-col gap-3">
+      <div className="flex w-full max-w-4xl flex-col gap-3">
         <div className="flex items-center justify-between text-white">
-          <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight">
-            <Image src="/icons/book.png" alt="" width={22} height={19} />
+          <h2 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
+            <Image src="/icons/book.png" alt="" width={30} height={26} />
             Recipe book
           </h2>
           <button type="button" onClick={onClose} className="text-sm hover:underline">
             Close
           </button>
         </div>
-        <p className="text-xs text-white/80">
+        <p className="text-sm text-white/80">
           Every recipe is visible here for testing. Hover a potion to see what it does.
         </p>
 

@@ -63,7 +63,7 @@ export function FolderHeader({
         onClick={() => setIsRenaming(true)}
         className="flex items-center gap-1 text-xs text-stone-500 hover:underline"
       >
-        <Image src="/icons/edit-pencil.png" alt="" width={12} height={12} />
+        <Image src="/icons/edit-pencil.png" alt="" width={16} height={16} />
         Rename
       </button>
       <form action={deleteFolder}>
