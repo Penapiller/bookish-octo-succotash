@@ -13,10 +13,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  /* amber-50 / stone-900 — kept in sync with the bg-amber-50 on <body>
-     in layout.tsx; this rule (unlayered CSS) otherwise wins the cascade
-     over that Tailwind utility class regardless of specificity. */
-  --background: #fffbeb;
+  --background: #cddffa;
   --foreground: #1c1917;
 }
 
@@ -27,8 +24,21 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* Sitewide backdrop, behind the header/nav/white content box/footer
+   (see layout.tsx). This is a placeholder pattern standing in for a
+   real background image later — swap the `background-image` line below
+   for `url(...)` when that art exists and everything else (the solid
+   --background color underneath, sizing, the rest of the page) keeps
+   working unchanged. */
 body {
-  background: var(--background);
+  background-color: var(--background);
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.35) 0px,
+    rgba(255, 255, 255, 0.35) 2px,
+    transparent 2px,
+    transparent 26px
+  );
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }

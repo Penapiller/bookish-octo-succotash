@@ -77,7 +77,18 @@ This project is being built one module at a time. Current state:
       and the header/nav was redesigned as a wood-plank bar with a
       distinct account panel, plus real icon art (recipe book, edit
       pencil, error banners) replacing emoji/placeholder shapes in a
-      few spots. See Notes below for exactly what did and didn't change
+      few spots. **Superseded by the wireframe page layout below** — the
+      site-wide chrome (header/nav/footer/background) moved away from
+      the amber gradient bar; individual page content (buttons, cards,
+      etc.) still uses the amber accent palette described here. See
+      Notes below for exactly what did and didn't change
+- [x] Wireframe page layout — every page now renders inside a shared
+      shell: a logo box (top-left, links home) and a user-info box
+      (top-right) in the header, a grouped/foldable nav bar underneath,
+      the actual page content in a centered white content box, and a
+      footer bar — all wired once in the root layout, not per-page. The
+      page background is a simple placeholder pattern for now, swappable
+      for a real image later. See Notes below
 - [x] Unique, rate-limited usernames — `display_name` is now a unique
       handle (case-insensitive) rather than a free-form label: no two
       accounts can share one, and changing it costs 15 gems and can only
@@ -1601,3 +1612,57 @@ signs in.
     author-only edit/locked-thread/deactivated-category enforcement) was
     separately verified against local Postgres 16 (both `psql -f` and
     `psql -1`) before any of the above.
+- **Wireframe page layout (`src/app/layout.tsx`, `src/components/
+  site-header.tsx`, `site-nav.tsx`, `nav-groups.tsx`, `site-footer.tsx`)**
+  — a from-a-wireframe redo of the site-wide chrome: every page now
+  renders inside one shared shell, wired once in the root layout rather
+  than per page.
+  - **Single wrap point, zero per-page changes**: every existing page
+    already rendered its own `<main className="mx-auto flex w-full
+    max-w-{…} flex-1 flex-col … px-6 py-12">` (a consistent pattern
+    across all ~25 routes). Rather than touch every one of those files,
+    the white content box was added once in the root layout, wrapping
+    `{children}`, itself using `flex flex-1 flex-col` — so each page's
+    own `flex-1 main` still stretches to fill it and its own `mx-auto
+    max-w-*` still centers/constrains its content exactly as before,
+    just inside the box instead of directly on the page background.
+  - **Header** (`SiteHeader`) is now just two pieces: a logo placeholder
+    (green box, links home — literally a placeholder for real logo art
+    later, per the wireframe) and a user-info box (yellow) with the
+    existing avatar/coin/gem/sign-out content, or a "Sign in" button
+    when signed out. The old inline nav links were pulled out of it
+    entirely.
+  - **Nav** (`SiteNav` + `NavGroups`) replaces the old flat row of links
+    with grouped, foldable sections — Play (Expeditions/Pets/Items/
+    Brewing), Trade (Marketplace, plus Trades if `TRADING_ENABLED`),
+    Community (Forums), Account (Settings, plus Admin if the signed-in
+    user is one) — matching the wireframe's "sections are grouped
+    together and fold into a dropdown when clicked." `SiteNav` (server)
+    resolves the signed-in user/admin status and builds the group list
+    server-side, same pattern as the header; `NavGroups` (client) is the
+    interactive part — one group open at a time, click the open one to
+    close it, click another to switch, click outside to close. Nav is
+    only rendered when signed in, same as the nav it replaced.
+  - **Background**: a placeholder diagonal-stripe pattern on `body`
+    (`repeating-linear-gradient` over a flat blue, in `globals.css`)
+    stands in for the real background image the wireframe calls for
+    later — swapping one `background-image` line for `url(...)` when
+    that art exists is the entire migration, nothing else about the
+    layout depends on it being a pattern specifically.
+  - **What deliberately didn't change**: the amber accent palette
+    (buttons, links, cards) used throughout individual page content —
+    the wireframe only specifies the site-wide chrome (header/nav/
+    content box/footer/background), not the content inside the white
+    box, so existing page-level styling was left alone.
+  - Verified with headless Chromium against the real, unmodified `/`
+    route (signed out — this sandbox has no live Supabase project, but
+    `createClient()` against a placeholder URL still renders the
+    signed-out branch correctly, which is real code, not a mock),
+    confirming the logo box, sign-in box, white content box, and footer
+    all matched the wireframe. The signed-in header/nav needs a real
+    session this sandbox doesn't have, so that part was checked via a
+    temporary preview route (deleted before finishing) that mounted the
+    actual `NavGroups` component with mock groups next to a hardcoded
+    visual replica of the signed-in header — confirmed the fold/dropdown
+    interaction (open → switch groups → close-on-outside-click) all
+    behave correctly.
