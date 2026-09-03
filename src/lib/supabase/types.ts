@@ -42,6 +42,7 @@ export type ListingCurrency = "coins" | "gems";
 // 0019_marketplace_upgrades.sql), this is just for the sell form's
 // dropdown.
 export type ListingDurationDays = 1 | 3 | 7 | 14 | 30;
+export type ForumEditorMode = "wysiwyg" | "raw";
 
 export type SpeciesRow = {
   id: string;
@@ -482,6 +483,68 @@ export type ExplorableZone = Pick<
   pool: ZonePoolEntry[];
 };
 
+export type ForumCategoryRow = {
+  id: string;
+  parent_id: string | null;
+  name: string;
+  description: string | null;
+  icon_url: string | null;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+};
+
+export type ForumThreadRow = {
+  id: string;
+  category_id: string;
+  author_id: string;
+  title: string;
+  is_pinned: boolean;
+  is_locked: boolean;
+  reply_count: number;
+  created_at: string;
+  last_post_at: string;
+};
+
+export type ForumPostRow = {
+  id: string;
+  thread_id: string;
+  author_id: string;
+  editor_mode: ForumEditorMode;
+  body_raw: string;
+  body_html: string;
+  created_at: string;
+  edited_at: string | null;
+};
+
+// A top-level forum category with its subcategories nested — how /forums
+// and the admin category list both want the two-level hierarchy shaped,
+// rather than a flat list callers re-group themselves.
+export type ForumCategoryWithChildren = ForumCategoryRow & {
+  children: ForumCategoryRow[];
+};
+
+// A thread as shown on a category page's thread list — author name
+// resolved (via user_profiles, same pattern as TradeWithParticipants),
+// nothing else joined in since posts are fetched separately per-thread.
+export type ForumThreadListItem = Pick<
+  ForumThreadRow,
+  "id" | "title" | "is_pinned" | "is_locked" | "reply_count" | "created_at" | "last_post_at"
+> & {
+  authorId: string;
+  authorName: string;
+};
+
+// A post as shown on a thread page — author name/avatar resolved.
+export type ForumPostWithAuthor = Pick<
+  ForumPostRow,
+  "id" | "editor_mode" | "body_raw" | "body_html" | "created_at" | "edited_at"
+> & {
+  authorId: string;
+  authorName: string;
+  authorAvatarUrl: string | null;
+};
+
 type TableOf<Row, Insert = Partial<Row>, Update = Partial<Row>> = {
   Row: Row;
   Insert: Insert;
@@ -534,6 +597,20 @@ export type Database = {
       trade_pets: TableOf<TradePetRow>;
       trade_items: TableOf<TradeItemRow>;
       marketplace_listings: TableOf<MarketplaceListingRow>;
+      forum_categories: TableOf<ForumCategoryRow, Partial<ForumCategoryRow> & { name: string }>;
+      forum_threads: TableOf<
+        ForumThreadRow,
+        Partial<ForumThreadRow> & { category_id: string; author_id: string; title: string }
+      >;
+      forum_posts: TableOf<
+        ForumPostRow,
+        Partial<ForumPostRow> & {
+          thread_id: string;
+          author_id: string;
+          body_raw: string;
+          body_html: string;
+        }
+      >;
     };
     Views: {
       user_profiles: {

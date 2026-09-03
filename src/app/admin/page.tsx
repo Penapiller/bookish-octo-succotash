@@ -4,19 +4,26 @@ import { requireAdmin } from "@/lib/admin";
 export default async function AdminDashboardPage() {
   const { supabase } = await requireAdmin();
 
-  const [{ count: zoneCount }, { count: itemCount }, { count: speciesCount }, { count: recipeCount }] =
-    await Promise.all([
-      supabase.from("zones").select("*", { count: "exact", head: true }),
-      supabase.from("items").select("*", { count: "exact", head: true }),
-      supabase.from("species").select("*", { count: "exact", head: true }),
-      supabase.from("potion_recipes").select("*", { count: "exact", head: true }),
-    ]);
+  const [
+    { count: zoneCount },
+    { count: itemCount },
+    { count: speciesCount },
+    { count: recipeCount },
+    { count: forumCategoryCount },
+  ] = await Promise.all([
+    supabase.from("zones").select("*", { count: "exact", head: true }),
+    supabase.from("items").select("*", { count: "exact", head: true }),
+    supabase.from("species").select("*", { count: "exact", head: true }),
+    supabase.from("potion_recipes").select("*", { count: "exact", head: true }),
+    supabase.from("forum_categories").select("*", { count: "exact", head: true }),
+  ]);
 
   const cards = [
     { href: "/admin/zones", label: "Zones", count: zoneCount ?? 0 },
     { href: "/admin/items", label: "Items", count: itemCount ?? 0 },
     { href: "/admin/species", label: "Species", count: speciesCount ?? 0 },
     { href: "/admin/recipes", label: "Potion recipes", count: recipeCount ?? 0 },
+    { href: "/admin/forums", label: "Forum categories", count: forumCategoryCount ?? 0 },
   ];
 
   return (

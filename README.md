@@ -100,7 +100,13 @@ This project is being built one module at a time. Current state:
       trading used), `/marketplace/mine` (your active/sold/cancelled/
       expired listings and purchase history). See Notes below
 - [ ] Profile customization (sanitized custom CSS/HTML)
-- [ ] Forums
+- [x] Forums — admin-managed categories (and one level of subcategories,
+      each with an optional icon), threads, and posts. Players write posts
+      with a WYSIWYG editor (TipTap) by default, or switch to a raw
+      "Code" mode and type their own HTML (Toyhouse-style) — either way
+      the server re-sanitizes the HTML before it's ever stored or
+      rendered, stripping scripts and disallowing video/audio/iframe
+      embeds outright (links to them are still fine). See Notes below
 
 ---
 
@@ -1506,3 +1512,92 @@ signs in.
     seller's already-decremented balance a second time, both expiry
     paths — the lazy sweep and `buy_listing`'s own inline check — credit
     back correctly), plus the backfill reproduction above.
+- **Forums (`0021_forums.sql`, `src/lib/sanitize-forum-html.ts`,
+  `src/components/forums/post-editor.tsx`, `/admin/forums`, `/forums`)**
+  — admin-managed categories/subcategories, player threads and posts,
+  with a WYSIWYG-or-raw-HTML editor and server-side sanitization as the
+  actual security boundary.
+  - **Schema**: `forum_categories` (self-referencing `parent_id`, nullable
+    — a NULL-parent category is "top-level"; the two-level depth is a UI
+    convention, not a DB constraint, since only top-level categories are
+    ever offered as a parent choice in the admin form) gets the same
+    admin-only-write RLS + `log_admin_action()` audit trigger as
+    items/species/zones (`0009_admin_panel.sql`). `forum_threads` and
+    `forum_posts` are player-authored instead, so they use the plainer
+    `pet_folders`-style RLS (`with check (auth.uid() = author_id)`, plus
+    an active-category check on thread insert and a not-locked check on
+    post insert) rather than a security-definer RPC — there's no
+    currency/game-economy stake here, just "you can only post as
+    yourself," which that policy already enforces natively. A
+    `security definer` trigger (`sync_forum_thread_stats`) keeps
+    `forum_threads.reply_count`/`last_post_at` in sync on every post
+    insert, the same technique `log_admin_action()` uses to write past a
+    client-facing RLS policy that's otherwise admin-only.
+  - **The sanitizer is the only security boundary, not the editor**:
+    `sanitizeForumHtml()` (`sanitize-html`, Node-only) runs on every post
+    write regardless of whether it came from the WYSIWYG editor or
+    hand-typed "Code" mode — the client is never trusted either way. It
+    allowlists a fixed set of formatting tags and — critically — never
+    allowlists `<iframe>`/`<video>`/`<audio>`/`<embed>`/`<object>` at
+    all, combined with `disallowedTagsMode: "discard"` (drops the tag
+    *and* its contents). That's the entire mechanism behind "players can
+    link videos/music but not embed them" — a link is just an `<a>`,
+    which stays allowed; an embed tag has nowhere to hide. `<script>`,
+    `<style>`, inline event handlers, and `javascript:`/`data:` URLs are
+    stripped the ordinary way any HTML sanitizer would.
+  - **A Tailwind-specific hole that generic "just sanitize the HTML"
+    advice wouldn't catch**: this whole site is styled with global
+    Tailwind utility classes, so naively allowing a `class` attribute on
+    user content would let a post style itself using the *site's own*
+    classes — e.g. `class="fixed inset-0 z-50 bg-black"` as a full-page
+    overlay, not just decoration inside the post. `class` is therefore
+    never allowed on any tag, full stop. `style` is offered instead for
+    the Toyhouse-style custom-look posts this was meant to support, but
+    only a fixed per-property allowlist of regex-validated values
+    (`color`, `font-*`, `text-*`, `border*`, `padding`/`margin`,
+    `width`/`height`) — deliberately excluding `position` (redress again)
+    and `background-image` (a `url(...)` is just an embed by another
+    name).
+  - **Editor component (`PostEditor`)**: one client component shared by
+    new-thread and reply forms, holding a single `content` string plus an
+    `editor_mode` flag as the two hidden form fields actually submitted.
+    Visual mode is TipTap (`StarterKit` + `Underline`/`Link`/`Image`)
+    with a small custom toolbar — bold/italic/underline/strike,
+    headings, lists, blockquote, link, and image-by-URL — deliberately
+    with no video/embed button, matching the sanitizer. Code mode is a
+    plain `<textarea>` over the same `content` state. Switching Code →
+    Visual calls `editor.commands.setContent(content)` so hand-typed HTML
+    loads back into the live editor (TipTap's own schema reinterprets it,
+    which is fine — it's a convenience re-parse, not a security step).
+    Since `@tailwindcss/typography` isn't installed, a small
+    `.forum-content` rule set was added to `globals.css` to style the
+    sanitizer's allowed tags (headings, lists, blockquote, tables, code
+    blocks) — otherwise Tailwind's preflight reset would render them as
+    unstyled text; this same class wraps both the live TipTap editor and
+    the rendered `body_html` on thread pages.
+  - **Verified two ways**: (1) `sanitizeForumHtml()` itself, run directly
+    via `npx tsx` (pure Node, no Supabase/browser needed) against a
+    payload combining `<script>`, `<iframe>`, `<video>`, `<audio>`,
+    `<embed>`, `<object>`, `<svg onload>`, a `<form>`, `<style>`,
+    `<base>`, a `javascript:` image `src` or link `href` with inline
+    event handlers, and the Tailwind-class overlay attempt described
+    above — confirmed every one of those was stripped to nothing (or had
+    just the dangerous attribute/scheme removed, e.g. `<img>` losing its
+    `javascript:` `src`), while a plain `<a href="https://…">` link to a
+    video URL and a `style="color:…;font-weight:…"` paragraph both
+    survived intact, matching "link it, don't embed it" and "safe
+    styling still works" exactly. (2) The admin category form and
+    `PostEditor` were checked visually with headless Chromium against a
+    temporary preview route mounting the client components directly with
+    mocked data (deleted before finishing, same as prior modules) — typed
+    into the visual editor, switched to Code mode and confirmed the
+    textarea held the exact TipTap-generated HTML, edited that raw HTML
+    and switched back to Visual to confirm it re-loaded correctly, and
+    rendered the sanitizer's output through the real `.forum-content`
+    CSS to confirm headings/lists/blockquote/links/styled text all look
+    right and the stripped elements leave no visual trace. The
+    `0021_forums.sql` schema itself (RLS on all three tables, the
+    admin-only category audit trigger, the thread-stats sync trigger,
+    author-only edit/locked-thread/deactivated-category enforcement) was
+    separately verified against local Postgres 16 (both `psql -f` and
+    `psql -1`) before any of the above.

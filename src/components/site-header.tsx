@@ -78,6 +78,12 @@ export async function SiteHeader() {
               </Link>
             ) : null}
             <Link
+              href="/forums"
+              className="rounded-full px-3 py-1.5 text-amber-50 hover:bg-amber-950/30 dark:hover:bg-stone-950/50"
+            >
+              Forums
+            </Link>
+            <Link
               href="/settings"
               className="rounded-full px-3 py-1.5 text-amber-50 hover:bg-amber-950/30 dark:hover:bg-stone-950/50"
             >

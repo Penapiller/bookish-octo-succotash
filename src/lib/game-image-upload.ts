@@ -18,7 +18,7 @@ const EXTENSION_BY_MIME_TYPE: Record<string, string> = {
  */
 export async function uploadGameImage(
   supabase: SupabaseClient<Database>,
-  folder: "items" | "species",
+  folder: "items" | "species" | "forums",
   id: string,
   file: File | null,
 ): Promise<string | null> {
