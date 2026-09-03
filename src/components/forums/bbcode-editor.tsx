@@ -15,7 +15,6 @@ import {
   ListOrdered,
   Code,
   ALargeSmall,
-  Type,
   Palette,
   Eye,
   PenLine,
@@ -161,10 +160,27 @@ export function BBCodeEditor({
             disabled={isPreviewing}
             onApply={(font) => wrapSelection(`[font="${font}"]`, "[/font]")}
           />
-          <SizePickerButton
-            disabled={isPreviewing}
-            onApply={(percent) => wrapSelection(`[size=${percent}]`, "[/size]")}
-          />
+          <label className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-stone-700 hover:bg-stone-200">
+            <ALargeSmall size={17} />
+            <select
+              aria-label="Font size"
+              value=""
+              disabled={isPreviewing}
+              onChange={(e) => {
+                const percent = e.target.value;
+                e.target.value = "";
+                if (percent) wrapSelection(`[size=${percent}]`, "[/size]");
+              }}
+              className="rounded border border-stone-300 bg-white text-xs"
+            >
+              <option value="" disabled />
+              <option value="50">Tiny</option>
+              <option value="85">Small</option>
+              <option value="100">Normal</option>
+              <option value="150">Large</option>
+              <option value="200">Huge</option>
+            </select>
+          </label>
           <ColorPickerButton
             disabled={isPreviewing}
             onApply={(hex) => wrapSelection(`[color=${hex}]`, "[/color]")}
@@ -352,52 +368,12 @@ function ColorPickerButton({
   );
 }
 
-// Same "draft state + explicit Apply" reasoning as the color picker —
-// typing into a live-wired number input would wrap the selection after
-// every keystroke. 1-200% (Chicken Smoothie-style fine-grained control)
-// rather than a handful of named steps — see bbcode.ts.
-function SizePickerButton({
-  onApply,
-  disabled,
-}: {
-  onApply: (percent: number) => void;
-  disabled?: boolean;
-}) {
-  const [draft, setDraft] = useState("100");
-
-  function apply(close: () => void) {
-    const percent = Math.round(Number(draft));
-    if (Number.isInteger(percent) && percent >= 1 && percent <= 200) {
-      onApply(percent);
-    }
-    close();
-  }
-
-  return (
-    <ToolbarPopover label="Font size" icon={<ALargeSmall size={17} />} disabled={disabled}>
-      {(close) => (
-        <>
-          <input
-            aria-label="Font size percent"
-            type="number"
-            min={1}
-            max={200}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            className="w-16 rounded border border-stone-300 px-1.5 py-1 text-sm"
-          />
-          <span className="text-xs text-stone-500">%</span>
-          <PopoverApplyButtons onApply={() => apply(close)} onCancel={close} />
-        </>
-      )}
-    </ToolbarPopover>
-  );
-}
-
-// A plain discrete <select> — no popover needed, since each selection
-// fires onChange exactly once (unlike the continuous color/number
-// inputs above). Font names are a fixed, safe list; bbcode.ts's own
-// FONT_RE would reject anything else regardless.
+// A narrow icon-only trigger (unlike a <select>, which some browsers
+// widen to fit its longest option even while closed — "Times New Roman"
+// or "Comic Sans MS" made the old font-family control the widest thing
+// on the toolbar). Each choice previews in its own typeface. Font names
+// are a fixed, safe list; bbcode.ts's own FONT_RE would reject anything
+// else regardless.
 const FONT_CHOICES = [
   "Arial",
   "Georgia",
@@ -419,26 +395,25 @@ function FontFamilyButton({
   disabled?: boolean;
 }) {
   return (
-    <label className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-stone-700 hover:bg-stone-200">
-      <Type size={17} />
-      <select
-        aria-label="Font family"
-        value=""
-        disabled={disabled}
-        onChange={(e) => {
-          const font = e.target.value;
-          e.target.value = "";
-          if (font) onApply(font);
-        }}
-        className="rounded border border-stone-300 bg-white text-xs"
-      >
-        <option value="" disabled />
-        {FONT_CHOICES.map((font) => (
-          <option key={font} value={font}>
-            {font}
-          </option>
-        ))}
-      </select>
-    </label>
+    <ToolbarPopover label="Font family" icon={<span className="text-sm font-semibold">Aa</span>} disabled={disabled}>
+      {(close) => (
+        <div className="flex w-44 flex-col">
+          {FONT_CHOICES.map((font) => (
+            <button
+              key={font}
+              type="button"
+              onClick={() => {
+                onApply(font);
+                close();
+              }}
+              style={{ fontFamily: font }}
+              className="rounded px-2.5 py-1.5 text-left text-sm text-stone-700 hover:bg-stone-100"
+            >
+              {font}
+            </button>
+          ))}
+        </div>
+      )}
+    </ToolbarPopover>
   );
 }
