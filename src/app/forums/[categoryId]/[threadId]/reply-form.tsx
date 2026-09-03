@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { createForumReply, type ForumFormState } from "../../actions";
-import { PostEditor } from "@/components/forums/post-editor";
+import { BBCodeEditor } from "@/components/forums/bbcode-editor";
 
 const initialState: ForumFormState = null;
 
@@ -14,7 +14,7 @@ export function ReplyForm({ categoryId, threadId }: { categoryId: string; thread
       <input type="hidden" name="category_id" value={categoryId} />
       <input type="hidden" name="thread_id" value={threadId} />
 
-      <PostEditor />
+      <BBCodeEditor />
 
       {state?.error ? <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p> : null}
 

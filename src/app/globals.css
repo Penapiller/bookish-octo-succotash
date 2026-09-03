@@ -43,13 +43,13 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Minimal styling for user-generated forum post HTML (both the live
-   TipTap editor and the sanitized body_html rendered on thread pages) —
-   there's no @tailwindcss/typography plugin installed, and Tailwind's
-   preflight otherwise strips all default heading/list/blockquote
-   styling, which would make sanitizeForumHtml()'s allowed tags (h1-h6,
-   ul/ol, blockquote, table, etc.) render as plain unstyled text. */
-.forum-content :where(h1, h2, h3, h4, h5, h6) {
+/* Minimal styling for rendered forum post HTML — the output of
+   bbcodeToHtml() (src/lib/bbcode.ts), which only ever produces this
+   fixed set of tags. There's no @tailwindcss/typography plugin
+   installed, and Tailwind's preflight otherwise strips all default
+   heading/blockquote/hr styling, which would make [h1]/[quote]/[hr]
+   etc. render as plain unstyled text. */
+.forum-content :where(h1, h2, h3) {
   font-weight: 600;
   line-height: 1.25;
   margin: 0.75em 0 0.35em;
@@ -57,14 +57,6 @@ body {
 .forum-content h1 { font-size: 1.5em; }
 .forum-content h2 { font-size: 1.3em; }
 .forum-content h3 { font-size: 1.15em; }
-.forum-content h4,
-.forum-content h5,
-.forum-content h6 { font-size: 1em; }
-.forum-content p { margin: 0.5em 0; }
-.forum-content :where(ul, ol) { margin: 0.5em 0; padding-left: 1.5em; }
-.forum-content ul { list-style: disc; }
-.forum-content ol { list-style: decimal; }
-.forum-content li { margin: 0.15em 0; }
 .forum-content blockquote {
   margin: 0.5em 0;
   padding: 0.25em 0.9em;
@@ -74,17 +66,3 @@ body {
 .forum-content a { color: var(--color-amber-800, #92400e); text-decoration: underline; }
 .forum-content img { max-width: 100%; border-radius: 0.25rem; }
 .forum-content hr { margin: 1em 0; border-color: var(--color-amber-300, #fcd34d); }
-.forum-content table { border-collapse: collapse; margin: 0.5em 0; }
-.forum-content :where(th, td) {
-  border: 1px solid var(--color-amber-300, #fcd34d);
-  padding: 0.35em 0.6em;
-}
-.forum-content pre {
-  overflow-x: auto;
-  padding: 0.6em 0.8em;
-  border-radius: 0.375rem;
-  background: var(--color-stone-900, #1c1917);
-  color: var(--color-amber-50, #fffbeb);
-}
-.forum-content code { font-family: var(--font-mono, monospace); }
-.forum-content pre code { background: none; }

@@ -42,7 +42,6 @@ export type ListingCurrency = "coins" | "gems";
 // 0019_marketplace_upgrades.sql), this is just for the sell form's
 // dropdown.
 export type ListingDurationDays = 1 | 3 | 7 | 14 | 30;
-export type ForumEditorMode = "wysiwyg" | "raw";
 
 export type SpeciesRow = {
   id: string;
@@ -502,6 +501,7 @@ export type ForumThreadRow = {
   is_pinned: boolean;
   is_locked: boolean;
   reply_count: number;
+  view_count: number;
   created_at: string;
   last_post_at: string;
 };
@@ -510,7 +510,6 @@ export type ForumPostRow = {
   id: string;
   thread_id: string;
   author_id: string;
-  editor_mode: ForumEditorMode;
   body_raw: string;
   body_html: string;
   created_at: string;
@@ -529,7 +528,7 @@ export type ForumCategoryWithChildren = ForumCategoryRow & {
 // nothing else joined in since posts are fetched separately per-thread.
 export type ForumThreadListItem = Pick<
   ForumThreadRow,
-  "id" | "title" | "is_pinned" | "is_locked" | "reply_count" | "created_at" | "last_post_at"
+  "id" | "title" | "is_pinned" | "is_locked" | "reply_count" | "view_count" | "created_at" | "last_post_at"
 > & {
   authorId: string;
   authorName: string;
@@ -538,7 +537,7 @@ export type ForumThreadListItem = Pick<
 // A post as shown on a thread page — author name/avatar resolved.
 export type ForumPostWithAuthor = Pick<
   ForumPostRow,
-  "id" | "editor_mode" | "body_raw" | "body_html" | "created_at" | "edited_at"
+  "id" | "body_raw" | "body_html" | "created_at" | "edited_at"
 > & {
   authorId: string;
   authorName: string;
@@ -789,6 +788,10 @@ export type Database = {
       };
       resolve_expired_listings: {
         Args: Record<string, never>;
+        Returns: null;
+      };
+      increment_thread_view_count: {
+        Args: { p_thread_id: string };
         Returns: null;
       };
       buy_listing: {

@@ -112,12 +112,18 @@ This project is being built one module at a time. Current state:
       expired listings and purchase history). See Notes below
 - [ ] Profile customization (sanitized custom CSS/HTML)
 - [x] Forums — admin-managed categories (and one level of subcategories,
-      each with an optional icon), threads, and posts. Players write posts
-      with a WYSIWYG editor (TipTap) by default, or switch to a raw
-      "Code" mode and type their own HTML (Toyhouse-style) — either way
-      the server re-sanitizes the HTML before it's ever stored or
-      rendered, stripping scripts and disallowing video/audio/iframe
-      embeds outright (links to them are still fine). See Notes below
+      each with an optional icon), threads, and posts, styled after a
+      classic phpBB/Chicken-Smoothie-style forum: a Quick Jump sidebar,
+      a Forum Index panel, pinned/regular topic lists with view and
+      reply counts, and paginated thread views. Players write posts with
+      a BBCode editor — a toolbar (bold/italic/underline/strike, quote,
+      horizontal rule, alignment, font size, font color) that inserts
+      tags into a plain textarea, so typing tags by hand works exactly
+      the same as clicking a button. **Superseded the original WYSIWYG-
+      or-raw-HTML editor** (TipTap + an HTML sanitizer) — see Notes below
+      for why the BBCode approach replaced it and how it's now the
+      security boundary instead. No video/audio/iframe embeds exist as a
+      BBCode tag at all (links to them are still fine)
 
 ---
 
@@ -1666,3 +1672,101 @@ signs in.
     visual replica of the signed-in header — confirmed the fold/dropdown
     interaction (open → switch groups → close-on-outside-click) all
     behave correctly.
+- **Forums redesign: BBCode editor + phpBB-style layout
+  (`0022_forum_bbcode_and_views.sql`, `src/lib/bbcode.ts`,
+  `src/components/forums/*`, `/forums/*`)** — replaced the original
+  WYSIWYG-or-raw-HTML forum editor and gave the whole forums section a
+  visual overhaul, both from a reference screenshot of a classic
+  phpBB/Chicken-Smoothie-style forum.
+  - **Why BBCode instead of "sanitize whatever HTML came in"**: the
+    previous design (TipTap WYSIWYG + a raw "Code" mode, sanitized with
+    `sanitize-html`) meant a player could submit arbitrary HTML that the
+    server then had to filter down to something safe — the classic
+    allowlist-of-arbitrary-input security model, one missed tag/
+    attribute away from a hole. BBCode flips that: a player never
+    submits HTML at all, only a fixed vocabulary of `[tag]` markers.
+    `bbcodeToHtml()` (`src/lib/bbcode.ts`) is the only code that ever
+    writes an HTML tag or attribute — there's no way for a post to
+    introduce one this file doesn't already know how to produce, so
+    there's nothing to filter *out* in the first place. `editor_mode`
+    (wysiwyg vs. raw) is gone entirely — there's only one editor now,
+    and typing `[b]` by hand instead of clicking the Bold button already
+    *is* the "advanced" option Toyhouse-style raw mode used to be for.
+  - **Parser**: a small hand-written tokenizer + recursive-descent tree
+    builder (not regex-chaining, which breaks on nesting) — supports
+    `[b] [i] [u] [s] [sup] [sub] [h1]-[h3] [quote] [hr] [align=] [size=]
+    [color=] [highlight=] [font=] [url] [img]`, correctly nested (e.g.
+    `[b][color=...]...[/color][/b]`). An unrecognized tag name, a stray
+    closing tag with no opener, or an unclosed tag at EOF all degrade to
+    literal text/auto-close rather than erroring — matches how every
+    real BBCode forum behaves. `[img]`/bare `[url]` capture their inner
+    content raw (never re-parsed as nested BBCode), since a URL
+    containing something that looks like a tag should stay literal.
+    Still no `[video]`/`[audio]`/`[iframe]`/`[embed]` tag exists at all
+    — the video/audio-embed restriction from the original spec now
+    holds by construction (there's no code path that could ever emit
+    one) rather than by an allowlist someone could get wrong.
+  - **What's validated**: `[color=]`/`[highlight=]` against a hex/rgb()/
+    named-color regex, `[font=]` against a safe-charset regex,
+    `[align=]` against `left/center/right/justify`, `[size=]` against a
+    fixed 1-7 lookup table (mapped to em values — no free-form CSS
+    length), and `[url=]`/bare `[url]`/`[img]` against an `http(s)/
+    mailto` scheme allowlist (blocks `javascript:`/`data:`). An invalid
+    value drops just that tag's styling rather than the content inside
+    it. Every link gets `target="_blank" rel="noopener noreferrer
+    nofollow ugc"` forced on, same as before.
+  - Verified directly (`npx tsx`, no browser/DB needed) against the
+    mockup's own sample post (confirms nesting renders identically:
+    bold, colored+highlighted text, sup/sub, h1/h3) plus a battery of
+    adversarial input — a literal `<script>` tag (escaped, inert), fake
+    `[video]`/`[iframe]`/`[embed]` tags (no such tag exists, pass
+    through as literal bracket text), `javascript:`/`data:` URLs in
+    `[url]`/`[img]` (scheme rejected, tag drops to plain text/nothing),
+    a CSS-injection attempt via `[color=red;position:fixed;...]` (fails
+    the color regex, style dropped, content kept), an unclosed `[b]`
+    (auto-closes at EOF), and a stray `[/b]` with no opener (literal
+    text) — every case behaved exactly as designed.
+  - **Layout**: new shared `ForumPanel`/`ForumPanelSection` (bordered
+    box, colored header bar) and `PaginationBar` components used across
+    all three forum pages for a consistent look. `/forums` gained a
+    "Quick Jump" sidebar (every category/subcategory as a flat list of
+    jump links) beside the existing category-index panel. `/forums/
+    [categoryId]` now separates pinned topics into their own panel above
+    the regular thread list, shows per-thread View and Reply counts, and
+    paginates (20 threads/page) instead of loading every thread at once.
+    `/forums/[categoryId]/[threadId]` restyled each post as a card
+    (avatar, author, timestamp, rendered BBCode) and paginates replies
+    (10/page); posts also gained a working **Edit** button (a post's
+    author or an admin can revise it — the existing "Authors and admins
+    can edit a post" RLS policy from 0021 already allowed this, there
+    was just no UI for it yet) and a **Report** button that's
+    deliberately inert (grayed out, `disabled`, a tooltip explaining
+    it's not built yet) rather than a live-looking control that quietly
+    does nothing — full moderation/reporting is a bigger feature than
+    this pass was scoped for.
+  - **New `view_count`** on `forum_threads`, incremented via a
+    `security definer` RPC (`increment_thread_view_count`, granted to
+    `anon` as well as `authenticated` — the first anon-granted function
+    in this app, since forum threads are publicly readable without
+    signing in and view-counting has to work for anonymous visitors
+    too) on every thread-page load. Best-effort by design, like most
+    forum view counters — not deduplicated per visitor.
+  - Removed the TipTap dependency tree entirely (`@tiptap/react`,
+    `@tiptap/starter-kit`, `@tiptap/pm`, and the three extension
+    packages) along with `sanitize-html`/`@types/sanitize-html` and the
+    old `post-editor.tsx`/`sanitize-forum-html.ts` — nothing in the app
+    references them anymore, confirmed by grepping before deleting.
+  - Verified the `0022` migration the same way as `0021` (local
+    Postgres 16, both `psql -f` and `psql -1`): confirmed
+    `forum_posts.editor_mode` is gone, `forum_threads.view_count`
+    exists and defaults to 0, a non-admin's *direct* `UPDATE` of
+    `view_count` is still rejected by the existing admin-only RLS policy
+    (`UPDATE 0`), and that same non-admin *can* bump it through
+    `increment_thread_view_count()` as both `anon` and `authenticated`.
+    The redesigned pages, the BBCode editor's toolbar (bold, font color,
+    font size, horizontal-rule-at-cursor — each checked by reading the
+    textarea's actual value back after the click, not just eyeballing
+    it), and the rendered post cards were checked visually with headless
+    Chromium against a temporary preview route mounting the real
+    components with mock data (deleted before finishing, same as every
+    other module).

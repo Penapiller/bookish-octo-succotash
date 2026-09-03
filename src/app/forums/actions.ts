@@ -3,21 +3,16 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { sanitizeForumHtml } from "@/lib/sanitize-forum-html";
-import type { ForumEditorMode } from "@/lib/supabase/types";
+import { bbcodeToHtml } from "@/lib/bbcode";
 
 export type ForumFormState = { error: string } | null;
 
-function readEditorMode(formData: FormData): ForumEditorMode {
-  return formData.get("editor_mode") === "raw" ? "raw" : "wysiwyg";
-}
-
 // Shared by new-thread and reply forms — the raw body coming out of
-// PostEditor (either TipTap's getHTML() or hand-typed "Code" mode text)
-// is untrusted either way. sanitizeForumHtml() is the only thing that
+// BBCodeEditor's textarea is untrusted whether a toolbar button or
+// hand-typed tags produced it. bbcodeToHtml() is the only thing that
 // turns it into something safe to store as body_html and later render
 // with dangerouslySetInnerHTML.
-function readAndSanitizeBody(formData: FormData): { ok: true; raw: string; html: string } | { ok: false; error: string } {
+function readAndRenderBody(formData: FormData): { ok: true; raw: string; html: string } | { ok: false; error: string } {
   const raw = String(formData.get("body") ?? "");
   if (raw.trim().length === 0) {
     return { ok: false, error: "Post can't be empty." };
@@ -26,7 +21,7 @@ function readAndSanitizeBody(formData: FormData): { ok: true; raw: string; html:
     return { ok: false, error: "Post is too long (20,000 character limit)." };
   }
 
-  const html = sanitizeForumHtml(raw);
+  const html = bbcodeToHtml(raw);
   if (html.trim().length === 0) {
     return { ok: false, error: "That post didn't contain any content once cleaned up — try adding some text." };
   }
@@ -50,7 +45,7 @@ export async function createForumThread(
   if (title.length === 0) return { error: "Title can't be empty." };
   if (title.length > 200) return { error: "Title must be 200 characters or fewer." };
 
-  const body = readAndSanitizeBody(formData);
+  const body = readAndRenderBody(formData);
   if (!body.ok) return { error: body.error };
 
   const { data: thread, error: threadError } = await supabase
@@ -65,7 +60,6 @@ export async function createForumThread(
   const { error: postError } = await supabase.from("forum_posts").insert({
     thread_id: thread.id,
     author_id: user.id,
-    editor_mode: readEditorMode(formData),
     body_raw: body.raw,
     body_html: body.html,
   });
@@ -91,18 +85,57 @@ export async function createForumReply(
   const threadId = String(formData.get("thread_id") ?? "");
   if (categoryId.length === 0 || threadId.length === 0) return { error: "Missing thread." };
 
-  const body = readAndSanitizeBody(formData);
+  const body = readAndRenderBody(formData);
   if (!body.ok) return { error: body.error };
 
   const { error } = await supabase.from("forum_posts").insert({
     thread_id: threadId,
     author_id: user.id,
-    editor_mode: readEditorMode(formData),
     body_raw: body.raw,
     body_html: body.html,
   });
   if (error) {
     return { error: `Could not post your reply: ${error.message}` };
+  }
+
+  revalidatePath(`/forums/${categoryId}/${threadId}`);
+  redirect(`/forums/${categoryId}/${threadId}`);
+}
+
+export async function updateForumPost(
+  _prevState: ForumFormState,
+  formData: FormData,
+): Promise<ForumFormState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const categoryId = String(formData.get("category_id") ?? "");
+  const threadId = String(formData.get("thread_id") ?? "");
+  const postId = String(formData.get("post_id") ?? "");
+  if (categoryId.length === 0 || threadId.length === 0 || postId.length === 0) {
+    return { error: "Missing post." };
+  }
+
+  const body = readAndRenderBody(formData);
+  if (!body.ok) return { error: body.error };
+
+  // No .select() row back means RLS silently filtered the update out —
+  // "Authors and admins can edit a post" (0021_forums.sql) is the real
+  // gate here; this just turns that into a readable message instead of
+  // a redirect that looks like it worked.
+  const { data, error } = await supabase
+    .from("forum_posts")
+    .update({ body_raw: body.raw, body_html: body.html, edited_at: new Date().toISOString() })
+    .eq("id", postId)
+    .select("id");
+  if (error) {
+    return { error: `Could not save your edit: ${error.message}` };
+  }
+  if (!data || data.length === 0) {
+    return { error: "You can only edit your own posts." };
   }
 
   revalidatePath(`/forums/${categoryId}/${threadId}`);
