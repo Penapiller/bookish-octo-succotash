@@ -58,10 +58,12 @@ body {
 .forum-content h2 { font-size: 1.3em; }
 .forum-content h3 { font-size: 1.15em; }
 .forum-content blockquote {
-  margin: 0.5em 0;
-  padding: 0.25em 0.9em;
+  margin: 0.6em 0;
+  padding: 0.5em 1em;
   border-left: 3px solid var(--color-amber-300, #fcd34d);
+  background: var(--color-amber-50, #fffbeb);
   color: var(--color-stone-500, #78716c);
+  border-radius: 0.25rem;
 }
 .forum-content a { color: var(--color-amber-800, #92400e); text-decoration: underline; }
 .forum-content img { max-width: 100%; border-radius: 0.25rem; }

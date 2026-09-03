@@ -22,8 +22,20 @@ export default async function NewThreadPage(props: PageProps<"/forums/[categoryI
     notFound();
   }
 
+  // Parent categories with subcategories are pure dividers — see
+  // 0023_forum_category_no_direct_posts.sql, the real backstop (RLS
+  // itself rejects the insert too). This just avoids showing a form
+  // that would only fail on submit.
+  const { count: childCount } = await supabase
+    .from("forum_categories")
+    .select("id", { count: "exact", head: true })
+    .eq("parent_id", categoryId);
+  if ((childCount ?? 0) > 0) {
+    redirect(`/forums/${categoryId}`);
+  }
+
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-6 py-12">
+    <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-6 py-12">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">New thread</h1>
         <p className="text-sm text-stone-500">in {category.name}</p>

@@ -1770,3 +1770,69 @@ signs in.
     Chromium against a temporary preview route mounting the real
     components with mock data (deleted before finishing, same as every
     other module).
+- **Forums follow-up fixes: divider categories, reply toggle, preview,
+  icons, avatars (`0023_forum_category_no_direct_posts.sql`,
+  `src/components/forums/*`, `/forums/*`)** — a round of feedback after
+  actually using the redesigned forums.
+  - **Parent categories can no longer be posted in.** A top-level
+    category with subcategories is a pure divider — just a visual way
+    to group forums, not a place threads live. Enforced at the RLS
+    layer (rewrote the `forum_threads` INSERT policy to also require
+    `not exists (... where parent_id = category_id)`) as the real
+    backstop, with app-level checks in `createForumThread` and the
+    `/new` page giving a friendly message / redirecting instead of
+    showing a form that would only fail on submit — same
+    backstop-vs-convenience split every other write path in this app
+    uses. A category page for one of these dividers now shows only its
+    subcategory list (no "New Post" button, no pinned/thread panels).
+    Verified against local Postgres: posting directly in a parent with
+    a subcategory is rejected by RLS, while posting in that same
+    subcategory, or in an ordinary category with no children, both
+    succeed.
+  - **Reply box now stays hidden until clicked** (`ReplyToggle`, a small
+    client wrapper) — a "Reply" button in place of the always-visible
+    form; clicking it mounts the actual reply form (and the BBCode
+    editor along with it) rather than showing an empty text box by
+    default.
+  - **BBCode Preview toggle** — `BBCodeEditor` gained a Preview/Write
+    toggle. `bbcodeToHtml()` (`src/lib/bbcode.ts`) is a pure function
+    with no DOM/Node dependency, so it runs client-side too: toggling
+    Preview renders the current draft through the exact same renderer
+    that'll process it server-side on submit, no separate preview-only
+    code path to keep in sync. The textarea stays mounted (just
+    `hidden`) while previewing so the draft isn't lost switching back.
+  - **Emoji replaced with `lucide-react` icons** throughout the forums —
+    panel headers, thread pin/lock indicators, Edit/Report buttons, the
+    BBCode toolbar (Bold/Italic/Underline/Strikethrough/Quote/
+    horizontal-rule/alignment/font-size/font-color all became real
+    icons instead of raw Unicode/emoji characters), and pagination
+    arrows. Purely cosmetic, but also the excuse for the wider polish
+    pass below.
+  - **Wider, larger post layout** — the thread view widened from
+    `max-w-3xl` to `max-w-5xl` (matching the other forum pages), post
+    card padding/avatar size/body text size all increased, and panel
+    headers got more breathing room — addresses "everything looks
+    cramped/small" in one pass alongside the icon swap, both aimed at
+    reading closer to a mature phpBB/Chicken-Smoothie-style forum.
+  - **Avatar bug**: post cards were rendering `authorAvatarUrl` through
+    a plain `<img>` tag, sent directly to `lh3.googleusercontent.com`
+    from the browser — a client-side ad-blocker/privacy extension
+    targeting Google's raw image CDN (a common filter-list target) would
+    silently break it, even though the exact same avatar URLs render
+    fine elsewhere in the app (`site-header.tsx`) via `next/image`, which
+    proxies the request through the app's own `/_next/image` endpoint
+    instead of hitting Google's domain directly from the browser — and
+    that host was already allowlisted in `next.config.ts` for exactly
+    this reason. Switched post-card avatars to `next/image` to match.
+    Couldn't exercise the real Google-hosted URL from this sandbox (its
+    egress proxy blocks `googleusercontent.com`/`placehold.co`, the same
+    limitation noted in earlier modules) — verified the `<Image>`
+    pipeline itself (sizing, cropping, border) renders correctly using a
+    same-origin local asset standing in for the URL instead.
+  - Build + lint clean; the RLS change re-verified against local
+    Postgres 16 (`psql -f`, plus the full chain again in `psql -1`); the
+    rest checked visually with headless Chromium against a temporary
+    preview route (deleted before finishing) mounting the real
+    `ForumPanel`/`PaginationBar`/`BBCodeEditor`/`ReplyToggle` components,
+    including clicking through the Reply toggle and the BBCode Preview
+    toggle to confirm both actually work, not just render.

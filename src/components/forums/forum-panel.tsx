@@ -16,9 +16,9 @@ export function ForumPanel({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="overflow-hidden rounded-lg border border-amber-300">
-      <div className="flex items-center justify-between gap-2 bg-amber-700 px-4 py-2 text-sm font-semibold text-white">
-        <span className="flex items-center gap-2">
+    <div className="overflow-hidden rounded-xl border border-amber-300 shadow-sm">
+      <div className="flex items-center justify-between gap-2 bg-amber-700 px-5 py-3 text-base font-semibold text-white">
+        <span className="flex items-center gap-2.5">
           {icon}
           {title}
         </span>
@@ -40,7 +40,7 @@ export function ForumPanelSection({
 }) {
   return (
     <div className="border-t border-amber-300 first:border-t-0">
-      <div className="flex items-center justify-between gap-2 bg-amber-100 px-4 py-1.5 text-sm font-semibold text-amber-900">
+      <div className="flex items-center justify-between gap-2 bg-amber-100 px-5 py-2.5 text-sm font-semibold text-amber-900">
         <span>{title}</span>
         {action}
       </div>

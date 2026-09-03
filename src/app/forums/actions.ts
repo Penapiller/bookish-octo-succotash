@@ -45,6 +45,18 @@ export async function createForumThread(
   if (title.length === 0) return { error: "Title can't be empty." };
   if (title.length > 200) return { error: "Title must be 200 characters or fewer." };
 
+  // Parent categories with subcategories are pure dividers, not postable
+  // — see 0023_forum_category_no_direct_posts.sql, which enforces this
+  // same rule at the RLS layer as the real backstop. This check just
+  // turns that into a friendly message instead of a raw RLS error.
+  const { count: childCount } = await supabase
+    .from("forum_categories")
+    .select("id", { count: "exact", head: true })
+    .eq("parent_id", categoryId);
+  if ((childCount ?? 0) > 0) {
+    return { error: "You can't post directly in a parent category — pick a subcategory instead." };
+  }
+
   const body = readAndRenderBody(formData);
   if (!body.ok) return { error: body.error };
 

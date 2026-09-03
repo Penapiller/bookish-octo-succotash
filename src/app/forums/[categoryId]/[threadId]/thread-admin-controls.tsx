@@ -16,7 +16,7 @@ export function ThreadAdminControls({
   return (
     <form
       action={updateThreadFlags}
-      className="flex flex-wrap items-center gap-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
+      className="flex flex-wrap items-center gap-4 border-b border-amber-200 bg-amber-50 px-5 py-3 text-sm dark:border-stone-700 dark:bg-stone-900"
     >
       <input type="hidden" name="category_id" value={categoryId} />
       <input type="hidden" name="thread_id" value={threadId} />

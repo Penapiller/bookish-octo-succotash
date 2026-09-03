@@ -1,7 +1,10 @@
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Lock, MessageSquare, Pencil, Flag } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { ReplyForm } from "./reply-form";
+import { ReplyToggle } from "./reply-toggle";
 import { ThreadAdminControls } from "./thread-admin-controls";
 import { ForumPanel, ForumPanelSection } from "@/components/forums/forum-panel";
 import { PaginationBar } from "@/components/forums/pagination-bar";
@@ -76,16 +79,10 @@ export default async function ForumThreadPage(props: PageProps<"/forums/[categor
   const totalPages = Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE));
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 px-6 py-12">
+    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-5 px-6 py-12">
       <ForumPanel
-        icon={
-          <span aria-hidden>
-            {thread.is_locked ? "🔒" : "💬"}
-          </span>
-        }
-        title={
-          category ? `${category.name} > ${thread.title}` : thread.title
-        }
+        icon={thread.is_locked ? <Lock size={18} /> : <MessageSquare size={18} />}
+        title={category ? `${category.name} > ${thread.title}` : thread.title}
       >
         {isAdmin ? (
           <ThreadAdminControls
@@ -112,17 +109,19 @@ export default async function ForumThreadPage(props: PageProps<"/forums/[categor
       </ForumPanel>
 
       {thread.is_locked ? (
-        <p className="rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-stone-500">
+        <p className="rounded-md border border-amber-300 bg-amber-50 px-5 py-4 text-sm text-stone-500">
           This thread is locked — no new replies.
         </p>
       ) : user ? (
-        <ForumPanelWrapper title={`Reply to ${thread.title}`}>
-          <div className="p-4">
-            <ReplyForm categoryId={categoryId} threadId={thread.id} />
-          </div>
-        </ForumPanelWrapper>
+        <ReplyToggle>
+          <ForumPanelWrapper title={`Reply to ${thread.title}`}>
+            <div className="p-5">
+              <ReplyForm categoryId={categoryId} threadId={thread.id} />
+            </div>
+          </ForumPanelWrapper>
+        </ReplyToggle>
       ) : (
-        <p className="rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm">
+        <p className="rounded-md border border-amber-300 bg-amber-50 px-5 py-4 text-sm">
           <Link href="/login" className="underline">
             Sign in
           </Link>{" "}
@@ -135,7 +134,7 @@ export default async function ForumThreadPage(props: PageProps<"/forums/[categor
 
 function ForumPanelWrapper({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="overflow-hidden rounded-lg border border-amber-300">
+    <div className="overflow-hidden rounded-xl border border-amber-300 shadow-sm">
       <ForumPanelSection title={title}>{children}</ForumPanelSection>
     </div>
   );
@@ -153,44 +152,47 @@ function PostCard({
   canEdit: boolean;
 }) {
   return (
-    <article className="flex gap-3 border-t border-amber-100 p-4 first:border-t-0">
-      <div className="flex w-28 shrink-0 flex-col items-center gap-1 text-center">
+    <article className="flex flex-col gap-4 border-t border-amber-100 p-6 first:border-t-0 sm:flex-row">
+      <div className="flex shrink-0 flex-row items-center gap-3 sm:w-32 sm:flex-col sm:text-center">
         {post.authorAvatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element -- avatar_url is arbitrary player-supplied storage data, not worth the build-time optimization config for a 56px thumbnail
-          <img
+          <Image
             src={post.authorAvatarUrl}
             alt=""
-            className="h-14 w-14 rounded-md border-2 border-amber-400 object-cover"
+            width={72}
+            height={72}
+            className="h-16 w-16 rounded-md border-2 border-amber-400 object-cover sm:h-[72px] sm:w-[72px]"
           />
         ) : (
-          <div className="h-14 w-14 rounded-md border-2 border-dashed border-amber-300" />
+          <div className="h-16 w-16 rounded-md border-2 border-dashed border-amber-300 sm:h-[72px] sm:w-[72px]" />
         )}
-        <Link href={`/u/${post.authorId}`} className="text-sm font-medium hover:underline">
+        <Link href={`/u/${post.authorId}`} className="text-sm font-semibold hover:underline">
           {post.authorName}
         </Link>
       </div>
-      <div className="flex flex-1 flex-col gap-2">
-        <div className="flex items-start justify-between gap-2">
-          <div className="text-xs text-stone-500">
+      <div className="flex min-w-0 flex-1 flex-col gap-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="text-sm text-stone-500">
             Posted {formatForumDate(post.created_at)}
             {post.edited_at ? " (edited)" : ""}
           </div>
-          <div className="flex shrink-0 gap-1.5">
+          <div className="flex shrink-0 gap-2">
             {canEdit ? (
               <Link
                 href={`/forums/${categoryId}/${threadId}/${post.id}/edit`}
-                className="rounded-md border border-amber-300 px-2 py-1 text-xs font-medium hover:bg-amber-50"
+                className="flex items-center gap-1.5 rounded-md border border-amber-300 px-2.5 py-1.5 text-xs font-medium hover:bg-amber-50"
               >
-                ✏️ Edit
+                <Pencil size={14} />
+                Edit
               </Link>
             ) : null}
             <button
               type="button"
               disabled
               title="Reporting isn't available yet"
-              className="cursor-not-allowed rounded-md border border-red-200 px-2 py-1 text-xs font-medium text-red-300"
+              className="flex cursor-not-allowed items-center gap-1.5 rounded-md border border-red-200 px-2.5 py-1.5 text-xs font-medium text-red-300"
             >
-              🚩 Report
+              <Flag size={14} />
+              Report
             </button>
           </div>
         </div>
@@ -198,7 +200,10 @@ function PostCard({
             time (src/lib/bbcode.ts) — this is the one place that
             rendered output is ever trusted enough to render. Never
             render body_raw directly. */}
-        <div className="forum-content text-sm" dangerouslySetInnerHTML={{ __html: post.body_html }} />
+        <div
+          className="forum-content text-base leading-relaxed"
+          dangerouslySetInnerHTML={{ __html: post.body_html }}
+        />
       </div>
     </article>
   );
