@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { PawPrint, Package } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { bbcodeToHtml } from "@/lib/bbcode";
 import { ExpeditionCountdown } from "@/components/expedition-countdown";
@@ -58,6 +59,7 @@ export default async function ProfilePage() {
   // Hand-cast: see the comment on ExpeditionWithZone in
   // lib/supabase/types.ts for why this joined select isn't inferred.
   const activeExpeditions = (expeditionsData ?? []) as unknown as ExpeditionWithZone[];
+  const denExpansionCost = nextDenExpansionCost(profile.den_size);
 
   const joined = new Date(profile.created_at).toLocaleDateString(undefined, {
     year: "numeric",
@@ -66,130 +68,158 @@ export default async function ProfilePage() {
   });
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-6 py-12">
-      <div className="flex items-center gap-4">
-        {profile.avatar_url ? (
-          <Image
-            src={profile.avatar_url}
-            alt=""
-            width={64}
-            height={64}
-            className="h-16 w-16 rounded-full"
-          />
-        ) : (
-          <div className="h-16 w-16 rounded-full bg-amber-200 dark:bg-stone-800" />
-        )}
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {profile.display_name}
-          </h1>
-          <p className="text-sm text-stone-500">Joined {joined}</p>
-        </div>
-      </div>
-
-      {profile.bio ? (
-        // bbcodeToHtml() is the only thing ever allowed to turn user text
-        // into HTML — see src/lib/bbcode.ts. Runs fresh on every render;
-        // profile.bio is raw BBCode source, never rendered directly.
-        <div
-          className="forum-content text-stone-700 dark:text-stone-300"
-          dangerouslySetInnerHTML={{ __html: bbcodeToHtml(profile.bio) }}
-        />
-      ) : (
-        <p className="text-stone-500 italic">
-          No bio yet.{" "}
-          <Link href="/settings" className="underline">
-            Add one
-          </Link>
-          .
-        </p>
-      )}
-
-      <dl className="grid grid-cols-2 gap-4 rounded-lg border border-amber-200 p-4 text-sm dark:border-stone-800 sm:grid-cols-4">
-        <div>
-          <dt className="text-stone-500">🪙 Coins</dt>
-          <dd className="text-lg font-medium">{profile.coin_balance}</dd>
-        </div>
-        <div>
-          <dt className="text-stone-500">💎 Gems</dt>
-          <dd className="text-lg font-medium">{profile.gem_balance}</dd>
-        </div>
-        <div>
-          <dt className="text-stone-500">Den size</dt>
-          <dd className="text-lg font-medium">{profile.den_size}</dd>
-        </div>
-        <div>
-          <dt className="text-stone-500">Pets owned</dt>
-          <dd className="text-lg font-medium">
-            {petCount ?? 0} / {profile.den_size}
-          </dd>
-        </div>
-      </dl>
-
-      <ExpandDenButton
-        userId={user.id}
-        cost={nextDenExpansionCost(profile.den_size)}
-        canAfford={profile.coin_balance >= nextDenExpansionCost(profile.den_size)}
-      />
-
-      {activeExpeditions.length > 0 ? (
-        <section className="flex flex-col gap-3">
-          <h2 className="text-lg font-semibold tracking-tight">Active expedition</h2>
-          {activeExpeditions.map((expedition) => (
-            <div
-              key={expedition.id}
-              className="flex items-center gap-4 rounded-lg border border-amber-200 p-4 dark:border-stone-800"
-            >
-              {expedition.zones?.image_url ? (
-                <Image
-                  src={expedition.zones.image_url}
-                  alt=""
-                  width={64}
-                  height={48}
-                  className="h-12 w-16 rounded"
-                />
-              ) : null}
-              <div>
-                <p className="font-medium">
-                  {expedition.is_tutorial ? "Tutorial expedition" : expedition.zones?.name}
-                </p>
-                <p className="text-xs text-stone-500">
-                  {expedition.zones?.description ??
-                    "This box is meant to hold this zone's flavor description."}
-                </p>
-                <ExpeditionCountdown resolvesAt={expedition.resolves_at} />
-              </div>
+    <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-6 py-12">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {/* Left column */}
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center gap-4 rounded-lg border border-amber-200 p-4 dark:border-stone-800">
+            {profile.avatar_url ? (
+              <Image
+                src={profile.avatar_url}
+                alt=""
+                width={72}
+                height={72}
+                className="h-[72px] w-[72px] rounded-full object-cover"
+              />
+            ) : (
+              <div className="h-[72px] w-[72px] shrink-0 rounded-full bg-amber-200 dark:bg-stone-800" />
+            )}
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight">
+                {profile.display_name}
+              </h1>
+              <p className="text-sm text-stone-500">Joined {joined}</p>
+              <Link href="/settings" className="text-sm underline">
+                Edit profile
+              </Link>
             </div>
-          ))}
-        </section>
-      ) : null}
+          </div>
 
-      <div className="flex gap-3">
-        <Link
-          href="/pets"
-          className="rounded-md border border-amber-300 px-4 py-2 text-sm hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-900"
-        >
-          View pets
-        </Link>
-        <Link
-          href="/items"
-          className="rounded-md border border-amber-300 px-4 py-2 text-sm hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-900"
-        >
-          View items
-        </Link>
-        <Link
-          href="/settings"
-          className="rounded-md border border-amber-300 px-4 py-2 text-sm hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-900"
-        >
-          Edit profile
-        </Link>
-        <Link
-          href={`/u/${profile.id}`}
-          className="rounded-md border border-amber-300 px-4 py-2 text-sm hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-900"
-        >
-          View public profile
-        </Link>
+          <div className="flex flex-col gap-3 rounded-lg border border-amber-200 p-4 dark:border-stone-800">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">
+              Player stats
+            </h2>
+            <dl className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <dt className="text-stone-500">🪙 Coins</dt>
+                <dd className="text-lg font-medium">{profile.coin_balance}</dd>
+              </div>
+              <div>
+                <dt className="text-stone-500">💎 Gems</dt>
+                <dd className="text-lg font-medium">{profile.gem_balance}</dd>
+              </div>
+              <div>
+                <dt className="text-stone-500">Den size</dt>
+                <dd className="text-lg font-medium">{profile.den_size}</dd>
+              </div>
+              <div>
+                <dt className="text-stone-500">Pets owned</dt>
+                <dd className="text-lg font-medium">
+                  {petCount ?? 0} / {profile.den_size}
+                </dd>
+              </div>
+            </dl>
+            <ExpandDenButton
+              userId={user.id}
+              cost={denExpansionCost}
+              canAfford={profile.coin_balance >= denExpansionCost}
+            />
+          </div>
+
+          <div className="flex flex-col gap-3 rounded-lg border border-amber-200 p-4 dark:border-stone-800">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">
+              Active expedition
+            </h2>
+            {activeExpeditions.length > 0 ? (
+              activeExpeditions.map((expedition) => (
+                <div key={expedition.id} className="flex items-center gap-4">
+                  {expedition.zones?.image_url ? (
+                    <Image
+                      src={expedition.zones.image_url}
+                      alt=""
+                      width={64}
+                      height={48}
+                      className="h-12 w-16 rounded"
+                    />
+                  ) : null}
+                  <div>
+                    <p className="font-medium">
+                      {expedition.is_tutorial ? "Tutorial expedition" : expedition.zones?.name}
+                    </p>
+                    <p className="text-xs text-stone-500">
+                      {expedition.zones?.description ??
+                        "This box is meant to hold this zone's flavor description."}
+                    </p>
+                    <ExpeditionCountdown resolvesAt={expedition.resolves_at} />
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-stone-500">
+                No expedition in progress.{" "}
+                <Link href="/expeditions" className="underline">
+                  Send a pet out
+                </Link>
+                .
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Right column */}
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3 rounded-lg border border-amber-200 p-4 dark:border-stone-800">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">
+              My stuff
+            </h2>
+            <div className="flex gap-3">
+              <Link
+                href="/pets"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-amber-300 px-3 py-2 text-sm hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-900"
+              >
+                <PawPrint size={16} />
+                Pets
+              </Link>
+              <Link
+                href="/items"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-amber-300 px-3 py-2 text-sm hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-900"
+              >
+                <Package size={16} />
+                Items
+              </Link>
+            </div>
+          </div>
+
+          <div className="flex min-h-40 flex-1 flex-col gap-2 rounded-lg border border-amber-200 p-4 dark:border-stone-800">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">Bio</h2>
+            {profile.bio ? (
+              // bbcodeToHtml() is the only thing ever allowed to turn user
+              // text into HTML — see src/lib/bbcode.ts. Runs fresh on every
+              // render; profile.bio is raw BBCode source, never rendered
+              // directly.
+              <div
+                className="forum-content text-stone-700 dark:text-stone-300"
+                dangerouslySetInnerHTML={{ __html: bbcodeToHtml(profile.bio) }}
+              />
+            ) : (
+              <p className="text-stone-500 italic">
+                No bio yet.{" "}
+                <Link href="/settings" className="underline">
+                  Add one
+                </Link>
+                .
+              </p>
+            )}
+          </div>
+        </div>
       </div>
+
+      <Link
+        href={`/u/${profile.id}`}
+        className="self-start rounded-md border border-amber-300 px-4 py-2 text-sm hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-900"
+      >
+        View public profile
+      </Link>
     </main>
   );
 }

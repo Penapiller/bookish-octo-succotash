@@ -18,9 +18,14 @@ export async function SiteNav() {
       label: "Play",
       links: [
         { href: "/expeditions", label: "Expeditions" },
+        { href: "/brewing", label: "Brewing" },
+      ],
+    },
+    {
+      label: "My Stuff",
+      links: [
         { href: "/pets", label: "Pets" },
         { href: "/items", label: "Items" },
-        { href: "/brewing", label: "Brewing" },
       ],
     },
     {

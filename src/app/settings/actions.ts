@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { uploadAvatar, deleteAvatarFiles } from "@/lib/avatar-upload";
 
 // Keep in sync with MAX_BIO_LENGTH in ./settings-form.tsx.
 const MAX_BIO_LENGTH = 2000;
@@ -41,9 +42,27 @@ export async function updateProfile(
     return { error: `Bio must be ${MAX_BIO_LENGTH} characters or fewer.` };
   }
 
+  // avatarUrl stays undefined (column untouched) when no file was picked —
+  // only set when a new upload actually succeeds, so submitting the bio
+  // form without touching the file input never clears an existing avatar.
+  let avatarUrl: string | undefined;
+  const avatarFile = formData.get("avatar");
+  if (avatarFile instanceof File && avatarFile.size > 0) {
+    try {
+      avatarUrl = (await uploadAvatar(supabase, user.id, avatarFile)) ?? undefined;
+    } catch (uploadError) {
+      return {
+        error: uploadError instanceof Error ? uploadError.message : "Could not upload avatar.",
+      };
+    }
+  }
+
   const { error } = await supabase
     .from("users")
-    .update({ bio: bio.length > 0 ? bio : null })
+    .update({
+      bio: bio.length > 0 ? bio : null,
+      ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
+    })
     .eq("id", user.id);
 
   if (error) {
@@ -53,4 +72,25 @@ export async function updateProfile(
   revalidatePath("/profile");
   revalidatePath(`/u/${user.id}`);
   redirect("/profile");
+}
+
+// Plain form action (no useActionState) — matches the "Remove" buttons
+// elsewhere in this app (pet folders, zone pool entries): no confirmation
+// step or error display, it just does the thing.
+export async function removeAvatar() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  await deleteAvatarFiles(supabase, user.id);
+  await supabase.from("users").update({ avatar_url: null }).eq("id", user.id);
+
+  revalidatePath("/profile");
+  revalidatePath(`/u/${user.id}`);
+  revalidatePath("/settings");
 }

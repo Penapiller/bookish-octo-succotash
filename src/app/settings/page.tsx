@@ -17,7 +17,7 @@ export default async function SettingsPage() {
 
   const { data: profile, error } = await supabase
     .from("users")
-    .select("display_name, display_name_changed_at, bio, gem_balance")
+    .select("display_name, display_name_changed_at, bio, gem_balance, avatar_url")
     .eq("id", user.id)
     .single();
 
@@ -44,7 +44,7 @@ export default async function SettingsPage() {
         />
       </div>
 
-      <SettingsForm bio={profile.bio ?? ""} />
+      <SettingsForm bio={profile.bio ?? ""} avatarUrl={profile.avatar_url} />
     </main>
   );
 }

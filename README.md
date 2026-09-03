@@ -115,6 +115,12 @@ This project is being built one module at a time. Current state:
       format their profile ("about me") with bold, colors, fonts, lists,
       the Chicken-Smoothie-style `[left]`/`[right]` image trick, and so
       on. See Notes below
+- [x] Player dashboard & public profile redesign, player avatars — `/profile`
+      and `/u/[id]` now use a two-column layout (picture/name/stats/actions
+      on the left, "my stuff"/bio on the right), and a new "My Stuff" nav
+      tab holds Pets/Items. New players no longer get their Google account
+      photo imported as their avatar — they start with none, and can
+      upload their own from `/settings`. See Notes below
 - [x] Forums — admin-managed categories (and one level of subcategories,
       each with an optional icon), threads, and posts, styled after a
       classic phpBB/Chicken-Smoothie-style forum: a Quick Jump sidebar,
@@ -1978,3 +1984,60 @@ signs in.
     use is available, and confirmed the rendered result below it
     (bold/color/italic/size all applied correctly) matches what
     `/profile` and `/u/[id]` will actually show.
+- **Player dashboard & public profile redesign, player avatars
+  (`src/app/profile/page.tsx`, `src/app/u/[id]/page.tsx`,
+  `src/components/site-nav.tsx`, `src/components/disabled-action-button.tsx`,
+  `src/lib/avatar-upload.ts`, `0025_player_avatars.sql`)** — matched a
+  layout mockup: a two-column grid (picture/name/join-date/stats/actions on
+  the left, "view your stuff"/bio on the right), and moved Pets/Items out
+  of the "Play" nav group into a new "My Stuff" group.
+  - `/profile` (own dashboard) keeps every existing feature — coin/gem/den
+    stats, Expand Den, active expedition, Pets/Items links, bio — just
+    reorganized into the new grid. Nothing here needed graying out; it's
+    all already built.
+  - `/u/[id]` (public view) is where the "gray out what isn't built yet"
+    request actually applies: Add Friend, Send DM, and Report Player are
+    real buttons with a real spot in the layout, but disabled (new shared
+    `DisabledActionButton` — same disabled/cursor-not-allowed/`title`
+    convention as the forum post Report button) since none of those
+    features exist yet. "Propose a trade" sits in the same button row and
+    stays fully real (still behind `TRADING_ENABLED`) — there's no public
+    per-player Pets/Items browsing page yet either, so those two buttons
+    are grayed out too rather than linking somewhere real.
+  - **Player avatars stop importing the Google account photo.**
+    `handle_new_user()` (the trigger that creates a `public.users` row on
+    first Google sign-in) no longer reads `raw_user_meta_data ->>
+    'avatar_url'/'picture'` — new players start with `avatar_url = null`
+    and see the same placeholder circle every page already falls back to.
+    Players can upload their own picture from `/settings` instead — a new
+    `avatars` Storage bucket (public read, same public-bucket-with-gated-
+    writes shape as `game-images`) whose write policies check `(storage.
+    foldername(name))[1] = auth.uid()::text`, so a player can only write
+    into their own `{user_id}/` folder, not anyone else's. Upload path is
+    always `{user_id}/avatar.{ext}` with `upsert: true` (mirrors
+    `uploadGameImage()`'s pattern in `game-image-upload.ts`) so re-
+    uploading replaces the one file instead of accumulating orphans;
+    removing an avatar lists that folder (the extension isn't known at
+    removal time — upload() could've landed png/jpg/webp/gif) and deletes
+    whatever's there, then clears `avatar_url`.
+  - The settings form's file input shows a live preview via
+    `URL.createObjectURL()` before upload, and a "Remove profile picture"
+    button (only shown when one exists) submits through a second, plain
+    `removeAvatar` action via the submit button's `formAction` override —
+    same form, two possible actions, matching the app's existing "Remove"
+    button convention (no confirmation step, just does it) rather than a
+    separate form.
+  - Verified the migration against local Postgres: a fresh signup with
+    Google `picture`/`avatar_url` metadata present ends up with
+    `avatar_url is null`; as the signed-up user, inserting into her own
+    `{user_id}/` avatar folder succeeds, inserting into a different
+    user's folder is blocked by RLS, and deleting her own file succeeds.
+    This required two small additions to the local stub (not the app):
+    `storage.foldername()` didn't exist yet (real Supabase provides it;
+    the stub only had bare `storage.buckets`/`storage.objects` tables),
+    and `usage on schema storage` / grants on `storage.objects` hadn't
+    been needed by any earlier migration's tests.
+  - Verified visually (temporary preview route, as usual): the nav bar's
+    new "My Stuff" group, the two-column `/profile` and `/u/[id]` layouts
+    side by side, and the settings avatar upload control (preview circle,
+    file picker, Remove button) — all against the mockup's layout.
