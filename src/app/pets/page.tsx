@@ -9,6 +9,8 @@ import { PetNameEditor } from "./pet-name-editor";
 import { ForTradeToggle } from "./for-trade-toggle";
 import { BulkForTradeButton } from "./bulk-for-trade-button";
 import { TRADING_ENABLED } from "@/lib/feature-flags";
+import { ExpandDenButton } from "@/components/expand-den-button";
+import { nextDenExpansionCost } from "@/lib/den-expansion";
 import type { PetFolderRow, PetWithSpecies } from "@/lib/supabase/types";
 
 const PAGE_SIZE = 25;
@@ -80,6 +82,14 @@ export default async function PetsPage(props: PageProps<"/pets">) {
 
   const userId = user.id;
 
+  const { data: userRow } = await supabase
+    .from("users")
+    .select("coin_balance, den_size")
+    .eq("id", userId)
+    .single();
+  const denSize = userRow?.den_size ?? 0;
+  const denExpansionCost = nextDenExpansionCost(denSize);
+
   const { data: foldersData } = await supabase
     .from("pet_folders")
     .select("id, owner_id, name, created_at")
@@ -149,14 +159,23 @@ export default async function PetsPage(props: PageProps<"/pets">) {
 
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-6 py-12">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Pets ({totalCount ?? 0})</h1>
-        <p className="text-sm text-stone-500">
-          Group your pets into folders, like a lair.{" "}
-          <Link href="/items" className="underline">
-            Looking for items?
-          </Link>
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Pets ({totalCount ?? 0} / {denSize})
+          </h1>
+          <p className="text-sm text-stone-500">
+            Group your pets into folders, like a lair.{" "}
+            <Link href="/items" className="underline">
+              Looking for items?
+            </Link>
+          </p>
+        </div>
+        <ExpandDenButton
+          userId={userId}
+          cost={denExpansionCost}
+          canAfford={(userRow?.coin_balance ?? 0) >= denExpansionCost}
+        />
       </div>
 
       <NewFolderForm />

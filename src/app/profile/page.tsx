@@ -5,16 +5,7 @@ import { PawPrint, Package } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { bbcodeToHtml } from "@/lib/bbcode";
 import { ExpeditionCountdown } from "@/components/expedition-countdown";
-import { ExpandDenButton } from "./expand-den-button";
 import type { ExpeditionWithZone } from "@/lib/supabase/types";
-
-// Mirrors the cost curve in expand_den() (0011_currency_and_den_expansion.sql)
-// exactly — display-only, the RPC re-derives and enforces the real cost
-// server-side regardless of what this shows.
-function nextDenExpansionCost(denSize: number): number {
-  const expansionsBought = Math.max(0, Math.floor((denSize - 25) / 25));
-  return Math.round(500 * Math.pow(1.5, expansionsBought));
-}
 
 export default async function ProfilePage() {
   const supabase = await createClient();
@@ -59,7 +50,6 @@ export default async function ProfilePage() {
   // Hand-cast: see the comment on ExpeditionWithZone in
   // lib/supabase/types.ts for why this joined select isn't inferred.
   const activeExpeditions = (expeditionsData ?? []) as unknown as ExpeditionWithZone[];
-  const denExpansionCost = nextDenExpansionCost(profile.den_size);
 
   const joined = new Date(profile.created_at).toLocaleDateString(undefined, {
     year: "numeric",
@@ -69,61 +59,54 @@ export default async function ProfilePage() {
 
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-6 py-12">
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Left column */}
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-4 rounded-lg border border-amber-200 p-4 dark:border-stone-800">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+        {/* Left column — narrower than the right, since the bio/BBCode
+            side benefits from the extra room much more than a picture
+            and a handful of stats do. */}
+        <div className="flex flex-col gap-4 lg:col-span-2">
+          <div className="flex items-center gap-3 rounded-lg border border-amber-200 p-4 dark:border-stone-800">
             {profile.avatar_url ? (
               <Image
                 src={profile.avatar_url}
                 alt=""
-                width={72}
-                height={72}
-                className="h-[72px] w-[72px] rounded-full object-cover"
+                width={64}
+                height={64}
+                className="h-16 w-16 rounded-md object-cover"
               />
             ) : (
-              <div className="h-[72px] w-[72px] shrink-0 rounded-full bg-amber-200 dark:bg-stone-800" />
+              <div className="h-16 w-16 shrink-0 rounded-md bg-amber-200 dark:bg-stone-800" />
             )}
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight">
+              <h1 className="text-xl font-semibold tracking-tight">
                 {profile.display_name}
               </h1>
-              <p className="text-sm text-stone-500">Joined {joined}</p>
-              <Link href="/settings" className="text-sm underline">
+              <p className="text-xs text-stone-500">Joined {joined}</p>
+              <Link href="/settings" className="text-xs underline">
                 Edit profile
               </Link>
             </div>
           </div>
 
-          <div className="flex flex-col gap-3 rounded-lg border border-amber-200 p-4 dark:border-stone-800">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">
+          <div className="flex flex-col gap-2 rounded-lg border border-amber-200 p-3 dark:border-stone-800">
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-stone-500">
               Player stats
             </h2>
-            <dl className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <dt className="text-stone-500">🪙 Coins</dt>
-                <dd className="text-lg font-medium">{profile.coin_balance}</dd>
+            <dl className="flex flex-wrap gap-x-4 gap-y-1.5 text-sm">
+              <div className="flex items-center gap-1">
+                <dt className="text-stone-500">🪙</dt>
+                <dd className="font-medium">{profile.coin_balance}</dd>
               </div>
-              <div>
-                <dt className="text-stone-500">💎 Gems</dt>
-                <dd className="text-lg font-medium">{profile.gem_balance}</dd>
+              <div className="flex items-center gap-1">
+                <dt className="text-stone-500">💎</dt>
+                <dd className="font-medium">{profile.gem_balance}</dd>
               </div>
-              <div>
-                <dt className="text-stone-500">Den size</dt>
-                <dd className="text-lg font-medium">{profile.den_size}</dd>
-              </div>
-              <div>
-                <dt className="text-stone-500">Pets owned</dt>
-                <dd className="text-lg font-medium">
+              <div className="flex items-center gap-1">
+                <dt className="text-stone-500">Pets</dt>
+                <dd className="font-medium">
                   {petCount ?? 0} / {profile.den_size}
                 </dd>
               </div>
             </dl>
-            <ExpandDenButton
-              userId={user.id}
-              cost={denExpansionCost}
-              canAfford={profile.coin_balance >= denExpansionCost}
-            />
           </div>
 
           <div className="flex flex-col gap-3 rounded-lg border border-amber-200 p-4 dark:border-stone-800">
@@ -166,8 +149,9 @@ export default async function ProfilePage() {
           </div>
         </div>
 
-        {/* Right column */}
-        <div className="flex flex-col gap-4">
+        {/* Right column — wider; this is where the bio/BBCode content
+            actually needs the room. */}
+        <div className="flex flex-col gap-4 lg:col-span-3">
           <div className="flex flex-col gap-3 rounded-lg border border-amber-200 p-4 dark:border-stone-800">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">
               My stuff

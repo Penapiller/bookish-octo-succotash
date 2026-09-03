@@ -26,7 +26,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col">
+      {/* suppressHydrationWarning here only covers this element's own
+          attributes (React docs), not children — it's for attributes
+          browser extensions inject into <body> before hydration (e.g.
+          ColorZilla's cz-shortcut-listen), which are real, harmless
+          mismatches with no app-code fix. */}
+      <body className="flex min-h-full flex-col" suppressHydrationWarning>
         <SiteHeader />
         <SiteNav />
         {/* The white content box every page's own <main> renders into —

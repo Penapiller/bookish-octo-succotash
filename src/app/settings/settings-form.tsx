@@ -36,10 +36,10 @@ export function SettingsForm({
               width={72}
               height={72}
               unoptimized={preview !== null}
-              className="h-[72px] w-[72px] rounded-full border border-amber-200 object-cover dark:border-stone-800"
+              className="h-[72px] w-[72px] rounded-md border border-amber-200 object-cover dark:border-stone-800"
             />
           ) : (
-            <div className="h-[72px] w-[72px] rounded-full border border-amber-200 bg-amber-100 dark:border-stone-800 dark:bg-stone-800" />
+            <div className="h-[72px] w-[72px] rounded-md border border-amber-200 bg-amber-100 dark:border-stone-800 dark:bg-stone-800" />
           )}
           <div className="flex flex-col gap-2">
             <input

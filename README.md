@@ -116,11 +116,15 @@ This project is being built one module at a time. Current state:
       the Chicken-Smoothie-style `[left]`/`[right]` image trick, and so
       on. See Notes below
 - [x] Player dashboard & public profile redesign, player avatars — `/profile`
-      and `/u/[id]` now use a two-column layout (picture/name/stats/actions
-      on the left, "my stuff"/bio on the right), and a new "My Stuff" nav
-      tab holds Pets/Items. New players no longer get their Google account
-      photo imported as their avatar — they start with none, and can
-      upload their own from `/settings`. See Notes below
+      and `/u/[id]` now use an asymmetric two-column layout (a narrower
+      picture/name/stats/actions column on the left, a wider "my stuff"/bio
+      column on the right, since bio content benefits from the room far
+      more than a picture and a few stats do), and a new "My Stuff" nav
+      tab holds Pets/Items. Avatars are square, not circular. New players
+      no longer get their Google account photo imported as their avatar —
+      they start with none, and can upload their own from `/settings`.
+      Den expansion moved off the dashboard onto `/pets`, next to the pet
+      count it actually affects. See Notes below
 - [x] Forums — admin-managed categories (and one level of subcategories,
       each with an optional icon), threads, and posts, styled after a
       classic phpBB/Chicken-Smoothie-style forum: a Quick Jump sidebar,
@@ -2041,3 +2045,44 @@ signs in.
     new "My Stuff" group, the two-column `/profile` and `/u/[id]` layouts
     side by side, and the settings avatar upload control (preview circle,
     file picker, Remove button) — all against the mockup's layout.
+- **Profile layout follow-up (same files, plus `src/app/pets/page.tsx`,
+  `src/lib/den-expansion.ts`)** — a few fixes from actually using the
+  redesign above.
+  - Avatars are square now (`rounded-md`, not `rounded-full`) on
+    `/profile`, `/u/[id]`, and the `/settings` upload preview/placeholder
+    — matches the original mockup, which showed a square "Profile
+    Picture" box. Left untouched: the small 24px avatar badge in
+    `site-header.tsx`, since that's a nav-pill icon, not "the profile
+    picture" the ask was about.
+  - The two-column grid went from an even `grid-cols-2` split to
+    `grid-cols-5` with the left column at `col-span-2` and the right at
+    `col-span-3` (both `/profile` and `/u/[id]`, since they share the
+    same layout) — the bio/BBCode side actually benefits from extra
+    width; a picture, three stats, and a couple of buttons don't. The
+    Player Stats box shrank from a padded 2×2 `<dl>` grid to a single
+    compact row (coins/gems/pets, no more den size on its own — it's
+    folded into "pets owned").
+  - **Den expansion moved off the dashboard onto `/pets`**, right next to
+    the pet count/capacity it actually affects (`Pets (12 / 50)` header,
+    button beside it) — freeing up a box's worth of vertical space on
+    `/profile` for the resize above, and putting the action where a
+    player would actually go looking for it. `ExpandDenButton` moved from
+    `src/app/profile/` to `src/components/` (it was never profile-
+    specific, just hadn't had a second caller yet), and its cost-curve
+    helper (`nextDenExpansionCost`) moved to a new `src/lib/
+    den-expansion.ts` so both pages compute the same display-only number
+    without duplicating the formula — the real cost is still always
+    re-derived and enforced server-side by the `expand_den()` RPC either
+    way, this is display-only.
+  - **Fixed a hydration-warning false alarm**, not an app bug: browser
+    extensions (ColorZilla, in the report — `cz-shortcut-listen`) inject
+    attributes onto `<body>` before React hydrates, which the dev overlay
+    reports as a mismatch even though it's harmless and outside the app's
+    control. Added `suppressHydrationWarning` to the `<body>` tag in
+    `src/app/layout.tsx` — per React's own docs, this only suppresses the
+    warning for that one element's own attributes, not for its children,
+    so it won't hide a real mismatch anywhere else in the tree.
+  - Verified visually (temporary preview route, as usual): square avatars
+    and the new column ratio on both `/profile`- and `/u/[id]`-shaped
+    layouts side by side, the compact single-row stats, and the Expand
+    Den button in its new spot on the `/pets` header.

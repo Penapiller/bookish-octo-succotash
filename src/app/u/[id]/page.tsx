@@ -36,26 +36,28 @@ export default async function PublicProfilePage(
 
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-6 py-12">
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Left column */}
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-4 rounded-lg border border-amber-200 p-4 dark:border-stone-800">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+        {/* Left column — narrower than the right, since the bio/BBCode
+            side benefits from the extra room much more than a picture
+            and a couple of buttons do. */}
+        <div className="flex flex-col gap-4 lg:col-span-2">
+          <div className="flex items-center gap-3 rounded-lg border border-amber-200 p-4 dark:border-stone-800">
             {profile.avatar_url ? (
               <Image
                 src={profile.avatar_url}
                 alt=""
-                width={72}
-                height={72}
-                className="h-[72px] w-[72px] rounded-full object-cover"
+                width={64}
+                height={64}
+                className="h-16 w-16 rounded-md object-cover"
               />
             ) : (
-              <div className="h-[72px] w-[72px] shrink-0 rounded-full bg-amber-200 dark:bg-stone-800" />
+              <div className="h-16 w-16 shrink-0 rounded-md bg-amber-200 dark:bg-stone-800" />
             )}
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight">
+              <h1 className="text-xl font-semibold tracking-tight">
                 {profile.display_name}
               </h1>
-              <p className="text-sm text-stone-500">Joined {joined}</p>
+              <p className="text-xs text-stone-500">Joined {joined}</p>
             </div>
           </div>
 
@@ -81,8 +83,9 @@ export default async function PublicProfilePage(
           ) : null}
         </div>
 
-        {/* Right column */}
-        <div className="flex flex-col gap-4">
+        {/* Right column — wider; this is where the bio/BBCode content
+            actually needs the room. */}
+        <div className="flex flex-col gap-4 lg:col-span-3">
           <div className="flex flex-col gap-3 rounded-lg border border-amber-200 p-4 dark:border-stone-800">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">
               {profile.display_name}&apos;s stuff
