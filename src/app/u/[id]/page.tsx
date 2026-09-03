@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { TRADING_ENABLED } from "@/lib/feature-flags";
+import { bbcodeToHtml } from "@/lib/bbcode";
 
 export default async function PublicProfilePage(
   props: PageProps<"/u/[id]">,
@@ -60,9 +61,13 @@ export default async function PublicProfilePage(
       </div>
 
       {profile.bio ? (
-        <p className="whitespace-pre-wrap text-stone-700 dark:text-stone-300">
-          {profile.bio}
-        </p>
+        // bbcodeToHtml() is the only thing ever allowed to turn user text
+        // into HTML — see src/lib/bbcode.ts. Runs fresh on every render;
+        // profile.bio is raw BBCode source, never rendered directly.
+        <div
+          className="forum-content text-stone-700 dark:text-stone-300"
+          dangerouslySetInnerHTML={{ __html: bbcodeToHtml(profile.bio) }}
+        />
       ) : (
         <p className="text-stone-500 italic">This player hasn&apos;t written a bio yet.</p>
       )}

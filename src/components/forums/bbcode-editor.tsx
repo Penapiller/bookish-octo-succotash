@@ -44,9 +44,13 @@ import { bbcodeToHtml } from "@/lib/bbcode";
 export function BBCodeEditor({
   name = "body",
   defaultValue = "",
+  rows = 10,
+  maxLength,
 }: {
   name?: string;
   defaultValue?: string;
+  rows?: number;
+  maxLength?: number;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
@@ -210,7 +214,8 @@ export function BBCodeEditor({
         ref={textareaRef}
         name={name}
         defaultValue={defaultValue}
-        rows={10}
+        rows={rows}
+        maxLength={maxLength}
         placeholder="Write something..."
         hidden={isPreviewing}
         className="w-full rounded-md border border-stone-300 px-4 py-3 text-base leading-relaxed focus:outline-none"

@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
-const MAX_BIO_LENGTH = 500;
+// Keep in sync with MAX_BIO_LENGTH in ./settings-form.tsx.
+const MAX_BIO_LENGTH = 2000;
 
 export type SettingsFormState = { error: string } | null;
 
@@ -26,6 +27,13 @@ export async function updateProfile(
     redirect("/login");
   }
 
+  // `users.bio` stores raw BBCode source, same as forum_posts.body_raw —
+  // unlike forum posts there's no separate rendered column here, since a
+  // profile page only ever needs to render one bio at a time (not a page
+  // of them), so bbcodeToHtml() just runs fresh on every read instead
+  // (see /profile and /u/[id]). No sanitization happens at write time;
+  // it's exactly as safe either way, since bbcodeToHtml() is the only
+  // thing that's ever allowed to turn it into HTML.
   const bioRaw = formData.get("bio");
   const bio = typeof bioRaw === "string" ? bioRaw.trim() : "";
 

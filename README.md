@@ -110,7 +110,11 @@ This project is being built one module at a time. Current state:
       `/marketplace/sell` (list something via the same searchable picker
       trading used), `/marketplace/mine` (your active/sold/cancelled/
       expired listings and purchase history). See Notes below
-- [ ] Profile customization (sanitized custom CSS/HTML)
+- [x] Profile customization — the bio field on `/settings` now uses the
+      same BBCode editor and renderer as the forums, so players can
+      format their profile ("about me") with bold, colors, fonts, lists,
+      the Chicken-Smoothie-style `[left]`/`[right]` image trick, and so
+      on. See Notes below
 - [x] Forums — admin-managed categories (and one level of subcategories,
       each with an optional icon), threads, and posts, styled after a
       classic phpBB/Chicken-Smoothie-style forum: a Quick Jump sidebar,
@@ -1948,3 +1952,29 @@ signs in.
     usual): the font-size/font-family/color toolbar controls, and the
     admin dropdown opening from the gear icon and closing again on an
     outside click.
+- **Profile customization (`src/app/settings/settings-form.tsx`,
+  `/profile`, `/u/[id]`)** — reused the forums' BBCode editor/renderer
+  wholesale for the profile bio field instead of building a separate
+  system.
+  - **No migration needed.** `users.bio` already existed as a plain
+    text column; it just holds raw BBCode source now instead of plain
+    text, and `bbcodeToHtml()` renders it fresh on every `/profile` and
+    `/u/[id]` page view. Forum posts precompute and store `body_html`
+    because a thread page renders many posts at once and that's worth
+    avoiding repeated work for — a profile page only ever renders one
+    bio, so there's no such benefit here, and rendering at read time
+    means there's no separate raw/rendered pair that could ever drift
+    out of sync. Either way, `bbcodeToHtml()` is still the only thing
+    that ever turns it into HTML — this is a timing choice, not a
+    different security posture.
+  - Raised the limit from 500 to 2000 characters, since BBCode markup
+    itself now eats into that budget (`[color=#ffffff]...[/color]` is
+    20 characters of overhead before any actual text). `BBCodeEditor`
+    gained optional `rows`/`maxLength` props (both previously
+    hardcoded) so the bio field could ask for a shorter box and a
+    different cap than forum posts use, without forking the component.
+  - Verified visually (temporary preview route, as usual): typed BBCode
+    in the settings form, confirmed the exact same toolbar forum posts
+    use is available, and confirmed the rendered result below it
+    (bold/color/italic/size all applied correctly) matches what
+    `/profile` and `/u/[id]` will actually show.

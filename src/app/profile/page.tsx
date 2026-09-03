@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { bbcodeToHtml } from "@/lib/bbcode";
 import { ExpeditionCountdown } from "@/components/expedition-countdown";
 import { ExpandDenButton } from "./expand-den-button";
 import type { ExpeditionWithZone } from "@/lib/supabase/types";
@@ -87,9 +88,13 @@ export default async function ProfilePage() {
       </div>
 
       {profile.bio ? (
-        <p className="whitespace-pre-wrap text-stone-700 dark:text-stone-300">
-          {profile.bio}
-        </p>
+        // bbcodeToHtml() is the only thing ever allowed to turn user text
+        // into HTML — see src/lib/bbcode.ts. Runs fresh on every render;
+        // profile.bio is raw BBCode source, never rendered directly.
+        <div
+          className="forum-content text-stone-700 dark:text-stone-300"
+          dangerouslySetInnerHTML={{ __html: bbcodeToHtml(profile.bio) }}
+        />
       ) : (
         <p className="text-stone-500 italic">
           No bio yet.{" "}

@@ -2,8 +2,13 @@
 
 import { useActionState } from "react";
 import { updateProfile, type SettingsFormState } from "./actions";
+import { BBCodeEditor } from "@/components/forums/bbcode-editor";
 
 const initialState: SettingsFormState = null;
+// Keep in sync with MAX_BIO_LENGTH in ./actions.ts — that's the real
+// limit (enforced server-side); this is just so the textarea stops the
+// player before they type past it.
+const MAX_BIO_LENGTH = 2000;
 
 export function SettingsForm({ bio }: { bio: string }) {
   const [state, formAction, isPending] = useActionState(
@@ -14,21 +19,14 @@ export function SettingsForm({ bio }: { bio: string }) {
   return (
     <form action={formAction} className="flex flex-col gap-5">
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="bio" className="text-sm font-medium">
-          Bio
-        </label>
-        <textarea
-          id="bio"
-          name="bio"
-          defaultValue={bio}
-          maxLength={500}
-          rows={5}
-          placeholder="Tell other players about yourself…"
-          className="resize-y rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
-        />
+        <label className="text-sm font-medium">Bio</label>
+        {/* Same editor and BBCode pipeline as the forums (src/lib/bbcode.ts)
+            — bbcodeToHtml() re-renders this from scratch on every profile
+            page view rather than storing a precomputed body_html, so
+            there's no separate raw/rendered pair to keep in sync. */}
+        <BBCodeEditor name="bio" defaultValue={bio} rows={6} maxLength={MAX_BIO_LENGTH} />
         <p className="text-xs text-stone-500">
-          Plain text only for now — custom profile styling is coming in a
-          later update.
+          Supports the same BBCode formatting as forum posts — bold, colors, fonts, and more.
         </p>
       </div>
 
