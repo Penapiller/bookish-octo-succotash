@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Bold,
   Italic,
@@ -11,6 +11,9 @@ import {
   AlignLeft,
   AlignCenter,
   AlignRight,
+  List,
+  ListOrdered,
+  Code,
   Type,
   Palette,
   Eye,
@@ -73,6 +76,28 @@ export function BBCodeEditor({
     el.setSelectionRange(cursor, cursor);
   }
 
+  function wrapList(ordered: boolean) {
+    const el = textareaRef.current;
+    if (!el) return;
+    const { selectionStart, selectionEnd, value } = el;
+    const selected = value.slice(selectionStart, selectionEnd);
+    const openTag = ordered ? "[list=1]" : "[list]";
+    // Turn each selected line into its own [*] item; with nothing
+    // selected, drop in one empty item ready to type into. This
+    // replaces the selection outright (not via wrapSelection, which
+    // would re-insert the original `selected` text a second time
+    // in between).
+    const body =
+      selected.length > 0
+        ? "\n" + selected.split("\n").map((line) => `[*]${line}`).join("\n") + "\n"
+        : "\n[*]\n";
+    const listMarkup = openTag + body + "[/list]";
+    el.value = value.slice(0, selectionStart) + listMarkup + value.slice(selectionEnd);
+    const cursor = selectionStart + listMarkup.length;
+    el.focus();
+    el.setSelectionRange(cursor, cursor);
+  }
+
   function togglePreview() {
     if (previewHtml !== null) {
       setPreviewHtml(null);
@@ -103,17 +128,31 @@ export function BBCodeEditor({
           <ToolbarButton label="Quote" onClick={() => wrapSelection("[quote]", "[/quote]")}>
             <Quote size={17} />
           </ToolbarButton>
+          <ToolbarButton label="Code block" onClick={() => wrapSelection("[code]", "[/code]")}>
+            <Code size={17} />
+          </ToolbarButton>
           <ToolbarButton label="Horizontal rule" onClick={() => insertAtCursor("\n[hr]\n")}>
             <SeparatorHorizontal size={17} />
           </ToolbarButton>
           <Divider />
-          <ToolbarButton label="Align left" onClick={() => wrapSelection("[align=left]", "[/align]")}>
+          <ToolbarButton label="Bullet list" onClick={() => wrapList(false)}>
+            <List size={17} />
+          </ToolbarButton>
+          <ToolbarButton label="Numbered list" onClick={() => wrapList(true)}>
+            <ListOrdered size={17} />
+          </ToolbarButton>
+          <Divider />
+          {/* [left]/[right] float rather than just text-align — two
+              adjacent [left]...[/left] blocks (say, an image then a
+              paragraph) sit side by side instead of stacking, matching
+              how Chicken Smoothie-style forums use them. See bbcode.ts. */}
+          <ToolbarButton label="Float left" onClick={() => wrapSelection("[left]", "[/left]")}>
             <AlignLeft size={17} />
           </ToolbarButton>
-          <ToolbarButton label="Align center" onClick={() => wrapSelection("[align=center]", "[/align]")}>
+          <ToolbarButton label="Center" onClick={() => wrapSelection("[center]", "[/center]")}>
             <AlignCenter size={17} />
           </ToolbarButton>
-          <ToolbarButton label="Align right" onClick={() => wrapSelection("[align=right]", "[/align]")}>
+          <ToolbarButton label="Float right" onClick={() => wrapSelection("[right]", "[/right]")}>
             <AlignRight size={17} />
           </ToolbarButton>
           <Divider />
@@ -137,17 +176,10 @@ export function BBCodeEditor({
               <option value="7">Huge</option>
             </select>
           </label>
-          <label className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-stone-700 hover:bg-stone-200">
-            <Palette size={17} />
-            <input
-              aria-label="Font color"
-              type="color"
-              defaultValue="#000000"
-              disabled={isPreviewing}
-              onChange={(e) => wrapSelection(`[color=${e.target.value}]`, "[/color]")}
-              className="h-5 w-6 cursor-pointer rounded border border-stone-300 p-0"
-            />
-          </label>
+          <ColorPickerButton
+            disabled={isPreviewing}
+            onApply={(hex) => wrapSelection(`[color=${hex}]`, "[/color]")}
+          />
         </div>
 
         <button
@@ -215,5 +247,79 @@ function ToolbarButton({
     >
       {children}
     </button>
+  );
+}
+
+// A popover instead of a bare <input type="color"> — React fires
+// onChange for a color input on every drag movement inside the native
+// picker, not just once it's closed, so wiring wrapSelection straight
+// to onChange was inserting a new [color] tag on every intermediate
+// color the player dragged past. This keeps the drag-in-progress color
+// as local draft state and only wraps the selection once, when Apply is
+// clicked — matching how a font-color picker should work.
+function ColorPickerButton({
+  onApply,
+  disabled,
+}: {
+  onApply: (hex: string) => void;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState("#000000");
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [open]);
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        disabled={disabled}
+        aria-label="Font color"
+        title="Font color"
+        className="rounded-md px-2.5 py-1.5 text-stone-700 hover:bg-stone-200 disabled:opacity-40"
+      >
+        <Palette size={17} />
+      </button>
+      {open ? (
+        <div className="absolute left-0 top-full z-10 mt-1 flex items-center gap-2 rounded-md border border-stone-300 bg-white p-2 shadow-lg">
+          <input
+            aria-label="Choose a color"
+            type="color"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            className="h-8 w-10 cursor-pointer rounded border border-stone-300 p-0"
+          />
+          <span className="font-mono text-xs text-stone-600">{draft}</span>
+          <button
+            type="button"
+            onClick={() => {
+              onApply(draft);
+              setOpen(false);
+            }}
+            className="rounded-md bg-amber-700 px-2.5 py-1 text-xs font-semibold text-white hover:bg-amber-600"
+          >
+            Apply
+          </button>
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="rounded-md border border-stone-300 px-2.5 py-1 text-xs text-stone-600 hover:bg-stone-100"
+          >
+            Cancel
+          </button>
+        </div>
+      ) : null}
+    </div>
   );
 }

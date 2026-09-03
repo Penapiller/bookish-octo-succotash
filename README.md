@@ -1836,3 +1836,61 @@ signs in.
     `ForumPanel`/`PaginationBar`/`BBCodeEditor`/`ReplyToggle` components,
     including clicking through the Reply toggle and the BBCode Preview
     toggle to confirm both actually work, not just render.
+- **BBCode round two: floats, a confirm step on font color, and more
+  tags (`src/lib/bbcode.ts`, `src/components/forums/bbcode-editor.tsx`)**
+  — feedback from actually writing posts with it.
+  - **`[left]`/`[right]` are floats, not just `text-align`** — added
+    alongside the existing `[align=]` (still supported, unchanged).
+    This is specifically what makes the classic Chicken-Smoothie-style
+    trick work: `[left][img]...[/img][/left][left]some text[/left]`
+    puts the image and the paragraph next to each other instead of
+    stacked, because two adjacent `float:left` elements queue up
+    left-to-right in CSS — that's genuine browser layout behavior, not
+    something this app has to implement itself. `[center]` stays
+    non-floating (floating a centered block doesn't mean anything).
+    Added a clearfix on `.forum-content` so a post's floated content
+    can never visually leak past the end of that post.
+  - **Font color now has a confirm step.** The previous toolbar wired
+    `wrapSelection` straight to the color `<input>`'s `onChange` —
+    React fires that event on *every* drag movement inside the native
+    color picker (not just once you let go), so dragging around to
+    find a color was wrapping the selection in a new `[color=]` tag on
+    every intermediate value. Replaced it with a small popover: the
+    color input now only updates local draft state as you drag, and
+    `wrapSelection` runs exactly once, when the popover's own Apply
+    button is clicked (Cancel or clicking outside discards the draft
+    instead) — matching `nav-groups.tsx`'s existing click-outside
+    pattern. Verified by scripting several simulated drag events before
+    Apply and confirming the textarea was untouched until the click.
+  - **New tags**: `[list]`/`[list=1]` + `[*]` (unordered/ordered lists
+    — `[*]` has no closing tag, so it needed its own token kind and a
+    dedicated item-splitting parse path alongside the normal
+    open/close/void handling) and `[code]` (a raw, monospace block —
+    joins `[img]` as a tag whose content is captured verbatim and never
+    re-parsed as BBCode, so pasting example BBCode syntax into a code
+    block shows it literally instead of interpreting it). `[video]`/
+    `[audio]`/`[iframe]`/`[embed]` remain permanently absent — no tag
+    for them exists anywhere in this file, which was and still is the
+    entire mechanism behind "no embeds," so there was nothing to
+    re-verify there, only to leave alone.
+  - Verified the parser directly (`npx tsx`) against the literal
+    Chicken-Smoothie float example, nested/ordered lists, a list with
+    malformed input (content before the first `[*]`, correctly
+    dropped), a stray `[*]` outside any list (falls through as literal
+    text, like every other unmatched token), code blocks preserving
+    `[b]`/`[img]`/`[*]` as literal text, and re-ran every earlier
+    security case (`javascript:` URLs, CSS-injection via `[color=]`,
+    fake `[video]` tags) to confirm nothing regressed. Caught a real bug
+    this way in the editor (not the parser): the first cut of the new
+    List/Ordered-List toolbar buttons built the full `[list]...[/list]`
+    markup and then routed it through `wrapSelection`, which *also*
+    re-inserts the original selected text — duplicating it. Fixed by
+    having the list buttons write the textarea directly instead of
+    going through `wrapSelection`, and re-verified (including the
+    empty-selection case, which now drops in a single empty `[*]` to
+    type into). The float layout itself was checked two ways: visually
+    (headless Chromium, temporary preview route as usual) and by
+    reading back the rendered elements' `getComputedStyle().float` and
+    bounding boxes directly, confirming two `[left]` blocks really do
+    land at the same y-coordinate side by side — not just "looks close
+    enough" in a screenshot.
