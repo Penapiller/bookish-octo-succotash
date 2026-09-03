@@ -5,7 +5,15 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { PetPickerModal, ItemPickerModal, type PickerPet, type PickerItem } from "@/components/picker-modal";
-import type { ItemWithQuantity, PetWithSpecies } from "@/lib/supabase/types";
+import type { ItemWithQuantity, ListingDurationDays, PetWithSpecies } from "@/lib/supabase/types";
+
+const DURATIONS: { value: ListingDurationDays; label: string }[] = [
+  { value: 1, label: "1 day" },
+  { value: 3, label: "3 days" },
+  { value: 7, label: "7 days" },
+  { value: 14, label: "14 days" },
+  { value: 30, label: "30 days" },
+];
 
 function toPickerPets(pets: PetWithSpecies[]): PickerPet[] {
   return pets.map((p) => ({
@@ -44,7 +52,9 @@ export function SellForm({
   const [selectedPetId, setSelectedPetId] = useState<string | null>(null);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [selectedItemQty, setSelectedItemQty] = useState(0);
-  const [price, setPrice] = useState(0);
+  const [priceCoins, setPriceCoins] = useState(0);
+  const [priceGems, setPriceGems] = useState(0);
+  const [durationDays, setDurationDays] = useState<ListingDurationDays>(7);
   const [modalOpen, setModalOpen] = useState<"pets" | "items" | null>(null);
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,8 +83,8 @@ export function SellForm({
   async function handleSubmit() {
     setError(null);
 
-    if (price <= 0) {
-      setError("Set a price of at least 1 coin.");
+    if (priceCoins <= 0 && priceGems <= 0) {
+      setError("Set a coin price, a gem price, or both — at least 1.");
       return;
     }
     if (!selectedPetId && !selectedItemId) {
@@ -84,18 +94,24 @@ export function SellForm({
 
     setIsPending(true);
     const supabase = createClient();
+    const coinsArg = priceCoins > 0 ? priceCoins : null;
+    const gemsArg = priceGems > 0 ? priceGems : null;
 
     const { data: listingId, error: rpcError } = selectedPetId
       ? await supabase.rpc("create_pet_listing", {
           p_seller_id: userId,
           p_pet_id: selectedPetId,
-          p_price_coins: price,
+          p_price_coins: coinsArg,
+          p_price_gems: gemsArg,
+          p_duration_days: durationDays,
         })
       : await supabase.rpc("create_item_listing", {
           p_seller_id: userId,
           p_item_id: selectedItemId!,
           p_quantity: selectedItemQty,
-          p_price_coins: price,
+          p_price_coins: coinsArg,
+          p_price_gems: gemsArg,
+          p_duration_days: durationDays,
         });
 
     setIsPending(false);
@@ -163,17 +179,54 @@ export function SellForm({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="price" className="text-sm font-medium">
-          Price (coins)
+        <span className="text-sm font-medium">Price</span>
+        <p className="text-xs text-stone-500">
+          Set a coin price, a gem price, or both — buyers pick whichever they&apos;d rather pay
+          with.
+        </p>
+        <div className="flex gap-4">
+          <label className="flex items-center gap-2 text-sm">
+            🪙
+            <input
+              type="number"
+              min={0}
+              value={priceCoins}
+              onChange={(e) => setPriceCoins(Math.max(0, Number(e.target.value) || 0))}
+              className="w-24 rounded-md border border-amber-300 px-2 py-1 dark:border-stone-700 dark:bg-stone-900"
+            />
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            💎
+            <input
+              type="number"
+              min={0}
+              value={priceGems}
+              onChange={(e) => setPriceGems(Math.max(0, Number(e.target.value) || 0))}
+              className="w-24 rounded-md border border-amber-300 px-2 py-1 dark:border-stone-700 dark:bg-stone-900"
+            />
+          </label>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="duration" className="text-sm font-medium">
+          Listing duration
         </label>
-        <input
-          id="price"
-          type="number"
-          min={1}
-          value={price}
-          onChange={(e) => setPrice(Math.max(0, Number(e.target.value) || 0))}
-          className="w-32 rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
-        />
+        <select
+          id="duration"
+          value={durationDays}
+          onChange={(e) => setDurationDays(Number(e.target.value) as ListingDurationDays)}
+          className="w-40 rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
+        >
+          {DURATIONS.map((d) => (
+            <option key={d.value} value={d.value}>
+              {d.label}
+            </option>
+          ))}
+        </select>
+        <p className="text-xs text-stone-500">
+          The listing automatically unlists itself if nobody buys it in time.
+        </p>
       </div>
 
       {error ? <p className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}

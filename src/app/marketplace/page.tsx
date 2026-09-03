@@ -16,6 +16,21 @@ function first(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
+function priceLabel(priceCoins: number | null, priceGems: number | null): string {
+  const parts: string[] = [];
+  if (priceCoins !== null) parts.push(`🪙 ${priceCoins}`);
+  if (priceGems !== null) parts.push(`💎 ${priceGems}`);
+  return parts.join(" or ");
+}
+
+function timeLeftLabel(expiresAt: string): string {
+  const msLeft = new Date(expiresAt).getTime() - Date.now();
+  if (msLeft <= 0) return "Expiring…";
+  const hours = Math.ceil(msLeft / (60 * 60 * 1000));
+  if (hours < 24) return `${hours}h left`;
+  return `${Math.ceil(hours / 24)}d left`;
+}
+
 export default async function MarketplacePage(props: PageProps<"/marketplace">) {
   const searchParams = await props.searchParams;
   const tab = first(searchParams.tab) === "items" ? "items" : "pets";
@@ -37,16 +52,21 @@ export default async function MarketplacePage(props: PageProps<"/marketplace">) 
     redirect("/login");
   }
 
+  await supabase.rpc("resolve_expired_listings");
+
   const { data: profile } = await supabase
     .from("users")
-    .select("coin_balance")
+    .select("coin_balance, gem_balance")
     .eq("id", user.id)
     .single();
   const coinBalance = profile?.coin_balance ?? 0;
+  const gemBalance = profile?.gem_balance ?? 0;
 
   let petRows: {
     id: string;
-    price_coins: number;
+    price_coins: number | null;
+    price_gems: number | null;
+    expires_at: string;
     seller_id: string;
     pet_species_name: string | null;
     pet_species_image_url: string | null;
@@ -55,18 +75,26 @@ export default async function MarketplacePage(props: PageProps<"/marketplace">) 
   }[] = [];
   let itemRows: {
     id: string;
-    price_coins: number;
+    price_coins: number | null;
+    price_gems: number | null;
+    expires_at: string;
     seller_id: string;
     item_quantity: number | null;
     items: { name: string; image_url: string | null; rarity: PetRarity; type: string } | null;
   }[] = [];
   let totalCount = 0;
 
+  // A min/max here means "either currency's price falls in range" — a
+  // gems-only listing shouldn't vanish just because someone typed a
+  // price filter with coins in mind.
+  const hasMin = Number.isFinite(minPrice) && minPrice > 0;
+  const hasMax = Number.isFinite(maxPrice) && maxPrice > 0;
+
   if (tab === "pets") {
     let query = supabase
       .from("marketplace_listings")
       .select(
-        "id, price_coins, seller_id, pet_species_name, pet_species_image_url, pet_rarity, pet_custom_name",
+        "id, price_coins, price_gems, expires_at, seller_id, pet_species_name, pet_species_image_url, pet_rarity, pet_custom_name",
         { count: "exact" },
       )
       .eq("listing_type", "pet")
@@ -74,8 +102,8 @@ export default async function MarketplacePage(props: PageProps<"/marketplace">) 
 
     if (rarity) query = query.eq("pet_rarity", rarity);
     if (q.length > 0) query = query.ilike("pet_species_name", `%${q}%`);
-    if (Number.isFinite(minPrice) && minPrice > 0) query = query.gte("price_coins", minPrice);
-    if (Number.isFinite(maxPrice) && maxPrice > 0) query = query.lte("price_coins", maxPrice);
+    if (hasMin) query = query.or(`price_coins.gte.${minPrice},price_gems.gte.${minPrice}`);
+    if (hasMax) query = query.or(`price_coins.lte.${maxPrice},price_gems.lte.${maxPrice}`);
 
     const { data, count } = await query
       .order("created_at", { ascending: false })
@@ -85,16 +113,17 @@ export default async function MarketplacePage(props: PageProps<"/marketplace">) 
   } else {
     let query = supabase
       .from("marketplace_listings")
-      .select("id, price_coins, seller_id, item_quantity, items!inner(name, image_url, rarity, type)", {
-        count: "exact",
-      })
+      .select(
+        "id, price_coins, price_gems, expires_at, seller_id, item_quantity, items!inner(name, image_url, rarity, type)",
+        { count: "exact" },
+      )
       .eq("listing_type", "item")
       .eq("status", "active");
 
     if (rarity) query = query.eq("items.rarity", rarity);
     if (q.length > 0) query = query.ilike("items.name", `%${q}%`);
-    if (Number.isFinite(minPrice) && minPrice > 0) query = query.gte("price_coins", minPrice);
-    if (Number.isFinite(maxPrice) && maxPrice > 0) query = query.lte("price_coins", maxPrice);
+    if (hasMin) query = query.or(`price_coins.gte.${minPrice},price_gems.gte.${minPrice}`);
+    if (hasMax) query = query.or(`price_coins.lte.${maxPrice},price_gems.lte.${maxPrice}`);
 
     const { data, count } = await query
       .order("created_at", { ascending: false })
@@ -132,7 +161,7 @@ export default async function MarketplacePage(props: PageProps<"/marketplace">) 
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Marketplace</h1>
           <p className="text-sm text-stone-500">
-            Buy pets and items other players have listed for coins. 🪙 {coinBalance}
+            Buy pets and items other players have listed. 🪙 {coinBalance} · 💎 {gemBalance}
           </p>
         </div>
         <div className="flex gap-2">
@@ -243,12 +272,19 @@ export default async function MarketplacePage(props: PageProps<"/marketplace">) 
                 <p className="text-[10px] capitalize text-stone-500">
                   {pet.pet_species_name} · {pet.pet_rarity}
                 </p>
-                <p className="text-[10px] text-stone-500">by {nameById.get(pet.seller_id) ?? "Unknown"}</p>
+                <p className="text-[10px] text-stone-500">
+                  {priceLabel(pet.price_coins, pet.price_gems)}
+                </p>
+                <p className="text-[10px] text-stone-500">
+                  by {nameById.get(pet.seller_id) ?? "Unknown"} · {timeLeftLabel(pet.expires_at)}
+                </p>
                 <BuyButton
                   userId={user.id}
                   listingId={pet.id}
                   priceCoins={pet.price_coins}
+                  priceGems={pet.price_gems}
                   coinBalance={coinBalance}
+                  gemBalance={gemBalance}
                 />
               </li>
             ))}
@@ -276,12 +312,19 @@ export default async function MarketplacePage(props: PageProps<"/marketplace">) 
               )}
               <p className="text-xs font-medium">{row.items?.name}</p>
               <p className="text-[10px] text-stone-500">×{row.item_quantity}</p>
-              <p className="text-[10px] text-stone-500">by {nameById.get(row.seller_id) ?? "Unknown"}</p>
+              <p className="text-[10px] text-stone-500">
+                {priceLabel(row.price_coins, row.price_gems)}
+              </p>
+              <p className="text-[10px] text-stone-500">
+                by {nameById.get(row.seller_id) ?? "Unknown"} · {timeLeftLabel(row.expires_at)}
+              </p>
               <BuyButton
                 userId={user.id}
                 listingId={row.id}
                 priceCoins={row.price_coins}
+                priceGems={row.price_gems}
                 coinBalance={coinBalance}
+                gemBalance={gemBalance}
               />
             </li>
           ))}

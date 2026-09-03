@@ -36,7 +36,12 @@ export type BrewStatus = "in_progress" | "awaiting_claim" | "completed";
 export type TradeStatus = "pending" | "completed" | "declined" | "cancelled";
 export type TradeSide = "initiator" | "recipient";
 export type ListingType = "pet" | "item";
-export type ListingStatus = "active" | "sold" | "cancelled";
+export type ListingStatus = "active" | "sold" | "cancelled" | "expired";
+export type ListingCurrency = "coins" | "gems";
+// Allowed listing durations — validated server-side too (see
+// 0019_marketplace_upgrades.sql), this is just for the sell form's
+// dropdown.
+export type ListingDurationDays = 1 | 3 | 7 | 14 | 30;
 
 export type SpeciesRow = {
   id: string;
@@ -182,7 +187,8 @@ export type MarketplaceListingRow = {
   seller_id: string;
   buyer_id: string | null;
   listing_type: ListingType;
-  price_coins: number;
+  price_coins: number | null;
+  price_gems: number | null;
   status: ListingStatus;
   pet_id: string | null;
   pet_species_name: string | null;
@@ -192,6 +198,7 @@ export type MarketplaceListingRow = {
   item_id: string | null;
   item_quantity: number | null;
   created_at: string;
+  expires_at: string;
   sold_at: string | null;
 };
 
@@ -315,13 +322,14 @@ export type RespondToTradeResult = {
   status: "declined" | "completed";
 };
 
-// What buy_listing returns — see 0018_marketplace.sql. "unavailable"
-// means the seller could no longer deliver (already sold/spent
-// elsewhere) — buy_listing cancels the listing itself in that case and
-// returns this rather than raising, since an exception would roll back
-// that cancellation along with everything else in the call.
+// What buy_listing returns — see 0018_marketplace.sql (0019 added the
+// currency choice). "unavailable" means the seller could no longer
+// deliver, or the listing expired — buy_listing resolves the listing's
+// status itself in that case (cancelled/expired) and returns this
+// rather than raising, since an exception would roll back that update
+// along with everything else in the call.
 export type BuyListingResult =
-  | { status: "sold"; price_coins: number }
+  | { status: "sold"; currency: ListingCurrency; price: number }
   | { status: "unavailable"; reason: string };
 
 // A zone's pool preview ("what you might get") — pets and items are drawn
@@ -427,6 +435,7 @@ export type MarketplaceListing = Pick<
   | "listing_type"
   | "status"
   | "price_coins"
+  | "price_gems"
   | "pet_id"
   | "pet_species_name"
   | "pet_species_image_url"
@@ -434,6 +443,7 @@ export type MarketplaceListing = Pick<
   | "pet_custom_name"
   | "item_quantity"
   | "created_at"
+  | "expires_at"
   | "sold_at"
 > & {
   sellerId: string;
@@ -676,7 +686,9 @@ export type Database = {
         Args: {
           p_seller_id: string;
           p_pet_id: string;
-          p_price_coins: number;
+          p_price_coins: number | null;
+          p_price_gems: number | null;
+          p_duration_days: ListingDurationDays;
         };
         Returns: string;
       };
@@ -685,7 +697,9 @@ export type Database = {
           p_seller_id: string;
           p_item_id: string;
           p_quantity: number;
-          p_price_coins: number;
+          p_price_coins: number | null;
+          p_price_gems: number | null;
+          p_duration_days: ListingDurationDays;
         };
         Returns: string;
       };
@@ -696,10 +710,15 @@ export type Database = {
         };
         Returns: null;
       };
+      resolve_expired_listings: {
+        Args: Record<string, never>;
+        Returns: null;
+      };
       buy_listing: {
         Args: {
           p_buyer_id: string;
           p_listing_id: string;
+          p_currency: ListingCurrency;
         };
         Returns: BuyListingResult;
       };

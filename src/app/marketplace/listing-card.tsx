@@ -6,7 +6,23 @@ const STATUS_STYLES: Record<MarketplaceListing["status"], string> = {
   active: "bg-amber-200 text-amber-900 dark:bg-amber-900 dark:text-amber-100",
   sold: "bg-green-200 text-green-900 dark:bg-green-900 dark:text-green-100",
   cancelled: "bg-stone-200 text-stone-700 dark:bg-stone-800 dark:text-stone-300",
+  expired: "bg-stone-200 text-stone-700 dark:bg-stone-800 dark:text-stone-300",
 };
+
+function timeLeftLabel(expiresAt: string): string {
+  const msLeft = new Date(expiresAt).getTime() - Date.now();
+  if (msLeft <= 0) return "Expiring…";
+  const hours = Math.ceil(msLeft / (60 * 60 * 1000));
+  if (hours < 24) return `Expires in ${hours}h`;
+  return `Expires in ${Math.ceil(hours / 24)}d`;
+}
+
+function priceLabel(priceCoins: number | null, priceGems: number | null): string {
+  const parts: string[] = [];
+  if (priceCoins !== null) parts.push(`🪙 ${priceCoins}`);
+  if (priceGems !== null) parts.push(`💎 ${priceGems}`);
+  return parts.join(" or ");
+}
 
 export function ListingCard({
   listing,
@@ -39,8 +55,12 @@ export function ListingCard({
           {!isPet && listing.item_quantity ? ` ×${listing.item_quantity}` : ""}
         </p>
         <p className="text-xs text-stone-500">
-          🪙 {listing.price_coins} · {isSeller ? `to ${listing.buyerName ?? "—"}` : `from ${listing.sellerName}`}
+          {priceLabel(listing.price_coins, listing.price_gems)} ·{" "}
+          {isSeller ? `to ${listing.buyerName ?? "—"}` : `from ${listing.sellerName}`}
         </p>
+        {listing.status === "active" ? (
+          <p className="text-[10px] text-stone-400">{timeLeftLabel(listing.expires_at)}</p>
+        ) : null}
       </div>
       <span className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${STATUS_STYLES[listing.status]}`}>
         {listing.status}

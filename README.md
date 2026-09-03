@@ -90,12 +90,15 @@ This project is being built one module at a time. Current state:
       No nav link, no entry points anywhere, and every `/trades/*` route
       404s while disabled. See Notes below for what it was
 - [x] Marketplace — Flight-Rising-style fixed-price listings (not a
-      timed-bid auction): list a pet or a stack of items for coins,
-      anyone can buy instantly at the listed price. `/marketplace`
-      (browse, filterable by name/rarity/price), `/marketplace/sell`
-      (list something via the same searchable picker trading used),
-      `/marketplace/mine` (your active/sold/cancelled listings and
-      purchase history). See Notes below
+      timed-bid auction): list a pet or a stack of items, anyone can buy
+      instantly at the listed price. A listing can be priced in coins,
+      gems, or both at once — the buyer picks whichever they'd rather
+      pay with — and the seller chooses how long it runs (1/3/7/14/30
+      days); it automatically unlists itself if nobody buys in time.
+      `/marketplace` (browse, filterable by name/rarity/price),
+      `/marketplace/sell` (list something via the same searchable picker
+      trading used), `/marketplace/mine` (your active/sold/cancelled/
+      expired listings and purchase history). See Notes below
 - [ ] Profile customization (sanitized custom CSS/HTML)
 - [ ] Forums
 
@@ -1363,3 +1366,76 @@ signs in.
     form's pet/item picker) were checked visually with headless
     Chromium against a temporary preview route mounting the client
     components with mock data.
+- **Listing duration/auto-expiry and gem pricing
+  (`0019_marketplace_upgrades.sql`)** — three requests after using the
+  marketplace above: let the seller choose how long a listing runs
+  (auto-unlisting itself when time's up), let a listing be priced in
+  gems as well as coins, and let it offer both at once so the buyer
+  picks.
+  - **No cron job** — `expires_at` (set at creation from the seller's
+    chosen duration: 1/3/7/14/30 days, validated server-side against
+    that exact list) is enforced the same lazily-on-page-load way as
+    `resolve_due_expeditions`/`resolve_due_brews`, via a new
+    `resolve_expired_listings()` called at the top of `/marketplace` and
+    `/marketplace/mine`. The one difference from those two: it isn't
+    scoped to a single player (`resolve_due_expeditions(p_user_id)` only
+    resolves that caller's own due expeditions) — browsing the
+    marketplace needs *everyone's* expired listings cleared, not just
+    the viewer's own, and since the function only ever flips a
+    listing's own status field, there's no risk in any signed-in player
+    being the one who happens to trigger the sweep. `buy_listing` also
+    re-checks `expires_at` directly (same non-exception-`status`
+    pattern as the stale-pet/stale-item checks it already had), so a
+    listing that expired in the moments before the lazy sweep last ran
+    still can't be bought.
+  - **Hit the exact `ALTER TYPE ... ADD VALUE` gotcha this project
+    already documented once** (see the note on
+    `0008_potion_effects_and_brew_timers.sql` above): adding `'expired'`
+    to `listing_status` and having anything in the *same transaction*
+    actually use that value (not just reference it inside a function
+    body) fails. Nothing in this migration does that, but added the same
+    explicit `commit;` right after the `ALTER TYPE` anyway, matching
+    0008's fix exactly rather than relying on the distinction between
+    "referenced in a function body" and "used as data" holding up under
+    `psql -1`'s single-transaction wrapping — cheap insurance, verified
+    both ways regardless.
+  - **`price_coins` went from required to nullable, and a new nullable
+    `price_gems` joined it** — a listing now needs at least one of the
+    two set (`check (price_coins is not null or price_gems is not
+    null)`), and `buy_listing` gained a `p_currency: 'coins' | 'gems'`
+    parameter (a real enum, `listing_currency`) so the buyer states
+    which price they're paying — validated against whichever of the two
+    the listing actually offers, then debits/credits that specific
+    balance. `create_pet_listing`/`create_item_listing` and
+    `buy_listing` were dropped and recreated rather than
+    `CREATE OR REPLACE`d: unlike 0017's extension of `create_trade`
+    (which only ever appended new *trailing, defaulted* parameters),
+    here `price_coins` itself changes from required to optional and
+    `buy_listing` gains a parameter in the *middle* of its effective
+    call shape — different enough from a pure append that a clean
+    drop-and-recreate was clearer than working out whether
+    `CREATE OR REPLACE` would actually accept it.
+  - The sell form now has a duration `<select>` (1/3/7/14/30 days) and
+    two price inputs (coins, gems) instead of one, with copy explaining
+    a buyer can pay with either. The buy button renders one "Buy — 🪙 N"
+    and/or one "Buy — 💎 N" button per price the listing actually offers
+    (each independently affordability-gated against the viewer's own
+    coin/gem balance), instead of always assuming coins. Listing cards
+    show both prices when set (`🪙 75 or 💎 8`) and, while a listing is
+    still `active`, a rough time-left label (`Expires in 6d` / `5h`);
+    `expired` got its own (visually same as `cancelled`) status badge.
+  - Verified against local Postgres 16 (both `psql -f` and `psql -1`):
+    invalid duration rejected, a listing with neither price set
+    rejected, a dual-priced listing bought with gems, a gems-only
+    listing correctly rejected when paid with coins, insufficient
+    balance checked independently per currency, `buy_listing` returning
+    the non-exception `unavailable` result and actually flipping an
+    expired listing's status (this was the regression check —
+    confirmed the listing does NOT silently stay `active` forever, the
+    same class of bug the original stale-pet/stale-item handling in
+    0018 had already fixed once for a different trigger), and
+    `resolve_expired_listings()` sweeping a force-expired listing while
+    leaving an unexpired one untouched. UI states (dual-price and
+    gems-only cards, an already-expired card, the two-currency buy
+    button, the filled-in sell form) were checked visually with headless
+    Chromium against a temporary preview route.

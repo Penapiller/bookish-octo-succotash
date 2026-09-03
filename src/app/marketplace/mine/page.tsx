@@ -14,6 +14,8 @@ export default async function MyListingsPage() {
     redirect("/login");
   }
 
+  await supabase.rpc("resolve_expired_listings");
+
   const { data: idRows } = await supabase
     .from("marketplace_listings")
     .select("id")
