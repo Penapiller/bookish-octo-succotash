@@ -1439,3 +1439,70 @@ signs in.
     gems-only cards, an already-expired card, the two-currency buy
     button, the filled-in sell form) were checked visually with headless
     Chromium against a temporary preview route.
+- **Two real bugs from live use: item listings needed real escrow, and
+  the price filter was silently broken
+  (`0020_marketplace_item_escrow.sql`, `src/app/marketplace/page.tsx`)**
+  — both reported after actually using the marketplace above.
+  - **Item listings didn't reserve anything.** `create_item_listing`
+    only ever checked the seller's *live* inventory count at the moment
+    of listing — nothing decremented it — so the same single item
+    could be listed several times over (each listing call saw the same
+    unchanged quantity and happily said yes), and an item sitting in an
+    "active" listing could still be spent elsewhere (e.g. brewing) right
+    up until someone actually bought it. Fixed by having
+    `create_item_listing` actually escrow: decrement the seller's
+    `user_inventory` by the listed quantity immediately, the same
+    instant the listing goes live. That single change fixes both
+    symptoms at once — a second listing attempt now sees the reduced,
+    real remaining quantity and correctly fails "you don't have that
+    many to list," and brewing (or anything else that reads live
+    inventory) correctly sees the item is gone. `cancel_listing`,
+    `resolve_expired_listings`, and `buy_listing`'s own inline expiry
+    check all credit the escrowed quantity back to the seller when a
+    listing ends without a sale; `buy_listing`'s successful-purchase
+    path no longer decrements the seller a second time (that would have
+    doubly removed it) — it just credits the buyer directly, and the
+    "does the seller still have enough" re-check that item listings used
+    to need is gone entirely, since escrow guarantees it by
+    construction. Pets were never affected by this bug and needed no
+    change — a specific `pet_id` can only ever sit in one active listing
+    (already enforced), so the "same item listed several times"
+    failure mode has no pet equivalent.
+  - **Backfill for listings that already existed under the old,
+    non-escrowing behavior**: for every currently-`active` item
+    listing, escrow it for real now if the seller still has enough
+    (the common case), or — for a listing that can no longer be
+    honored because the seller already spent it elsewhere while it sat
+    "active" (the exact bug just described) — cancel it outright rather
+    than inventing inventory that doesn't exist. Verified by literally
+    reproducing the reported repro: listed a single item three times
+    over on the pre-fix functions (all three succeeded, exactly as
+    reported), then applied this migration and confirmed the backfill
+    kept exactly one of the three listings active (escrowing the one
+    real unit) and cancelled the other two, with the seller's inventory
+    landing at zero — matching what should have happened the whole
+    time.
+  - **The price filter bug**: the browse page built its min/max price
+    filter as two separate `.or(...)` calls (one for min, one for max),
+    added when gem pricing made "either currency in range" necessary.
+    PostgREST doesn't merge two query parameters that share the same
+    key — `.or()` chained twice produces two `or=` params, and only one
+    of them ends up taking effect, so setting both a min and a max
+    silently dropped one of the two. Confirmed directly (no live
+    Supabase project needed for this one — `@supabase/supabase-js`'s
+    query builder is pure client-side URL construction, so the bug is
+    visible just by building the query and inspecting `.url` before
+    it's ever sent) and fixed by combining both bounds into a single
+    `.or()` call, nesting `and()`/`or()` for the both-set case:
+    `or=(and(price_coins.gte.MIN,price_coins.lte.MAX),and(price_gems.gte.MIN,price_gems.lte.MAX))`
+    — "coins in range, or gems in range" as one filter instead of two
+    competing ones. Re-verified the same way (inspecting the built URL)
+    for all three cases — min only, max only, both — confirming exactly
+    one `or=` param each time.
+  - Verified against local Postgres 16 (both `psql -f` and `psql -1`):
+    the full escrow lifecycle (list decrements immediately, listing
+    more than what's left over several listings fails, cancel credits
+    back, a real purchase credits the buyer without touching the
+    seller's already-decremented balance a second time, both expiry
+    paths — the lazy sweep and `buy_listing`'s own inline check — credit
+    back correctly), plus the backfill reproduction above.

@@ -31,6 +31,32 @@ function timeLeftLabel(expiresAt: string): string {
   return `${Math.ceil(hours / 24)}d left`;
 }
 
+// A min/max price means "either currency's price falls in range" — a
+// gems-only listing shouldn't vanish just because someone typed a price
+// filter with coins in mind. Built as a SINGLE combined .or() filter
+// (nesting and()/or() when both min and max are set) rather than two
+// separate .or() calls: PostgREST query params aren't merged when the
+// same key (`or`) appears twice — chaining .or().or() silently drops
+// one of the two conditions instead of ANDing them, which is exactly
+// what broke this filter the first time around.
+function buildPriceOrFilter(
+  hasMin: boolean,
+  minPrice: number,
+  hasMax: boolean,
+  maxPrice: number,
+): string | null {
+  if (hasMin && hasMax) {
+    return `and(price_coins.gte.${minPrice},price_coins.lte.${maxPrice}),and(price_gems.gte.${minPrice},price_gems.lte.${maxPrice})`;
+  }
+  if (hasMin) {
+    return `price_coins.gte.${minPrice},price_gems.gte.${minPrice}`;
+  }
+  if (hasMax) {
+    return `price_coins.lte.${maxPrice},price_gems.lte.${maxPrice}`;
+  }
+  return null;
+}
+
 export default async function MarketplacePage(props: PageProps<"/marketplace">) {
   const searchParams = await props.searchParams;
   const tab = first(searchParams.tab) === "items" ? "items" : "pets";
@@ -84,11 +110,9 @@ export default async function MarketplacePage(props: PageProps<"/marketplace">) 
   }[] = [];
   let totalCount = 0;
 
-  // A min/max here means "either currency's price falls in range" — a
-  // gems-only listing shouldn't vanish just because someone typed a
-  // price filter with coins in mind.
   const hasMin = Number.isFinite(minPrice) && minPrice > 0;
   const hasMax = Number.isFinite(maxPrice) && maxPrice > 0;
+  const priceOrFilter = buildPriceOrFilter(hasMin, minPrice, hasMax, maxPrice);
 
   if (tab === "pets") {
     let query = supabase
@@ -102,8 +126,7 @@ export default async function MarketplacePage(props: PageProps<"/marketplace">) 
 
     if (rarity) query = query.eq("pet_rarity", rarity);
     if (q.length > 0) query = query.ilike("pet_species_name", `%${q}%`);
-    if (hasMin) query = query.or(`price_coins.gte.${minPrice},price_gems.gte.${minPrice}`);
-    if (hasMax) query = query.or(`price_coins.lte.${maxPrice},price_gems.lte.${maxPrice}`);
+    if (priceOrFilter) query = query.or(priceOrFilter);
 
     const { data, count } = await query
       .order("created_at", { ascending: false })
@@ -122,8 +145,7 @@ export default async function MarketplacePage(props: PageProps<"/marketplace">) 
 
     if (rarity) query = query.eq("items.rarity", rarity);
     if (q.length > 0) query = query.ilike("items.name", `%${q}%`);
-    if (hasMin) query = query.or(`price_coins.gte.${minPrice},price_gems.gte.${minPrice}`);
-    if (hasMax) query = query.or(`price_coins.lte.${maxPrice},price_gems.lte.${maxPrice}`);
+    if (priceOrFilter) query = query.or(priceOrFilter);
 
     const { data, count } = await query
       .order("created_at", { ascending: false })
