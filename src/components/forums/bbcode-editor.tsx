@@ -14,6 +14,7 @@ import {
   List,
   ListOrdered,
   Code,
+  ALargeSmall,
   Type,
   Palette,
   Eye,
@@ -156,26 +157,14 @@ export function BBCodeEditor({
             <AlignRight size={17} />
           </ToolbarButton>
           <Divider />
-          <label className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-stone-700 hover:bg-stone-200">
-            <Type size={17} />
-            <select
-              aria-label="Font size"
-              value=""
-              disabled={isPreviewing}
-              onChange={(e) => {
-                const size = e.target.value;
-                e.target.value = "";
-                if (size) wrapSelection(`[size=${size}]`, "[/size]");
-              }}
-              className="rounded border border-stone-300 bg-white text-xs"
-            >
-              <option value="" disabled />
-              <option value="1">Small</option>
-              <option value="3">Normal</option>
-              <option value="5">Large</option>
-              <option value="7">Huge</option>
-            </select>
-          </label>
+          <FontFamilyButton
+            disabled={isPreviewing}
+            onApply={(font) => wrapSelection(`[font="${font}"]`, "[/font]")}
+          />
+          <SizePickerButton
+            disabled={isPreviewing}
+            onApply={(percent) => wrapSelection(`[size=${percent}]`, "[/size]")}
+          />
           <ColorPickerButton
             disabled={isPreviewing}
             onApply={(hex) => wrapSelection(`[color=${hex}]`, "[/color]")}
@@ -250,22 +239,24 @@ function ToolbarButton({
   );
 }
 
-// A popover instead of a bare <input type="color"> — React fires
-// onChange for a color input on every drag movement inside the native
-// picker, not just once it's closed, so wiring wrapSelection straight
-// to onChange was inserting a new [color] tag on every intermediate
-// color the player dragged past. This keeps the drag-in-progress color
-// as local draft state and only wraps the selection once, when Apply is
-// clicked — matching how a font-color picker should work.
-function ColorPickerButton({
-  onApply,
+// Shared shell for a toolbar button that opens a small confirm-style
+// popover instead of acting immediately — used for anything where a
+// live-updating control (dragging a color wheel, typing digits into a
+// number field) would otherwise fire its change handler many times
+// before the player has actually settled on a value. Click-outside-to-
+// close matches nav-groups.tsx's dropdown.
+function ToolbarPopover({
+  label,
+  icon,
   disabled,
+  children,
 }: {
-  onApply: (hex: string) => void;
+  label: string;
+  icon: React.ReactNode;
   disabled?: boolean;
+  children: (close: () => void) => React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState("#000000");
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -285,14 +276,61 @@ function ColorPickerButton({
         type="button"
         onClick={() => setOpen((o) => !o)}
         disabled={disabled}
-        aria-label="Font color"
-        title="Font color"
+        aria-label={label}
+        title={label}
         className="rounded-md px-2.5 py-1.5 text-stone-700 hover:bg-stone-200 disabled:opacity-40"
       >
-        <Palette size={17} />
+        {icon}
       </button>
       {open ? (
         <div className="absolute left-0 top-full z-10 mt-1 flex items-center gap-2 rounded-md border border-stone-300 bg-white p-2 shadow-lg">
+          {children(() => setOpen(false))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function PopoverApplyButtons({ onApply, onCancel }: { onApply: () => void; onCancel: () => void }) {
+  return (
+    <>
+      <button
+        type="button"
+        onClick={onApply}
+        className="rounded-md bg-amber-700 px-2.5 py-1 text-xs font-semibold text-white hover:bg-amber-600"
+      >
+        Apply
+      </button>
+      <button
+        type="button"
+        onClick={onCancel}
+        className="rounded-md border border-stone-300 px-2.5 py-1 text-xs text-stone-600 hover:bg-stone-100"
+      >
+        Cancel
+      </button>
+    </>
+  );
+}
+
+// React fires onChange for a color input on every drag movement inside
+// the native picker, not just once it's closed, so wiring wrapSelection
+// straight to onChange was inserting a new [color] tag on every
+// intermediate color the player dragged past. This keeps the
+// drag-in-progress color as local draft state and only wraps the
+// selection once, when Apply is clicked.
+function ColorPickerButton({
+  onApply,
+  disabled,
+}: {
+  onApply: (hex: string) => void;
+  disabled?: boolean;
+}) {
+  const [draft, setDraft] = useState("#000000");
+
+  return (
+    <ToolbarPopover label="Font color" icon={<Palette size={17} />} disabled={disabled}>
+      {(close) => (
+        <>
           <input
             aria-label="Choose a color"
             type="color"
@@ -301,25 +339,106 @@ function ColorPickerButton({
             className="h-8 w-10 cursor-pointer rounded border border-stone-300 p-0"
           />
           <span className="font-mono text-xs text-stone-600">{draft}</span>
-          <button
-            type="button"
-            onClick={() => {
+          <PopoverApplyButtons
+            onApply={() => {
               onApply(draft);
-              setOpen(false);
+              close();
             }}
-            className="rounded-md bg-amber-700 px-2.5 py-1 text-xs font-semibold text-white hover:bg-amber-600"
-          >
-            Apply
-          </button>
-          <button
-            type="button"
-            onClick={() => setOpen(false)}
-            className="rounded-md border border-stone-300 px-2.5 py-1 text-xs text-stone-600 hover:bg-stone-100"
-          >
-            Cancel
-          </button>
-        </div>
-      ) : null}
-    </div>
+            onCancel={close}
+          />
+        </>
+      )}
+    </ToolbarPopover>
+  );
+}
+
+// Same "draft state + explicit Apply" reasoning as the color picker —
+// typing into a live-wired number input would wrap the selection after
+// every keystroke. 1-200% (Chicken Smoothie-style fine-grained control)
+// rather than a handful of named steps — see bbcode.ts.
+function SizePickerButton({
+  onApply,
+  disabled,
+}: {
+  onApply: (percent: number) => void;
+  disabled?: boolean;
+}) {
+  const [draft, setDraft] = useState("100");
+
+  function apply(close: () => void) {
+    const percent = Math.round(Number(draft));
+    if (Number.isInteger(percent) && percent >= 1 && percent <= 200) {
+      onApply(percent);
+    }
+    close();
+  }
+
+  return (
+    <ToolbarPopover label="Font size" icon={<ALargeSmall size={17} />} disabled={disabled}>
+      {(close) => (
+        <>
+          <input
+            aria-label="Font size percent"
+            type="number"
+            min={1}
+            max={200}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            className="w-16 rounded border border-stone-300 px-1.5 py-1 text-sm"
+          />
+          <span className="text-xs text-stone-500">%</span>
+          <PopoverApplyButtons onApply={() => apply(close)} onCancel={close} />
+        </>
+      )}
+    </ToolbarPopover>
+  );
+}
+
+// A plain discrete <select> — no popover needed, since each selection
+// fires onChange exactly once (unlike the continuous color/number
+// inputs above). Font names are a fixed, safe list; bbcode.ts's own
+// FONT_RE would reject anything else regardless.
+const FONT_CHOICES = [
+  "Arial",
+  "Georgia",
+  "Times New Roman",
+  "Courier New",
+  "Verdana",
+  "Trebuchet MS",
+  "Comic Sans MS",
+  "Impact",
+  "cursive",
+  "fantasy",
+];
+
+function FontFamilyButton({
+  onApply,
+  disabled,
+}: {
+  onApply: (font: string) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <label className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-stone-700 hover:bg-stone-200">
+      <Type size={17} />
+      <select
+        aria-label="Font family"
+        value=""
+        disabled={disabled}
+        onChange={(e) => {
+          const font = e.target.value;
+          e.target.value = "";
+          if (font) onApply(font);
+        }}
+        className="rounded border border-stone-300 bg-white text-xs"
+      >
+        <option value="" disabled />
+        {FONT_CHOICES.map((font) => (
+          <option key={font} value={font}>
+            {font}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }

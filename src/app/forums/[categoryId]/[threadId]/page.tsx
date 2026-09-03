@@ -44,7 +44,9 @@ export default async function ForumThreadPage(props: PageProps<"/forums/[categor
     supabase.from("forum_categories").select("id, name").eq("id", categoryId).maybeSingle(),
     supabase
       .from("forum_posts")
-      .select("id, author_id, body_raw, body_html, created_at, edited_at", { count: "exact" })
+      .select("id, author_id, body_raw, body_html, created_at, edited_at, edit_count, last_edited_by", {
+        count: "exact",
+      })
       .eq("thread_id", thread.id)
       .order("created_at")
       .range(offset, offset + PAGE_SIZE - 1),
@@ -58,10 +60,16 @@ export default async function ForumThreadPage(props: PageProps<"/forums/[categor
   const isAdmin = profile?.data?.is_admin ?? false;
 
   const posts = postsData ?? [];
-  const authorIds = [...new Set(posts.map((p) => p.author_id))];
+  // last_edited_by is usually the same person as author_id, but not
+  // always — an admin can edit someone else's post — so it needs its
+  // own name resolved too. Folded into the same lookup rather than a
+  // second query.
+  const profileIds = [
+    ...new Set(posts.flatMap((p) => [p.author_id, p.last_edited_by].filter((id): id is string => id !== null))),
+  ];
   const { data: profiles } =
-    authorIds.length > 0
-      ? await supabase.from("user_profiles").select("id, display_name, avatar_url").in("id", authorIds)
+    profileIds.length > 0
+      ? await supabase.from("user_profiles").select("id, display_name, avatar_url").in("id", profileIds)
       : { data: [] };
   const profileById = new Map((profiles ?? []).map((p) => [p.id, p]));
 
@@ -71,9 +79,11 @@ export default async function ForumThreadPage(props: PageProps<"/forums/[categor
     body_html: p.body_html,
     created_at: p.created_at,
     edited_at: p.edited_at,
+    edit_count: p.edit_count,
     authorId: p.author_id,
     authorName: profileById.get(p.author_id)?.display_name ?? "Unknown",
     authorAvatarUrl: profileById.get(p.author_id)?.avatar_url ?? null,
+    lastEditorName: p.last_edited_by ? (profileById.get(p.last_edited_by)?.display_name ?? "Unknown") : null,
   }));
 
   const totalPages = Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE));
@@ -83,16 +93,17 @@ export default async function ForumThreadPage(props: PageProps<"/forums/[categor
       <ForumPanel
         icon={thread.is_locked ? <Lock size={18} /> : <MessageSquare size={18} />}
         title={category ? `${category.name} > ${thread.title}` : thread.title}
+        action={
+          isAdmin ? (
+            <ThreadAdminControls
+              categoryId={categoryId}
+              threadId={thread.id}
+              isPinned={thread.is_pinned}
+              isLocked={thread.is_locked}
+            />
+          ) : null
+        }
       >
-        {isAdmin ? (
-          <ThreadAdminControls
-            categoryId={categoryId}
-            threadId={thread.id}
-            isPinned={thread.is_pinned}
-            isLocked={thread.is_locked}
-          />
-        ) : null}
-
         <div>
           {postsWithAuthor.map((post) => (
             <PostCard
@@ -171,10 +182,7 @@ function PostCard({
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-3">
         <div className="flex items-start justify-between gap-3">
-          <div className="text-sm text-stone-500">
-            Posted {formatForumDate(post.created_at)}
-            {post.edited_at ? " (edited)" : ""}
-          </div>
+          <div className="text-sm text-stone-500">Posted {formatForumDate(post.created_at)}</div>
           <div className="flex shrink-0 gap-2">
             {canEdit ? (
               <Link
@@ -204,6 +212,12 @@ function PostCard({
           className="forum-content text-base leading-relaxed"
           dangerouslySetInnerHTML={{ __html: post.body_html }}
         />
+        {post.edit_count > 0 && post.edited_at ? (
+          <p className="text-xs text-stone-400">
+            Last edited by {post.lastEditorName ?? "Unknown"} at {formatForumDate(post.edited_at)}. This post
+            has been edited {post.edit_count} time{post.edit_count === 1 ? "" : "s"}.
+          </p>
+        ) : null}
       </div>
     </article>
   );

@@ -1894,3 +1894,57 @@ signs in.
     bounding boxes directly, confirming two `[left]` blocks really do
     land at the same y-coordinate side by side — not just "looks close
     enough" in a screenshot.
+- **Round three: 1-200% font sizing, a font-family button, an admin
+  dropdown, and edit tracking (`0024_forum_post_edit_tracking.sql`,
+  `src/lib/bbcode.ts`, `src/components/forums/bbcode-editor.tsx`,
+  `/forums/[categoryId]/[threadId]/*`)** — another pass of feedback.
+  - **`[size=]` is now 1-200%** (Chicken-Smoothie-style fine control)
+    instead of picking from 7 named steps — `[size=150]` means 150% of
+    the surrounding text. The toolbar's size control became a popover
+    with a number input + Apply, for the same reason the color picker
+    got one: a live-wired number input fires on every keystroke, so it
+    needed the same "draft value, explicit confirm" treatment. Both
+    popovers now share one `ToolbarPopover` component instead of two
+    near-identical copies.
+  - **Font family button** — `[font=]` already existed in the parser
+    with no way to reach it from the toolbar; added a plain `<select>`
+    (a curated safe list — Arial, Georgia, Times New Roman, etc.) next
+    to the size/color buttons. No popover needed here, since a `<select>`
+    only fires once per pick, not continuously like a color/number input.
+  - **Admin pin/lock controls moved into a dropdown** behind a small
+    gear icon in the thread panel's own header bar (top-right, next to
+    the title) instead of an always-visible strip across the top of
+    every post — matches the hamburger-menu affordance from the
+    original reference mockup. Same click-outside-to-close pattern as
+    `nav-groups.tsx` and the BBCode editor's popovers.
+  - **"Last edited by X at TIME. This post has been edited N times."**
+    under any post that's actually been revised. Needed two new
+    `forum_posts` columns — `edit_count` and `last_edited_by` (the
+    editor isn't always the author: an admin can edit someone else's
+    post, and RLS already allowed that) — kept in sync by a `before
+    update` trigger (`track_forum_post_edit()`) rather than the app
+    computing/passing a counter itself, matching how `reply_count`/
+    `last_post_at` and `view_count` are already handled elsewhere in
+    this schema. It only bumps when `body_raw` actually changed (not on
+    every `UPDATE`, though there's only one update path today), and
+    sets `last_edited_by` from `auth.uid()` rather than trusting
+    anything the client sends. Verified directly against local Postgres
+    16: edit count and `edited_at` start at 0/null, incrementing on a
+    real content change; a second edit by an *admin* (not the original
+    author) bumps `last_edited_by` to the admin's id while `author_id`
+    stays unchanged, proving the "may differ from the author" case;
+    and a no-op update (identical `body_raw`) leaves `edit_count`
+    untouched, confirming it's not just counting `UPDATE` statements.
+  - This surfaced a real gap in the local verification harness, not an
+    app bug: `track_forum_post_edit()` is the first trigger body in this
+    codebase to call `auth.uid()` directly rather than only inside an
+    RLS `USING`/`WITH CHECK` expression, which needs `usage on schema
+    auth` — something real Supabase projects already grant to `anon`/
+    `authenticated` by default, but the hand-rolled local stub never
+    had reason to add until now. Fixed by adding that grant to the stub
+    (not a migration — this app doesn't manage Supabase's own `auth`
+    schema), documented inline for the next time this comes up.
+  - Verified visually (headless Chromium, temporary preview route as
+    usual): the font-size/font-family/color toolbar controls, and the
+    admin dropdown opening from the gear icon and closing again on an
+    outside click.

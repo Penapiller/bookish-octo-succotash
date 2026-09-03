@@ -514,6 +514,8 @@ export type ForumPostRow = {
   body_html: string;
   created_at: string;
   edited_at: string | null;
+  edit_count: number;
+  last_edited_by: string | null;
 };
 
 // A top-level forum category with its subcategories nested — how /forums
@@ -534,14 +536,17 @@ export type ForumThreadListItem = Pick<
   authorName: string;
 };
 
-// A post as shown on a thread page — author name/avatar resolved.
+// A post as shown on a thread page — author name/avatar and the last
+// editor's name (which may be a different person — an admin editing
+// someone else's post) resolved.
 export type ForumPostWithAuthor = Pick<
   ForumPostRow,
-  "id" | "body_raw" | "body_html" | "created_at" | "edited_at"
+  "id" | "body_raw" | "body_html" | "created_at" | "edited_at" | "edit_count"
 > & {
   authorId: string;
   authorName: string;
   authorAvatarUrl: string | null;
+  lastEditorName: string | null;
 };
 
 type TableOf<Row, Insert = Partial<Row>, Update = Partial<Row>> = {

@@ -137,10 +137,12 @@ export async function updateForumPost(
   // No .select() row back means RLS silently filtered the update out —
   // "Authors and admins can edit a post" (0021_forums.sql) is the real
   // gate here; this just turns that into a readable message instead of
-  // a redirect that looks like it worked.
+  // a redirect that looks like it worked. edited_at/edit_count/
+  // last_edited_by are all set by the track_forum_post_edit() trigger
+  // (0024_forum_post_edit_tracking.sql), not here.
   const { data, error } = await supabase
     .from("forum_posts")
-    .update({ body_raw: body.raw, body_html: body.html, edited_at: new Date().toISOString() })
+    .update({ body_raw: body.raw, body_html: body.html })
     .eq("id", postId)
     .select("id");
   if (error) {

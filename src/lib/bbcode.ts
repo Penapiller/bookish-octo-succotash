@@ -59,15 +59,11 @@ const COLOR_RE = /^(#[0-9a-fA-F]{3,8}|rgba?\([\d\s.,%]+\)|[a-zA-Z]+)$/;
 const FONT_RE = /^[a-zA-Z0-9\s,'"-]{1,60}$/;
 const ALIGN_RE = /^(left|center|right|justify)$/;
 const URL_RE = /^(https?:\/\/|mailto:)\S+$/i;
-const SIZE_MAP: Record<string, string> = {
-  "1": "0.7em",
-  "2": "0.85em",
-  "3": "1em",
-  "4": "1.15em",
-  "5": "1.3em",
-  "6": "1.6em",
-  "7": "2em",
-};
+// [size=N] is a percentage of the surrounding text, 1-200 — Chicken
+// Smoothie-style fine-grained control rather than a handful of named
+// steps (small/normal/large/...). 100 is "no change."
+const MIN_SIZE_PERCENT = 1;
+const MAX_SIZE_PERCENT = 200;
 
 type Token =
   | { kind: "text"; text: string }
@@ -346,9 +342,15 @@ function renderNode(node: BbNode): string {
       return `<div style="text-align:${value}">${inner}</div>`;
     }
     case "size": {
-      const value = SIZE_MAP[(node.attr ?? "").trim()];
-      if (!value) return inner;
-      return `<span style="font-size:${value}">${inner}</span>`;
+      const percent = Number((node.attr ?? "").trim());
+      if (
+        !Number.isInteger(percent) ||
+        percent < MIN_SIZE_PERCENT ||
+        percent > MAX_SIZE_PERCENT
+      ) {
+        return inner;
+      }
+      return `<span style="font-size:${percent}%">${inner}</span>`;
     }
     case "color": {
       const value = (node.attr ?? "").trim();
