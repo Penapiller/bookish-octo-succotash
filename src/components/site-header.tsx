@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Mail } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { isConversationUnread } from "@/lib/dm-unread";
 
 export async function SiteHeader() {
   const supabase = await createClient();
@@ -12,17 +14,25 @@ export async function SiteHeader() {
   let avatarUrl: string | null = null;
   let coinBalance: number | null = null;
   let gemBalance: number | null = null;
+  let unreadCount = 0;
 
   if (user) {
-    const { data: profile } = await supabase
-      .from("users")
-      .select("display_name, avatar_url, coin_balance, gem_balance")
-      .eq("id", user.id)
-      .single();
+    const [{ data: profile }, { data: conversationsData }] = await Promise.all([
+      supabase
+        .from("users")
+        .select("display_name, avatar_url, coin_balance, gem_balance")
+        .eq("id", user.id)
+        .single(),
+      supabase
+        .from("dm_conversations")
+        .select("user_one_id, last_message_at, last_message_sender_id, user_one_last_read_at, user_two_last_read_at")
+        .or(`user_one_id.eq.${user.id},user_two_id.eq.${user.id}`),
+    ]);
     displayName = profile?.display_name ?? null;
     avatarUrl = profile?.avatar_url ?? null;
     coinBalance = profile?.coin_balance ?? null;
     gemBalance = profile?.gem_balance ?? null;
+    unreadCount = (conversationsData ?? []).filter((c) => isConversationUnread(c, user.id)).length;
   }
 
   return (
@@ -43,6 +53,18 @@ export async function SiteHeader() {
             <span title="Coins">🪙 {coinBalance ?? 0}</span>
             <span title="Gems">💎 {gemBalance ?? 0}</span>
           </div>
+          <Link
+            href="/messages"
+            className="relative flex items-center border-l border-stone-900/20 pl-3 text-stone-900 hover:opacity-80"
+            aria-label={unreadCount > 0 ? `Messages (${unreadCount} unread)` : "Messages"}
+          >
+            <Mail size={18} />
+            {unreadCount > 0 ? (
+              <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            ) : null}
+          </Link>
           <Link
             href="/profile"
             className="flex items-center gap-2 border-l border-stone-900/20 pl-3 text-sm font-medium text-stone-900 hover:underline"

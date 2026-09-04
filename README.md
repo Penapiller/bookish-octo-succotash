@@ -138,6 +138,16 @@ This project is being built one module at a time. Current state:
       for why the BBCode approach replaced it and how it's now the
       security boundary instead. No video/audio/iframe embeds exist as a
       BBCode tag at all (links to them are still fine)
+- [x] Direct messages — private, one-on-one conversations between players.
+      `/messages` is the inbox (sorted by most recent activity, with an
+      unread indicator and a "message a player by username" box); a Mail
+      icon in the header shows an unread-count badge from anywhere on the
+      site. The "Send DM" button on `/u/[id]` opens (or starts) a
+      conversation with that player directly. Plain text, not BBCode —
+      messages aren't posts. Built with reuse in mind: the same
+      conversation/message shape and read-tracking approach can back a
+      reports system or a notifications system later, without either
+      needing this table itself. See Notes below
 
 ---
 
@@ -2086,3 +2096,101 @@ signs in.
     and the new column ratio on both `/profile`- and `/u/[id]`-shaped
     layouts side by side, the compact single-row stats, and the Expand
     Den button in its new spot on the `/pets` header.
+- **Direct messages (`0026_direct_messages.sql`, `src/app/messages/`,
+  `src/lib/dm-unread.ts`, `src/components/site-header.tsx`,
+  `src/components/site-nav.tsx`, `src/app/u/[id]/page.tsx`)** — one
+  conversation per pair of players, reusable for replies with no separate
+  code path (any message sent into an existing conversation IS a reply),
+  and intentionally shaped so a future reports or notifications system
+  could reuse the same conversation/message pattern without needing this
+  table itself.
+  - **Canonical pair ordering, not "sender/recipient."**
+    `dm_conversations.user_one_id`/`user_two_id` are always stored with
+    `user_one_id < user_two_id` (uuid has a real ordering), enforced by a
+    check constraint plus a unique index on the pair — so it's
+    structurally impossible to end up with two separate conversations for
+    the same two players depending on who messaged whom first.
+    `get_or_create_dm_conversation()` (security definer, same
+    `auth.uid() is distinct from p_user_id then raise exception`
+    impersonation guard as `expand_den()`/every other RPC in this app)
+    computes `least()`/`greatest()` of the two ids, then does an atomic
+    `insert ... on conflict do nothing` + `select` — safe to call from
+    both sides without a race creating a duplicate.
+  - **Read tracking without a per-message row.** Rather than a
+    `read_at` column on every message (which gets murky once you ask
+    "read by whom" beyond a strict 1:1 thread) or a separate
+    read-receipts table, each conversation carries exactly two read
+    markers (`user_one_last_read_at`/`user_two_last_read_at`). Unread is
+    just `last_message_at > my marker`. The trick that makes this work
+    with zero extra bookkeeping calls: **sending a message also bumps the
+    sender's own marker** — you've obviously "read" the message you just
+    sent — so a conversation is never unread for the person who sent its
+    last message, with no separate "does this concern me" branch needed
+    anywhere. `mark_dm_conversation_read()` (called once, as a side
+    effect of loading `/messages/[conversationId]`, same pattern as
+    `increment_thread_view_count()` on the forum thread page) advances
+    only the caller's own marker.
+  - **Denormalized preview fields, kept in sync by a trigger.**
+    `last_message_at`/`last_message_body`/`last_message_sender_id` on
+    `dm_conversations` are written by `sync_dm_conversation_on_message()`
+    (an `after insert` trigger on `dm_messages`, same "bookkeeping via a
+    trigger, not app-computed values" pattern as
+    `sync_forum_thread_stats()`/`track_forum_post_edit()`) — the inbox
+    list renders a sorted list with a snippet from one query instead of
+    an N+1 "last message per conversation" lookup.
+  - **RLS is the real backstop**, as everywhere else in this app:
+    `dm_conversations` has no insert/update/delete policy at all (every
+    write goes through the security definer functions above) and its
+    select policy is just "you're one of the two participants."
+    `dm_messages`' insert policy checks both `sender_id = auth.uid()`
+    (can't send as someone else) and that the caller is a participant in
+    the target conversation (can't inject a message into a conversation
+    that isn't theirs); its select policy mirrors the same participant
+    check. No update/delete policy — messages are permanent, no edit or
+    unsend in this first version.
+  - **Plain text, not BBCode.** Forum posts and the profile bio both go
+    through `bbcodeToHtml()`; DMs deliberately don't — a private message
+    isn't a formatted post, and rendering it as plain, escaped text
+    (`whitespace-pre-wrap`, no `dangerouslySetInnerHTML` anywhere in this
+    feature) keeps the surface area smaller for a feature that's about to
+    carry reports next.
+  - `/messages` is the inbox: conversations sorted by `last_message_at`
+    descending, other participant's name/avatar resolved via
+    `user_profiles` (one batched `.in()` lookup, not N+1), a bold name +
+    dot for unread, and a small "message a player by username" box
+    (`display_name` is already unique/case-insensitive — see
+    `0014_unique_display_names.sql` — so an `ilike` lookup with no
+    wildcards is an exact, case-insensitive match) that starts a
+    conversation and redirects straight into it. `/messages/
+    [conversationId]` is the thread: chat bubbles (mine right-aligned/
+    amber, theirs left-aligned), a reply box at the bottom, capped at the
+    most recent 200 messages (no pagination UI yet — a private 1:1 thread
+    getting that long is an edge case worth revisiting later, not a
+    first-version requirement). RLS scopes the conversation lookup to
+    participants already, so a wrong or someone-else's conversation id
+    both land on a plain 404 rather than needing a separate ownership
+    check.
+  - The header's Mail icon shows an unread-count badge (capped display at
+    "9+") computed from the same `isConversationUnread()` helper the
+    inbox list uses (`src/lib/dm-unread.ts`) — one shared function so the
+    badge and the inbox's unread dots can never disagree about what
+    counts as unread.
+  - The "Send DM" button on `/u/[id]` (previously permanently disabled)
+    is now real: a tiny form posting the target player's id to
+    `startConversationWithUserId`, which resolves/creates the
+    conversation and redirects. Add Friend and Report Player stay
+    disabled — still not built, per the ask to only wire up DMs this
+    round.
+  - Verified against local Postgres: `get_or_create_dm_conversation` is
+    idempotent and order-independent (calling it as either player returns
+    the same conversation, and only one row ever exists), rejects
+    messaging yourself, a nonexistent player, and a caller passing a
+    `p_user_id` that isn't their own; RLS lets a participant read/send and
+    blocks a third player from reading or inserting, and blocks
+    `sender_id` spoofing; the sync trigger updates the preview fields and
+    bumps only the sender's own read marker; `mark_dm_conversation_read`
+    only ever advances the caller's own marker and rejects impersonation
+    too.
+  - Verified visually (temporary preview route mounting the real
+    `NewMessageForm`/`ReplyForm` components, as usual): the header badge,
+    the inbox list's unread state, and the thread view's chat bubbles.

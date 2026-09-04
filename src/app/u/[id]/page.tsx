@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { TRADING_ENABLED } from "@/lib/feature-flags";
 import { bbcodeToHtml } from "@/lib/bbcode";
 import { DisabledActionButton } from "@/components/disabled-action-button";
+import { startConversationWithUserId } from "@/app/messages/actions";
 
 export default async function PublicProfilePage(
   props: PageProps<"/u/[id]">,
@@ -68,7 +69,20 @@ export default async function PublicProfilePage(
               </h2>
               <div className="flex flex-wrap gap-2">
                 <DisabledActionButton icon={UserPlus} label="Add friend" title="Friending isn't available yet" />
-                <DisabledActionButton icon={MessageCircle} label="Send DM" title="Messaging isn't available yet" />
+                {viewer ? (
+                  <form action={startConversationWithUserId}>
+                    <input type="hidden" name="user_id" value={profile.id} />
+                    <button
+                      type="submit"
+                      className="flex items-center gap-1.5 rounded-md border border-amber-300 px-3 py-2 text-sm hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-900"
+                    >
+                      <MessageCircle size={16} />
+                      Send DM
+                    </button>
+                  </form>
+                ) : (
+                  <DisabledActionButton icon={MessageCircle} label="Send DM" title="Sign in to send a message" />
+                )}
                 {TRADING_ENABLED && viewer ? (
                   <Link
                     href={`/trades/new?to=${encodeURIComponent(profile.display_name)}`}

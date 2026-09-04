@@ -37,7 +37,10 @@ export async function SiteNav() {
     },
     {
       label: "Community",
-      links: [{ href: "/forums", label: "Forums" }],
+      links: [
+        { href: "/forums", label: "Forums" },
+        { href: "/messages", label: "Messages" },
+      ],
     },
     {
       label: "Account",

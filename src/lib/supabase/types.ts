@@ -482,6 +482,50 @@ export type ExplorableZone = Pick<
   pool: ZonePoolEntry[];
 };
 
+// See 0026_direct_messages.sql — user_one_id/user_two_id are canonically
+// ordered (not "sender/recipient"), and last_message_*/*_last_read_at
+// are denormalized onto the row by sync_dm_conversation_on_message().
+export type DmConversationRow = {
+  id: string;
+  user_one_id: string;
+  user_two_id: string;
+  last_message_at: string;
+  last_message_body: string | null;
+  last_message_sender_id: string | null;
+  user_one_last_read_at: string | null;
+  user_two_last_read_at: string | null;
+  created_at: string;
+};
+
+export type DmMessageRow = {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  body: string;
+  created_at: string;
+};
+
+// A conversation as shown on /messages — the "other" participant resolved
+// relative to the signed-in viewer (whichever of user_one/user_two isn't
+// them), plus whether the viewer has unread messages in it.
+export type DmConversationSummary = Pick<
+  DmConversationRow,
+  "id" | "last_message_at" | "last_message_body"
+> & {
+  otherUserId: string;
+  otherUserName: string;
+  otherUserAvatarUrl: string | null;
+  lastMessageIsMine: boolean;
+  isUnread: boolean;
+};
+
+// A message as shown on /messages/[conversationId] — sender name resolved,
+// same user_profiles-lookup pattern as forum posts.
+export type DmMessageWithSender = Pick<DmMessageRow, "id" | "body" | "created_at"> & {
+  senderId: string;
+  senderName: string;
+};
+
 export type ForumCategoryRow = {
   id: string;
   parent_id: string | null;
@@ -614,6 +658,11 @@ export type Database = {
           body_raw: string;
           body_html: string;
         }
+      >;
+      dm_conversations: TableOf<DmConversationRow>;
+      dm_messages: TableOf<
+        DmMessageRow,
+        Partial<DmMessageRow> & { conversation_id: string; sender_id: string; body: string }
       >;
     };
     Views: {
@@ -806,6 +855,14 @@ export type Database = {
           p_currency: ListingCurrency;
         };
         Returns: BuyListingResult;
+      };
+      get_or_create_dm_conversation: {
+        Args: { p_user_id: string; p_other_user_id: string };
+        Returns: string;
+      };
+      mark_dm_conversation_read: {
+        Args: { p_user_id: string; p_conversation_id: string };
+        Returns: null;
       };
     };
   };
