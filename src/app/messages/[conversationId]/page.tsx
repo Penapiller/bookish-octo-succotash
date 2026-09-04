@@ -1,9 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Mail } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { formatForumDate } from "@/lib/format-forum-date";
+import { ForumPanel, ForumPanelSection } from "@/components/forums/forum-panel";
 import { ReplyForm } from "./reply-form";
 import type { DmConversationRow, DmMessageRow } from "@/lib/supabase/types";
 
@@ -41,7 +42,8 @@ export default async function ConversationPage(
   const otherUserId =
     conversation.user_one_id === user.id ? conversation.user_two_id : conversation.user_one_id;
 
-  const [{ data: otherProfile }, { data: messagesData }] = await Promise.all([
+  const [{ data: myProfile }, { data: otherProfile }, { data: messagesData }] = await Promise.all([
+    supabase.from("user_profiles").select("id, display_name, avatar_url").eq("id", user.id).single(),
     supabase.from("user_profiles").select("id, display_name, avatar_url").eq("id", otherUserId).single(),
     supabase
       .from("dm_messages")
@@ -63,63 +65,100 @@ export default async function ConversationPage(
   const otherName = otherProfile?.display_name ?? "Unknown player";
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-6 py-12">
-      <div className="flex items-center gap-3">
-        <Link
-          href="/messages"
-          className="rounded-md p-1.5 text-stone-500 hover:bg-amber-100 dark:hover:bg-stone-900"
-          aria-label="Back to messages"
-        >
-          <ArrowLeft size={18} />
-        </Link>
-        {otherProfile?.avatar_url ? (
-          <Image
-            src={otherProfile.avatar_url}
-            alt=""
-            width={36}
-            height={36}
-            className="h-9 w-9 rounded-md object-cover"
-          />
-        ) : (
-          <div className="h-9 w-9 rounded-md bg-amber-200 dark:bg-stone-800" />
-        )}
-        <div>
-          <h1 className="text-lg font-semibold tracking-tight">{otherName}</h1>
-          <Link href={`/u/${otherUserId}`} className="text-xs text-stone-500 underline">
+    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-5 px-6 py-12">
+      <Link
+        href="/messages"
+        className="flex w-fit items-center gap-1.5 text-sm text-stone-500 hover:underline"
+      >
+        <ArrowLeft size={14} />
+        Back to messages
+      </Link>
+
+      <ForumPanel
+        icon={<Mail size={18} />}
+        title={`Conversation with ${otherName}`}
+        action={
+          <Link href={`/u/${otherUserId}`} className="text-sm text-white/90 underline hover:text-white">
             View profile
           </Link>
+        }
+      >
+        <div>
+          {messages.length === 0 ? (
+            <p className="px-6 py-6 text-sm italic text-stone-500">
+              No messages yet — say hello to {otherName}.
+            </p>
+          ) : (
+            messages.map((message) => {
+              const isMine = message.sender_id === user.id;
+              const author = isMine ? myProfile : otherProfile;
+              const authorName = isMine ? "You" : otherName;
+              return (
+                <MessageCard
+                  key={message.id}
+                  authorId={author?.id ?? message.sender_id}
+                  authorName={authorName}
+                  authorAvatarUrl={author?.avatar_url ?? null}
+                  createdAt={message.created_at}
+                  body={message.body}
+                />
+              );
+            })
+          )}
         </div>
-      </div>
+      </ForumPanel>
 
-      <div className="flex flex-1 flex-col gap-3 rounded-lg border border-amber-200 p-4 dark:border-stone-800">
-        {messages.length === 0 ? (
-          <p className="text-sm text-stone-500 italic">
-            No messages yet — say hello to {otherName}.
-          </p>
-        ) : (
-          messages.map((message) => {
-            const isMine = message.sender_id === user.id;
-            return (
-              <div key={message.id} className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}>
-                <div
-                  className={`max-w-[80%] whitespace-pre-wrap break-words rounded-lg px-3 py-2 text-sm ${
-                    isMine
-                      ? "bg-amber-800 text-white dark:bg-amber-200 dark:text-amber-950"
-                      : "bg-amber-50 text-stone-800 dark:bg-stone-800 dark:text-stone-100"
-                  }`}
-                >
-                  {message.body}
-                </div>
-                <span className="mt-0.5 text-xs text-stone-400">
-                  {isMine ? "You" : otherName} · {formatForumDate(message.created_at)}
-                </span>
-              </div>
-            );
-          })
-        )}
+      <div className="overflow-hidden rounded-xl border border-amber-300 shadow-sm">
+        <ForumPanelSection title={`Reply to ${otherName}`}>
+          <div className="p-5">
+            <ReplyForm conversationId={conversationId} />
+          </div>
+        </ForumPanelSection>
       </div>
-
-      <ReplyForm conversationId={conversationId} />
     </main>
+  );
+}
+
+// Same avatar-left / name-timestamp-body-right shape as forum posts'
+// PostCard (src/app/forums/[categoryId]/[threadId]/page.tsx) — no
+// edit/report buttons, since messages can't be edited or reported yet.
+function MessageCard({
+  authorId,
+  authorName,
+  authorAvatarUrl,
+  createdAt,
+  body,
+}: {
+  authorId: string;
+  authorName: string;
+  authorAvatarUrl: string | null;
+  createdAt: string;
+  body: string;
+}) {
+  return (
+    <article className="flex flex-col gap-4 border-t border-amber-100 p-6 first:border-t-0 sm:flex-row">
+      <div className="flex shrink-0 flex-row items-center gap-3 sm:w-32 sm:flex-col sm:text-center">
+        {authorAvatarUrl ? (
+          <Image
+            src={authorAvatarUrl}
+            alt=""
+            width={72}
+            height={72}
+            className="h-16 w-16 rounded-md border-2 border-amber-400 object-cover sm:h-[72px] sm:w-[72px]"
+          />
+        ) : (
+          <div className="h-16 w-16 rounded-md border-2 border-dashed border-amber-300 sm:h-[72px] sm:w-[72px]" />
+        )}
+        <Link href={`/u/${authorId}`} className="text-sm font-semibold hover:underline">
+          {authorName}
+        </Link>
+      </div>
+      <div className="flex min-w-0 flex-1 flex-col gap-3">
+        <div className="text-sm text-stone-500">Sent {formatForumDate(createdAt)}</div>
+        {/* Plain text, not BBCode — a DM isn't a forum post, so this is
+            never passed through bbcodeToHtml()/dangerouslySetInnerHTML. */}
+        <p className="whitespace-pre-wrap break-words text-base leading-relaxed">{body}</p>
+      </div>
+    </article>
   );
 }

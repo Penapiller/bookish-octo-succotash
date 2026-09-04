@@ -138,13 +138,20 @@ This project is being built one module at a time. Current state:
       for why the BBCode approach replaced it and how it's now the
       security boundary instead. No video/audio/iframe embeds exist as a
       BBCode tag at all (links to them are still fine)
-- [x] Direct messages — private, one-on-one conversations between players.
-      `/messages` is the inbox (sorted by most recent activity, with an
-      unread indicator and a "message a player by username" box); a Mail
+- [x] Direct messages — private, one-on-one conversations between players,
+      styled to match the forums rather than a chat app: `/messages` is
+      an inbox panel (a `ForumPanel`, same header bar as everywhere in
+      the forums) with a thread-table row per conversation — unread/read
+      envelope icon, avatar, name, last-message snippet — sorted by most
+      recent activity, plus a "message a player by username" box. A Mail
       icon in the header shows an unread-count badge from anywhere on the
-      site. The "Send DM" button on `/u/[id]` opens (or starts) a
-      conversation with that player directly. Plain text, not BBCode —
-      messages aren't posts. Built with reuse in mind: the same
+      site. `/messages/[conversationId]` renders each message the same
+      way a forum post renders (avatar-and-name column on the left,
+      timestamp and body on the right, bordered rows) rather than
+      chat-style bubbles, with a reply box below styled like the forums'
+      own reply panel. The "Send DM" button on `/u/[id]` opens (or
+      starts) a conversation with that player directly. Plain text, not
+      BBCode — messages aren't posts. Built with reuse in mind: the same
       conversation/message shape and read-tracking approach can back a
       reports system or a notifications system later, without either
       needing this table itself. See Notes below
@@ -2194,3 +2201,35 @@ signs in.
   - Verified visually (temporary preview route mounting the real
     `NewMessageForm`/`ReplyForm` components, as usual): the header badge,
     the inbox list's unread state, and the thread view's chat bubbles.
+- **DM redesign to match the forums (same files)** — the chat-bubble look
+  read as a texting app, not part of this site, so both DM pages were
+  rebuilt on the forums' own components instead of new one-off styling.
+  - `/messages` now wraps its conversation list in the shared
+    `ForumPanel` (the same bordered-panel-with-amber-header-bar shell
+    used by the Forum Index, thread lists, and thread views) and renders
+    conversations as table rows copying the thread-list page's
+    `ThreadTable` shape exactly: an icon column (a filled `Mail` for
+    unread, an open `MailOpen` for read — standing in for the
+    locked/unlocked icon column on a thread list), avatar, name + last-
+    message snippet, and a right-aligned timestamp column.
+  - `/messages/[conversationId]` dropped the bubble layout entirely.
+    Each message now renders through a `MessageCard` component that's
+    structurally identical to the forum thread view's `PostCard` — an
+    avatar-and-name column on the left (`sm:w-32 sm:flex-col`), a
+    timestamp line and the message body on the right, separated by
+    `border-t border-amber-100` between rows — just without the Edit/
+    Report buttons a real forum post has, since messages can't be edited
+    or reported yet. No left/right alignment by sender anymore; every
+    message reads the same regardless of who sent it, exactly like a
+    forum thread's posts do.
+  - The reply box moved into the same `ForumPanelSection`-wrapped
+    "Reply to `{name}`" shell the forums' own reply form uses, and its
+    button was relabeled "Send Message" in the forums' "Post Reply"
+    style (bold, `px-5 py-2.5`) instead of the smaller chat-app "Send".
+  - Still plain text, not BBCode — this was a layout change, not a scope
+    change; `bbcodeToHtml()`/`dangerouslySetInnerHTML` still appear
+    nowhere in the DM feature.
+  - Verified visually (temporary preview route, as usual): the inbox
+    table next to a real forum thread list, and the message thread next
+    to a real forum thread view, to confirm the two now genuinely share
+    a visual language rather than just using the same amber palette.
