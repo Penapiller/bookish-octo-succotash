@@ -1,12 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Lock, MessageSquare, Pencil, Flag } from "lucide-react";
+import { Lock, MessageSquare, Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { ReplyForm } from "./reply-form";
 import { ReplyToggle } from "./reply-toggle";
 import { ThreadAdminControls } from "./thread-admin-controls";
+import { DeletePostButton } from "./delete-post-button";
 import { ForumPanel, ForumPanelSection } from "@/components/forums/forum-panel";
+import { ReportButton } from "@/components/report-button";
 import { PaginationBar } from "@/components/forums/pagination-bar";
 import { formatForumDate } from "@/lib/format-forum-date";
 import type { ForumPostWithAuthor } from "@/lib/supabase/types";
@@ -50,7 +52,9 @@ export default async function ForumThreadPage(props: PageProps<"/forums/[categor
       .eq("thread_id", thread.id)
       .order("created_at")
       .range(offset, offset + PAGE_SIZE - 1),
-    user ? supabase.from("users").select("is_admin").eq("id", user.id).single() : Promise.resolve({ data: null }),
+    user
+      ? supabase.from("users").select("is_admin, is_moderator").eq("id", user.id).single()
+      : Promise.resolve({ data: null }),
     // Best-effort view counter — not awaited-for-correctness, just fired
     // alongside the rest of this page's data so it doesn't add a round
     // trip. See increment_thread_view_count() (0022_forum_bbcode_and_views.sql).
@@ -58,6 +62,7 @@ export default async function ForumThreadPage(props: PageProps<"/forums/[categor
   ]);
 
   const isAdmin = profile?.data?.is_admin ?? false;
+  const canModerate = isAdmin || (profile?.data?.is_moderator ?? false);
 
   const posts = postsData ?? [];
   // last_edited_by is usually the same person as author_id, but not
@@ -94,7 +99,7 @@ export default async function ForumThreadPage(props: PageProps<"/forums/[categor
         icon={thread.is_locked ? <Lock size={18} /> : <MessageSquare size={18} />}
         title={category ? `${category.name} > ${thread.title}` : thread.title}
         action={
-          isAdmin ? (
+          canModerate ? (
             <ThreadAdminControls
               categoryId={categoryId}
               threadId={thread.id}
@@ -112,6 +117,8 @@ export default async function ForumThreadPage(props: PageProps<"/forums/[categor
               categoryId={categoryId}
               threadId={thread.id}
               canEdit={user?.id === post.authorId || isAdmin}
+              canModerate={canModerate}
+              canReport={!!user && user.id !== post.authorId}
             />
           ))}
         </div>
@@ -156,11 +163,15 @@ function PostCard({
   categoryId,
   threadId,
   canEdit,
+  canModerate,
+  canReport,
 }: {
   post: ForumPostWithAuthor;
   categoryId: string;
   threadId: string;
   canEdit: boolean;
+  canModerate: boolean;
+  canReport: boolean;
 }) {
   return (
     <article className="flex flex-col gap-4 border-t border-amber-100 p-6 first:border-t-0 sm:flex-row">
@@ -193,15 +204,10 @@ function PostCard({
                 Edit
               </Link>
             ) : null}
-            <button
-              type="button"
-              disabled
-              title="Reporting isn't available yet"
-              className="flex cursor-not-allowed items-center gap-1.5 rounded-md border border-red-200 px-2.5 py-1.5 text-xs font-medium text-red-300"
-            >
-              <Flag size={14} />
-              Report
-            </button>
+            {canModerate ? (
+              <DeletePostButton categoryId={categoryId} threadId={threadId} postId={post.id} />
+            ) : null}
+            {canReport ? <ReportButton targetType="forum_post" targetId={post.id} /> : null}
           </div>
         </div>
         {/* body_html is produced exclusively by bbcodeToHtml() at write

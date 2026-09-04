@@ -10,6 +10,7 @@ export type UserRow = {
   gem_balance: number;
   den_size: number;
   is_admin: boolean;
+  is_moderator: boolean;
   starter_granted: boolean;
   created_at: string;
 };
@@ -593,6 +594,47 @@ export type ForumPostWithAuthor = Pick<
   lastEditorName: string | null;
 };
 
+export type ReportTargetType = "user" | "forum_post";
+export type ReportCategory = "spam" | "harassment" | "inappropriate_content" | "scam" | "other";
+export type ReportStatus = "open" | "resolved" | "dismissed";
+
+// See 0027_moderation.sql — exactly one of target_user_id/target_post_id
+// is set, per target_type (enforced by a check constraint, not just
+// convention).
+export type ReportRow = {
+  id: string;
+  reporter_id: string;
+  target_type: ReportTargetType;
+  target_user_id: string | null;
+  target_post_id: string | null;
+  category: ReportCategory;
+  details: string | null;
+  status: ReportStatus;
+  resolved_by: string | null;
+  resolved_at: string | null;
+  resolution_note: string | null;
+  created_at: string;
+};
+
+// A report as shown in /mod/reports — reporter name and the target
+// (whichever applies) resolved to something displayable, so the queue
+// doesn't have to join per-row in the UI.
+export type ReportWithDetails = Pick<
+  ReportRow,
+  "id" | "target_type" | "category" | "details" | "status" | "resolved_at" | "resolution_note" | "created_at"
+> & {
+  reporterId: string;
+  reporterName: string;
+  targetUserId: string | null;
+  targetUserName: string | null;
+  targetPostId: string | null;
+  targetPostBody: string | null;
+  targetPostAuthorName: string | null;
+  targetThreadId: string | null;
+  targetCategoryId: string | null;
+  resolvedByName: string | null;
+};
+
 type TableOf<Row, Insert = Partial<Row>, Update = Partial<Row>> = {
   Row: Row;
   Insert: Insert;
@@ -663,6 +705,10 @@ export type Database = {
       dm_messages: TableOf<
         DmMessageRow,
         Partial<DmMessageRow> & { conversation_id: string; sender_id: string; body: string }
+      >;
+      reports: TableOf<
+        ReportRow,
+        Partial<ReportRow> & { reporter_id: string; target_type: ReportTargetType; category: ReportCategory }
       >;
     };
     Views: {

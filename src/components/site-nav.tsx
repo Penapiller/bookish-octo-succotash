@@ -10,8 +10,13 @@ export async function SiteNav() {
 
   if (!user) return null;
 
-  const { data: profile } = await supabase.from("users").select("is_admin").eq("id", user.id).single();
+  const { data: profile } = await supabase
+    .from("users")
+    .select("is_admin, is_moderator")
+    .eq("id", user.id)
+    .single();
   const isAdmin = profile?.is_admin ?? false;
+  const isModerator = profile?.is_moderator ?? false;
 
   const groups: NavGroup[] = [
     {
@@ -46,6 +51,11 @@ export async function SiteNav() {
       label: "Account",
       links: [
         { href: "/settings", label: "Settings" },
+        // Separate links, not one merged entry — a moderator who isn't
+        // also an admin gets Mod Tools but must never see (or be able to
+        // guess their way into) Admin. An admin gets both, since is_admin
+        // satisfies both requireAdmin() and requireModerator().
+        ...(isModerator || isAdmin ? [{ href: "/mod", label: "Mod Tools" }] : []),
         ...(isAdmin ? [{ href: "/admin", label: "Admin" }] : []),
       ],
     },

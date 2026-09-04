@@ -155,6 +155,17 @@ This project is being built one module at a time. Current state:
       conversation/message shape and read-tracking approach can back a
       reports system or a notifications system later, without either
       needing this table itself. See Notes below
+- [x] Moderator tools & a reports system — a new `is_moderator` role,
+      deliberately kept separate from `is_admin`: `/mod` (reports queue,
+      forum pin/lock/delete) is reachable by a moderator OR an admin;
+      `/admin` (economy/catalog management, the audit log) stays
+      admin-only. An admin gets both, a moderator-only account only ever
+      sees "Mod Tools" in the nav, never "Admin". Players can report a
+      player (`/u/[id]`) or a forum post, picking a reason category plus
+      optional details; staff review open reports in `/mod/reports` and
+      resolve, dismiss, or delete the reported post outright. Forum
+      thread pin/lock (previously admin-only) and a new delete capability
+      for threads/posts are now moderator powers too. See Notes below
 
 ---
 
@@ -2233,3 +2244,106 @@ signs in.
     table next to a real forum thread list, and the message thread next
     to a real forum thread view, to confirm the two now genuinely share
     a visual language rather than just using the same amber palette.
+- **Moderator tools & reports (`0027_moderation.sql`, `src/lib/
+  moderation.ts`, `src/lib/report-actions.ts`,
+  `src/components/report-button.tsx`, `src/app/mod/`, plus forum
+  changes below)** — the explicit ask was "separate mod tools and admin
+  tools, admins get both, mods only get mod tools," so that split is the
+  spine of the whole design, not an afterthought.
+  - **Two independent role checks, not one broadened check.**
+    `current_user_is_admin()` (0009) is untouched — still gates `/admin`
+    and every admin-only RLS policy (economy grants, catalog management,
+    the audit log) exactly as before. A new `current_user_is_moderator()`
+    (`is_admin OR is_moderator`) gates `/mod` and the newly-staff-owned
+    forum RLS policies. Mirrored in app code as two separate functions —
+    `requireAdmin()` (`src/lib/admin.ts`, unchanged) and a new
+    `requireModerator()` (`src/lib/moderation.ts`) — deliberately not
+    one helper with a role parameter, so it's a glance, not a read, to
+    tell which surfaces are moderator-reachable vs admin-only. A
+    moderator who isn't also an admin passes `requireModerator()` but
+    fails `requireAdmin()` every time; an admin passes both, since
+    `is_admin` alone satisfies `current_user_is_moderator()`.
+  - `/mod` is its own route tree with its own layout — not nested under
+    `/admin`'s — for the same reason: nesting would make "moderator
+    reaches everything under /admin's URL space" an easy mistake to
+    introduce later without anyone noticing in a diff.
+  - **is_moderator is protected exactly like is_admin.**
+    `protect_privileged_user_fields()` (redefined again, same shape as
+    every prior redefinition since 0002) now resets `is_moderator` on any
+    non-trusted client write, so a player can never grant themselves mod
+    powers through a normal profile update — only a trusted/service-role
+    write (the same escape hatch `is_admin` already used) can set it.
+  - **Reports table**: `target_type` is `'user'` or `'forum_post'`, with
+    a check constraint enforcing exactly one of `target_user_id`/
+    `target_post_id` is set per type — DMs aren't reportable yet
+    (deliberately out of scope: private 1:1 content raises different
+    "what should a moderator even be able to see" questions than public
+    forum content does). A `category` (spam/harassment/inappropriate
+    content/scam/other) plus optional free-text `details` gives the
+    queue something scannable instead of only freeform text. RLS: anyone
+    can file a report as themselves (`reporter_id = auth.uid()`);
+    reporters can see their own filed reports, staff can see all of
+    them; only staff can update (resolve/dismiss) one. No delete
+    policy — a report is a permanent record, same stance as the rest of
+    this app's admin-managed content.
+  - Reports reuse the **existing generic audit trigger**
+    (`log_admin_action()`, 0009) rather than a new logging mechanism —
+    every filed report and every resolve/dismiss lands in
+    `admin_audit_log` with the actor's own id. That log's own SELECT
+    policy is still admin-only, which is intentional and falls straight
+    out of the admin/mod split: the full audit trail is an admin tool;
+    `/mod/reports` (moderator-readable) is the mod-facing view of the
+    same underlying activity.
+  - **Forum moderation, the "later module" 0021_forums.sql explicitly
+    called out** ("No delete policy on threads or posts in this first
+    version... moderation/removal is a later module" — written back when
+    forums first shipped, months before this round). Thread pin/lock
+    widened from admin-only to staff (moderator or admin). New staff-only
+    DELETE policies on `forum_threads` and `forum_posts` — deletion is a
+    moderation action, not self-service; an author still can't delete
+    their own post, only edit it (unchanged policy). `sync_forum_thread_
+    stats()` (previously INSERT-only, since posts had no delete path)
+    now also handles DELETE: decrements `reply_count`, and recomputes
+    `last_post_at` from the remaining posts, falling back to the
+    thread's own `created_at` if none are left.
+  - `ThreadAdminControls` (the pin/lock popover) is now staff-gated
+    instead of admin-gated, relabeled "Moderation," and gained a "Delete
+    thread" button (confirm-wrapped, cascades to the thread's posts via
+    the existing FK). Each `PostCard` gained a staff-only "Delete" button
+    (`DeletePostButton`, same confirm-wrapped pattern) in place of where
+    the disabled Report button used to sit.
+  - **Report submission is a player action, not a moderator one** — it
+    deliberately lives outside `src/app/mod/` (entirely gated by
+    `requireModerator()`) in `src/lib/report-actions.ts`, so a plain
+    signed-in player can call it without tripping the staff gate. A
+    single `ReportButton` component (toggle-to-reveal-a-form, same
+    pattern as `ReplyToggle`) is shared by `/u/[id]`'s "Report player"
+    and every forum post's "Report" — both previously permanently
+    disabled buttons, now real. Self-reporting (`target_user_id ===
+    auth.uid()`) is rejected with a friendly error before the insert.
+  - `/mod` (dashboard: open/resolved/dismissed counts) and `/mod/reports`
+    (tabbed queue, newest-first for open reports) resolve reporter/
+    target names via the same batched `user_profiles` `.in()` lookup
+    pattern used everywhere else in this app (forum posts, trades,
+    marketplace) rather than relying on PostgREST embedding — consistent
+    with this codebase hand-writing its types instead of generating them.
+    A post-targeted report shows a preview of the reported post's body
+    inline, so a moderator can triage without leaving the queue; a
+    "Delete post" action there deletes the post AND resolves the report
+    as one step (auto-noted "Post deleted."), rather than leaving a
+    dangling report about content that no longer exists.
+  - Verified against local Postgres: a plain client update cannot set
+    `is_moderator` on itself; `current_user_is_moderator()` reflects
+    `is_admin OR is_moderator` correctly for a moderator-only account and
+    a plain player; a moderator (not an admin) can pin a thread and
+    delete a post/thread while the post's own author cannot delete it;
+    `reply_count`/`last_post_at` stay correct across a post delete,
+    including falling back to the thread's `created_at` when the last
+    post is removed; reports RLS — a reporter sees their own filed
+    report, a bystander sees nothing, staff see and can resolve
+    everything, a non-staff resolve attempt affects zero rows.
+  - Verified visually (temporary preview route, as usual): the nav's
+    Mod-Tools-only-vs-both-Mod-Tools-and-Admin split for a moderator vs
+    an admin account, the report form (category dropdown + details),
+    and a mocked `/mod/reports` card with the resolve/dismiss/delete-
+    post actions.

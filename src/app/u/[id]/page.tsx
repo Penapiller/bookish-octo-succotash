@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { TRADING_ENABLED } from "@/lib/feature-flags";
 import { bbcodeToHtml } from "@/lib/bbcode";
 import { DisabledActionButton } from "@/components/disabled-action-button";
+import { ReportButton } from "@/components/report-button";
 import { startConversationWithUserId } from "@/app/messages/actions";
 
 export default async function PublicProfilePage(
@@ -91,7 +92,11 @@ export default async function PublicProfilePage(
                     Propose a trade
                   </Link>
                 ) : null}
-                <DisabledActionButton icon={Flag} label="Report player" title="Reporting isn't available yet" />
+                {viewer ? (
+                  <ReportButton targetType="user" targetId={profile.id} label="Report player" />
+                ) : (
+                  <DisabledActionButton icon={Flag} label="Report player" title="Sign in to report a player" />
+                )}
               </div>
             </div>
           ) : null}

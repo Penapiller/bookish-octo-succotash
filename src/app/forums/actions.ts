@@ -156,11 +156,12 @@ export async function updateForumPost(
   redirect(`/forums/${categoryId}/${threadId}`);
 }
 
-// Pin/lock are admin-only actions. The button that submits this form is
-// only rendered for admins (see ThreadAdminControls), but that's just
-// UI convenience — the real enforcement is forum_threads' admin-only
-// UPDATE RLS policy (0021_forums.sql), which rejects this write outright
-// for anyone else regardless of what the client sends.
+// Pin/lock are staff (moderator or admin) actions. The button that
+// submits this form is only rendered for staff (see ThreadAdminControls),
+// but that's just UI convenience — the real enforcement is forum_threads'
+// staff-only UPDATE RLS policy (0027_moderation.sql, widened from
+// admin-only in 0021_forums.sql), which rejects this write outright for
+// anyone else regardless of what the client sends.
 export async function updateThreadFlags(formData: FormData): Promise<void> {
   const supabase = await createClient();
   const {
@@ -182,4 +183,46 @@ export async function updateThreadFlags(formData: FormData): Promise<void> {
 
   revalidatePath(`/forums/${categoryId}/${threadId}`);
   redirect(`/forums/${categoryId}/${threadId}`);
+}
+
+// Deletion is a staff-only action — same reliance-on-RLS-alone as
+// updateThreadFlags above (forum_posts' staff-only DELETE policy,
+// 0027_moderation.sql). sync_forum_thread_stats keeps reply_count/
+// last_post_at correct on delete too, so nothing here needs to touch
+// forum_threads directly.
+export async function deletePost(formData: FormData): Promise<void> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const categoryId = String(formData.get("category_id") ?? "");
+  const threadId = String(formData.get("thread_id") ?? "");
+  const postId = String(formData.get("post_id") ?? "");
+  if (categoryId.length === 0 || threadId.length === 0 || postId.length === 0) return;
+
+  await supabase.from("forum_posts").delete().eq("id", postId);
+
+  revalidatePath(`/forums/${categoryId}/${threadId}`);
+  redirect(`/forums/${categoryId}/${threadId}`);
+}
+
+// Deleting a thread cascades to its posts (forum_posts.thread_id has
+// on delete cascade — 0021_forums.sql) — staff-only, same as above.
+export async function deleteThread(formData: FormData): Promise<void> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const categoryId = String(formData.get("category_id") ?? "");
+  const threadId = String(formData.get("thread_id") ?? "");
+  if (categoryId.length === 0 || threadId.length === 0) return;
+
+  await supabase.from("forum_threads").delete().eq("id", threadId);
+
+  revalidatePath(`/forums/${categoryId}`);
+  redirect(`/forums/${categoryId}`);
 }
