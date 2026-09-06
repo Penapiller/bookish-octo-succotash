@@ -24,12 +24,12 @@ export default async function EditForumPostPage(
     notFound();
   }
 
-  const { data: profile } = await supabase.from("users").select("is_admin").eq("id", user.id).single();
-  const isAdmin = profile?.is_admin ?? false;
-  if (post.author_id !== user.id && !isAdmin) {
-    // Matches the RLS policy exactly — "Authors and admins can edit a
-    // post" — so this is UX only; the update itself is enforced again
-    // server-side regardless.
+  const { data: profile } = await supabase.from("users").select("is_admin, is_moderator").eq("id", user.id).single();
+  const canModerate = (profile?.is_admin || profile?.is_moderator) ?? false;
+  if (post.author_id !== user.id && !canModerate) {
+    // Matches the RLS policy exactly — "Authors and staff can edit a
+    // post" (0028_moderation_round_two.sql) — so this is UX only; the
+    // update itself is enforced again server-side regardless.
     redirect(`/forums/${categoryId}/${threadId}`);
   }
 

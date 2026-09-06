@@ -12,9 +12,14 @@ export type ReportFormState = { error: string } | { success: true } | null;
  * Files a report — a player action, not a moderator one, so this
  * deliberately lives outside src/app/mod/ (which is entirely gated by
  * requireModerator()). Used by the shared ReportButton component from
- * both /u/[id] (target_type "user") and forum posts (target_type
- * "forum_post"). RLS (reports' insert policy, 0027_moderation.sql) is
+ * /u/[id] ("user"), forum posts ("forum_post"), and DM messages
+ * ("dm_message"). RLS (reports' insert policy, 0027_moderation.sql) is
  * the real backstop — it independently enforces reporter_id = auth.uid().
+ * Filing a report also triggers an automatic acknowledgment DM from the
+ * Staff account, and — for a forum_post report specifically — may
+ * auto-hide the post if 5 distinct players have now reported it; both
+ * are handled entirely in the database (handle_new_report(),
+ * 0028_moderation_round_two.sql), not here.
  */
 export async function submitReport(
   _prevState: ReportFormState,
@@ -35,7 +40,7 @@ export async function submitReport(
   const detailsRaw = formData.get("details");
   const details = typeof detailsRaw === "string" ? detailsRaw.trim() : "";
 
-  if (targetType !== "user" && targetType !== "forum_post") {
+  if (targetType !== "user" && targetType !== "forum_post" && targetType !== "dm_message") {
     return { error: "Invalid report target." };
   }
   if (targetId.length === 0) {
@@ -56,6 +61,7 @@ export async function submitReport(
     target_type: targetType,
     target_user_id: targetType === "user" ? targetId : null,
     target_post_id: targetType === "forum_post" ? targetId : null,
+    target_message_id: targetType === "dm_message" ? targetId : null,
     category,
     details: details.length > 0 ? details : null,
   });

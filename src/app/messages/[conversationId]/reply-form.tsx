@@ -1,28 +1,15 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState } from "react";
 import { sendMessage, type SendMessageState } from "./actions";
 
 const initialState: SendMessageState = null;
 
 export function ReplyForm({ conversationId }: { conversationId: string }) {
   const [state, formAction, isPending] = useActionState(sendMessage, initialState);
-  const formRef = useRef<HTMLFormElement>(null);
-  const wasPending = useRef(false);
-
-  // sendMessage revalidates in place rather than redirecting (unlike the
-  // forums' reply form, which lands on a fresh page load) — so the
-  // uncontrolled textarea needs an explicit reset once a send actually
-  // succeeds, on the pending -> not-pending transition with no error.
-  useEffect(() => {
-    if (wasPending.current && !isPending && !state?.error) {
-      formRef.current?.reset();
-    }
-    wasPending.current = isPending;
-  }, [isPending, state]);
 
   return (
-    <form ref={formRef} action={formAction} className="flex flex-col gap-4">
+    <form action={formAction} className="flex flex-col gap-4">
       <input type="hidden" name="conversation_id" value={conversationId} />
       <textarea
         name="body"

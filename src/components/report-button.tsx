@@ -16,8 +16,8 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 /**
- * Shared by /u/[id] (target_type "user") and the forums' PostCard
- * (target_type "forum_post") — same toggle-to-reveal-a-form pattern as
+ * Shared by /u/[id] ("user"), the forums' PostCard ("forum_post"), and
+ * DM messages ("dm_message") — same toggle-to-reveal-a-form pattern as
  * ReplyToggle (src/app/forums/[categoryId]/[threadId]/reply-toggle.tsx),
  * so the report form doesn't take up space until someone actually wants
  * to use it.

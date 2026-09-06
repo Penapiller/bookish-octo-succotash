@@ -5,6 +5,7 @@ import { Folder, MessageSquare, Lock, Plus, Eye, MessageCircle } from "lucide-re
 import { createClient } from "@/lib/supabase/server";
 import { ForumPanel } from "@/components/forums/forum-panel";
 import { PaginationBar } from "@/components/forums/pagination-bar";
+import { PlayerLink } from "@/components/player-link";
 import { formatForumDate } from "@/lib/format-forum-date";
 import type { ForumThreadListItem } from "@/lib/supabase/types";
 
@@ -83,11 +84,12 @@ export default async function ForumCategoryPage(props: PageProps<"/forums/[categ
   const authorIds = [...new Set([...pinnedRows, ...threadRows].map((t) => t.author_id))];
   const { data: profiles } =
     authorIds.length > 0
-      ? await supabase.from("user_profiles").select("id, display_name").in("id", authorIds)
+      ? await supabase.from("user_profiles").select("id, display_name, is_admin, is_moderator").in("id", authorIds)
       : { data: [] };
-  const nameById = new Map((profiles ?? []).map((p) => [p.id, p.display_name]));
+  const profileById = new Map((profiles ?? []).map((p) => [p.id, p]));
 
   function toListItem(t: (typeof threadRows)[number]): ForumThreadListItem {
+    const author = profileById.get(t.author_id);
     return {
       id: t.id,
       title: t.title,
@@ -98,7 +100,9 @@ export default async function ForumCategoryPage(props: PageProps<"/forums/[categ
       created_at: t.created_at,
       last_post_at: t.last_post_at,
       authorId: t.author_id,
-      authorName: nameById.get(t.author_id) ?? "Unknown",
+      authorName: author?.display_name ?? "Unknown",
+      authorIsAdmin: author?.is_admin ?? false,
+      authorIsModerator: author?.is_moderator ?? false,
     };
   }
 
@@ -205,8 +209,15 @@ function ThreadTable({ categoryId, threads }: { categoryId: string; threads: For
                 {thread.title}
               </Link>
               <div className="mt-0.5 text-sm text-stone-500">
-                Posted by <span className="font-medium">{thread.authorName}</span> »{" "}
-                {formatForumDate(thread.created_at)}
+                Posted by{" "}
+                <PlayerLink
+                  userId={thread.authorId}
+                  name={thread.authorName}
+                  isAdmin={thread.authorIsAdmin}
+                  isModerator={thread.authorIsModerator}
+                  className="font-medium hover:underline"
+                />{" "}
+                » {formatForumDate(thread.created_at)}
               </div>
             </td>
             <td className="w-24 px-4 py-4 text-right text-xs text-stone-500">

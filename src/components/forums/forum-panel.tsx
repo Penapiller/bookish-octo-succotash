@@ -11,7 +11,7 @@ export function ForumPanel({
   children,
 }: {
   icon?: React.ReactNode;
-  title: string;
+  title: React.ReactNode;
   action?: React.ReactNode;
   children?: React.ReactNode;
 }) {

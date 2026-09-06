@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatShortDate } from "@/lib/format-forum-date";
 import { isConversationUnread } from "@/lib/dm-unread";
 import { ForumPanel } from "@/components/forums/forum-panel";
+import { staffNameColorClass } from "@/components/player-link";
 import { NewMessageForm } from "./new-message-form";
 import type { DmConversationRow, DmConversationSummary } from "@/lib/supabase/types";
 
@@ -35,7 +36,10 @@ export default async function MessagesPage() {
 
   const { data: profilesData } =
     otherUserIds.length > 0
-      ? await supabase.from("user_profiles").select("id, display_name, avatar_url").in("id", otherUserIds)
+      ? await supabase
+          .from("user_profiles")
+          .select("id, display_name, avatar_url, is_admin, is_moderator")
+          .in("id", otherUserIds)
       : { data: [] };
 
   const profileById = new Map((profilesData ?? []).map((p) => [p.id, p]));
@@ -51,6 +55,8 @@ export default async function MessagesPage() {
       otherUserId,
       otherUserName: otherProfile?.display_name ?? "Unknown player",
       otherUserAvatarUrl: otherProfile?.avatar_url ?? null,
+      otherUserIsAdmin: otherProfile?.is_admin ?? false,
+      otherUserIsModerator: otherProfile?.is_moderator ?? false,
       lastMessageIsMine: c.last_message_sender_id === user.id,
       isUnread: isConversationUnread(c, user.id),
     };
@@ -99,7 +105,7 @@ export default async function MessagesPage() {
                   <td className="min-w-0 px-2 py-4">
                     <Link
                       href={`/messages/${c.id}`}
-                      className={`text-base hover:underline ${c.isUnread ? "font-semibold" : "font-medium"}`}
+                      className={`text-base hover:underline ${c.isUnread ? "font-semibold" : "font-medium"} ${staffNameColorClass(c.otherUserIsAdmin, c.otherUserIsModerator)}`}
                     >
                       {c.otherUserName}
                     </Link>

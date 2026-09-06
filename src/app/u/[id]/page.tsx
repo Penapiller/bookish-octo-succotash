@@ -7,6 +7,7 @@ import { TRADING_ENABLED } from "@/lib/feature-flags";
 import { bbcodeToHtml } from "@/lib/bbcode";
 import { DisabledActionButton } from "@/components/disabled-action-button";
 import { ReportButton } from "@/components/report-button";
+import { PlayerLink } from "@/components/player-link";
 import { startConversationWithUserId } from "@/app/messages/actions";
 
 export default async function PublicProfilePage(
@@ -29,6 +30,14 @@ export default async function PublicProfilePage(
   }
 
   const isOwnProfile = viewer?.id === profile.id;
+
+  // Staff-only affordance (see /mod/players/[userId]) — not gated behind
+  // anything special here beyond checking the viewer's own role, since
+  // the destination page independently enforces requireModerator() too.
+  const { data: viewerProfile } = viewer
+    ? await supabase.from("users").select("is_admin, is_moderator").eq("id", viewer.id).single()
+    : { data: null };
+  const viewerCanModerate = (viewerProfile?.is_admin || viewerProfile?.is_moderator) ?? false;
 
   const joined = new Date(profile.created_at).toLocaleDateString(undefined, {
     year: "numeric",
@@ -57,9 +66,19 @@ export default async function PublicProfilePage(
             )}
             <div>
               <h1 className="text-xl font-semibold tracking-tight">
-                {profile.display_name}
+                <PlayerLink
+                  userId={profile.id}
+                  name={profile.display_name}
+                  isAdmin={profile.is_admin}
+                  isModerator={profile.is_moderator}
+                />
               </h1>
               <p className="text-xs text-stone-500">Joined {joined}</p>
+              {viewerCanModerate ? (
+                <Link href={`/mod/players/${profile.id}`} className="text-xs text-stone-400 underline">
+                  Report history (staff only)
+                </Link>
+              ) : null}
             </div>
           </div>
 

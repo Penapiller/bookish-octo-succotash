@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Lock, MessageSquare, Pencil } from "lucide-react";
+import { Lock, MessageSquare, Pencil, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { ReplyForm } from "./reply-form";
 import { ReplyToggle } from "./reply-toggle";
@@ -9,8 +9,10 @@ import { ThreadAdminControls } from "./thread-admin-controls";
 import { DeletePostButton } from "./delete-post-button";
 import { ForumPanel, ForumPanelSection } from "@/components/forums/forum-panel";
 import { ReportButton } from "@/components/report-button";
+import { PlayerLink } from "@/components/player-link";
 import { PaginationBar } from "@/components/forums/pagination-bar";
 import { formatForumDate } from "@/lib/format-forum-date";
+import { unhidePost, testHidePost } from "../../actions";
 import type { ForumPostWithAuthor } from "@/lib/supabase/types";
 
 const PAGE_SIZE = 10;
@@ -46,9 +48,10 @@ export default async function ForumThreadPage(props: PageProps<"/forums/[categor
     supabase.from("forum_categories").select("id, name").eq("id", categoryId).maybeSingle(),
     supabase
       .from("forum_posts")
-      .select("id, author_id, body_raw, body_html, created_at, edited_at, edit_count, last_edited_by", {
-        count: "exact",
-      })
+      .select(
+        "id, author_id, body_raw, body_html, created_at, edited_at, edit_count, last_edited_by, is_hidden, hidden_at",
+        { count: "exact" },
+      )
       .eq("thread_id", thread.id)
       .order("created_at")
       .range(offset, offset + PAGE_SIZE - 1),
@@ -66,30 +69,44 @@ export default async function ForumThreadPage(props: PageProps<"/forums/[categor
 
   const posts = postsData ?? [];
   // last_edited_by is usually the same person as author_id, but not
-  // always — an admin can edit someone else's post — so it needs its
-  // own name resolved too. Folded into the same lookup rather than a
-  // second query.
+  // always — staff can edit someone else's post — so it needs its own
+  // profile (name + role) resolved too. Folded into the same lookup
+  // rather than a second query.
   const profileIds = [
     ...new Set(posts.flatMap((p) => [p.author_id, p.last_edited_by].filter((id): id is string => id !== null))),
   ];
   const { data: profiles } =
     profileIds.length > 0
-      ? await supabase.from("user_profiles").select("id, display_name, avatar_url").in("id", profileIds)
+      ? await supabase
+          .from("user_profiles")
+          .select("id, display_name, avatar_url, is_admin, is_moderator")
+          .in("id", profileIds)
       : { data: [] };
   const profileById = new Map((profiles ?? []).map((p) => [p.id, p]));
 
-  const postsWithAuthor: ForumPostWithAuthor[] = posts.map((p) => ({
-    id: p.id,
-    body_raw: p.body_raw,
-    body_html: p.body_html,
-    created_at: p.created_at,
-    edited_at: p.edited_at,
-    edit_count: p.edit_count,
-    authorId: p.author_id,
-    authorName: profileById.get(p.author_id)?.display_name ?? "Unknown",
-    authorAvatarUrl: profileById.get(p.author_id)?.avatar_url ?? null,
-    lastEditorName: p.last_edited_by ? (profileById.get(p.last_edited_by)?.display_name ?? "Unknown") : null,
-  }));
+  const postsWithAuthor: ForumPostWithAuthor[] = posts.map((p) => {
+    const author = profileById.get(p.author_id);
+    const editor = p.last_edited_by ? profileById.get(p.last_edited_by) : null;
+    return {
+      id: p.id,
+      body_raw: p.body_raw,
+      body_html: p.body_html,
+      created_at: p.created_at,
+      edited_at: p.edited_at,
+      edit_count: p.edit_count,
+      is_hidden: p.is_hidden,
+      hidden_at: p.hidden_at,
+      authorId: p.author_id,
+      authorName: author?.display_name ?? "Unknown",
+      authorAvatarUrl: author?.avatar_url ?? null,
+      authorIsAdmin: author?.is_admin ?? false,
+      authorIsModerator: author?.is_moderator ?? false,
+      lastEditedById: p.last_edited_by,
+      lastEditorName: p.last_edited_by ? (editor?.display_name ?? "Unknown") : null,
+      lastEditorIsAdmin: editor?.is_admin ?? false,
+      lastEditorIsModerator: editor?.is_moderator ?? false,
+    };
+  });
 
   const totalPages = Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE));
 
@@ -116,7 +133,7 @@ export default async function ForumThreadPage(props: PageProps<"/forums/[categor
               post={post}
               categoryId={categoryId}
               threadId={thread.id}
-              canEdit={user?.id === post.authorId || isAdmin}
+              canEdit={user?.id === post.authorId || canModerate}
               canModerate={canModerate}
               canReport={!!user && user.id !== post.authorId}
             />
@@ -173,6 +190,18 @@ function PostCard({
   canModerate: boolean;
   canReport: boolean;
 }) {
+  // The real name is shown only when the editor IS the author (a normal
+  // self-edit) or isn't staff — a staff member editing someone else's
+  // post shows a generic role label instead, per the explicit ask not to
+  // expose which specific mod/admin touched another player's content.
+  const editedBySomeoneElse = post.lastEditedById !== null && post.lastEditedById !== post.authorId;
+  const editedByLabel =
+    editedBySomeoneElse && post.lastEditorIsAdmin
+      ? "an admin"
+      : editedBySomeoneElse && post.lastEditorIsModerator
+        ? "a moderator"
+        : (post.lastEditorName ?? "Unknown");
+
   return (
     <article className="flex flex-col gap-4 border-t border-amber-100 p-6 first:border-t-0 sm:flex-row">
       <div className="flex shrink-0 flex-row items-center gap-3 sm:w-32 sm:flex-col sm:text-center">
@@ -187,9 +216,13 @@ function PostCard({
         ) : (
           <div className="h-16 w-16 rounded-md border-2 border-dashed border-amber-300 sm:h-[72px] sm:w-[72px]" />
         )}
-        <Link href={`/u/${post.authorId}`} className="text-sm font-semibold hover:underline">
-          {post.authorName}
-        </Link>
+        <PlayerLink
+          userId={post.authorId}
+          name={post.authorName}
+          isAdmin={post.authorIsAdmin}
+          isModerator={post.authorIsModerator}
+          className="text-sm font-semibold hover:underline"
+        />
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-3">
         <div className="flex items-start justify-between gap-3">
@@ -210,19 +243,61 @@ function PostCard({
             {canReport ? <ReportButton targetType="forum_post" targetId={post.id} /> : null}
           </div>
         </div>
-        {/* body_html is produced exclusively by bbcodeToHtml() at write
-            time (src/lib/bbcode.ts) — this is the one place that
-            rendered output is ever trusted enough to render. Never
-            render body_raw directly. */}
-        <div
-          className="forum-content text-base leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: post.body_html }}
-        />
+
+        {post.is_hidden && !canModerate ? (
+          <p className="flex items-center gap-2 rounded-md border border-stone-200 bg-stone-50 px-4 py-6 text-sm italic text-stone-500 dark:border-stone-800 dark:bg-stone-950">
+            <EyeOff size={16} />
+            This post is hidden pending moderator review.
+          </p>
+        ) : (
+          <>
+            {post.is_hidden ? (
+              <div className="flex items-center justify-between gap-3 rounded-md border border-red-200 bg-red-50 px-4 py-2 text-xs text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+                <span className="flex items-center gap-1.5">
+                  <EyeOff size={14} />
+                  Hidden pending review — only staff can see this post right now.
+                </span>
+                <form action={unhidePost}>
+                  <input type="hidden" name="category_id" value={categoryId} />
+                  <input type="hidden" name="thread_id" value={threadId} />
+                  <input type="hidden" name="post_id" value={post.id} />
+                  <button type="submit" className="font-semibold underline">
+                    Unhide
+                  </button>
+                </form>
+              </div>
+            ) : null}
+            {/* body_html is produced exclusively by bbcodeToHtml() at write
+                time (src/lib/bbcode.ts) — this is the one place that
+                rendered output is ever trusted enough to render. Never
+                render body_raw directly. */}
+            <div
+              className="forum-content text-base leading-relaxed"
+              dangerouslySetInnerHTML={{ __html: post.body_html }}
+            />
+          </>
+        )}
+
         {post.edit_count > 0 && post.edited_at ? (
           <p className="text-xs text-stone-400">
-            Last edited by {post.lastEditorName ?? "Unknown"} at {formatForumDate(post.edited_at)}. This post
-            has been edited {post.edit_count} time{post.edit_count === 1 ? "" : "s"}.
+            Last edited by {editedByLabel} at {formatForumDate(post.edited_at)}. This post has been edited{" "}
+            {post.edit_count} time{post.edit_count === 1 ? "" : "s"}.
           </p>
+        ) : null}
+
+        {canModerate && !post.is_hidden ? (
+          <form action={testHidePost} className="self-start">
+            <input type="hidden" name="category_id" value={categoryId} />
+            <input type="hidden" name="thread_id" value={threadId} />
+            <input type="hidden" name="post_id" value={post.id} />
+            <button
+              type="submit"
+              title="Manually hides this post as if 5 players had reported it — for visually testing the auto-hide feature"
+              className="text-xs text-stone-400 underline hover:text-stone-600 dark:hover:text-stone-300"
+            >
+              Hide (test auto-hide-at-5-reports)
+            </button>
+          </form>
         ) : null}
       </div>
     </article>

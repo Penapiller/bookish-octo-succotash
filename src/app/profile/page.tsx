@@ -5,6 +5,7 @@ import { PawPrint, Package } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { bbcodeToHtml } from "@/lib/bbcode";
 import { ExpeditionCountdown } from "@/components/expedition-countdown";
+import { PlayerLink } from "@/components/player-link";
 import type { ExpeditionWithZone } from "@/lib/supabase/types";
 
 export default async function ProfilePage() {
@@ -78,7 +79,12 @@ export default async function ProfilePage() {
             )}
             <div>
               <h1 className="text-xl font-semibold tracking-tight">
-                {profile.display_name}
+                <PlayerLink
+                  userId={profile.id}
+                  name={profile.display_name}
+                  isAdmin={profile.is_admin}
+                  isModerator={profile.is_moderator}
+                />
               </h1>
               <p className="text-xs text-stone-500">Joined {joined}</p>
               <Link href="/settings" className="text-xs underline">

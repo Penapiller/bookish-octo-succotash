@@ -226,3 +226,47 @@ export async function deleteThread(formData: FormData): Promise<void> {
   revalidatePath(`/forums/${categoryId}`);
   redirect(`/forums/${categoryId}`);
 }
+
+// Un-hides a post — staff-only via forum_posts' staff-or-author UPDATE
+// policy (0028_moderation_round_two.sql), same reliance-on-RLS-alone as
+// every other staff action in this file.
+export async function unhidePost(formData: FormData): Promise<void> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const categoryId = String(formData.get("category_id") ?? "");
+  const threadId = String(formData.get("thread_id") ?? "");
+  const postId = String(formData.get("post_id") ?? "");
+  if (categoryId.length === 0 || threadId.length === 0 || postId.length === 0) return;
+
+  await supabase.from("forum_posts").update({ is_hidden: false, hidden_at: null }).eq("id", postId);
+
+  revalidatePath(`/forums/${categoryId}/${threadId}`);
+}
+
+// Manually flips a post's is_hidden on, without needing 5 real reports —
+// explicitly a test/demo affordance for the auto-hide-at-5-reports
+// feature, not something a real moderator workflow needs day to day
+// (the real trigger is handle_new_report(), 0028_moderation_round_two.sql).
+export async function testHidePost(formData: FormData): Promise<void> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const categoryId = String(formData.get("category_id") ?? "");
+  const threadId = String(formData.get("thread_id") ?? "");
+  const postId = String(formData.get("post_id") ?? "");
+  if (categoryId.length === 0 || threadId.length === 0 || postId.length === 0) return;
+
+  await supabase
+    .from("forum_posts")
+    .update({ is_hidden: true, hidden_at: new Date().toISOString() })
+    .eq("id", postId);
+
+  revalidatePath(`/forums/${categoryId}/${threadId}`);
+}

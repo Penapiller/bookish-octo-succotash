@@ -166,6 +166,21 @@ This project is being built one module at a time. Current state:
       resolve, dismiss, or delete the reported post outright. Forum
       thread pin/lock (previously admin-only) and a new delete capability
       for threads/posts are now moderator powers too. See Notes below
+- [x] Moderator tools round two — filing a report now sends an automatic
+      DM acknowledgment from a "Staff Team" account; a forum post reported
+      by 5 distinct players auto-hides pending review (plus a staff-only
+      "test" button that simulates this without needing 5 real reports);
+      staff can send a canned or custom warning DM to a player, sent as
+      their own account but visually marked as staff; `/mod/players/
+      [userId]` shows a player's full report history and DM conversation
+      list, 100% staff-only; a staff edit of someone else's post shows
+      "Edited by a moderator/an admin" instead of their name; moderator
+      names render green and admin names deep blue everywhere a display
+      name appears; DM messages are now reportable too, staff can read
+      (not write) any DM conversation for review, and `/messages/
+      [conversationId]` now paginates like the forums and opens to
+      wherever the player's unread messages start instead of always page
+      1. See Notes below
 
 ---
 
@@ -2347,3 +2362,153 @@ signs in.
     an admin account, the report form (category dropdown + details),
     and a mocked `/mod/reports` card with the resolve/dismiss/delete-
     post actions.
+- **Moderator tools round two (`0028_moderation_round_two.sql`,
+  `src/lib/staff-account.ts`, `src/components/player-link.tsx`,
+  `src/app/mod/players/`, `src/app/mod/conversations/`, plus changes
+  across forums/messages/profile files below)** — seven asks in one
+  round; grouped here by mechanism rather than one bullet per ask, since
+  several share the same underlying piece.
+  - **A real "Staff Team" account, seeded into `auth.users` directly**
+    (not through a Google sign-in), with `raw_user_meta_data ->>
+    'full_name'` set so `handle_new_user()` (0001, unchanged) creates its
+    `public.users` row automatically — no separate insert needed. This
+    exists so "send players an automatic DM from staff" can be a real DM
+    through the existing `dm_conversations`/`dm_messages` tables instead
+    of a special-cased non-DM notification type. It's deliberately not an
+    admin or moderator itself (`is_admin`/`is_moderator` both false) —
+    it's a puppet identity for automated messages, and nobody can ever
+    sign in as it. `STAFF_USER_ID` is a plain exported constant
+    (`src/lib/staff-account.ts`), checked at render time (`sender_id ===
+    STAFF_USER_ID`) to show the amber "Official" badge on its messages —
+    separate from the green/blue staff-name coloring below, which is
+    about a *real* staff member's own account.
+  - **One `before insert` + one `after insert` trigger on `reports`,
+    doing different jobs.** `snapshot_report_target_author()` (before)
+    copies whoever authored the reported post/message onto the report row
+    itself (`target_post_author_id`/`target_message_sender_id`) at filing
+    time. `handle_new_report()` (after) does two things: sends the
+    reporter an acknowledgment DM from the Staff account (inlines the
+    same find-or-create-conversation logic as
+    `get_or_create_dm_conversation()` rather than calling it, since that
+    function's own "caller must equal p_user_id" check would reject a
+    trigger acting on the Staff account's behalf), and — for a
+    `forum_post` report — counts **distinct** reporters (not total
+    reports; one player spamming reports can't hide a post solo) and
+    hides the post once 5 have reported it.
+  - **Why the snapshot column exists at all**: `reports.target_post_id`
+    switched from `on delete cascade` to `on delete set null` this round
+    (a moderator deleting a reported post — an ordinary resolution — used
+    to delete the report with it, erasing exactly the history `/mod/
+    players/[userId]` is for). But `target_post_id` going null loses the
+    join to `forum_posts.author_id` the moment the post is gone, which
+    would silently drop that report from "everything about this player" —
+    so the author gets copied onto the report *once, up front*, and
+    survives regardless of what later happens to the post. The `reports`
+    check constraint had to loosen alongside this: `target_post_id`/
+    `target_message_id` are no longer required non-null for their
+    respective `target_type` (only `target_user_id` still is, for
+    `target_type = 'user'`) — a report keeps its `target_type` forever,
+    it just loses its live pointer.
+  - **Auto-hide is a display concern, not an RLS one.** `forum_posts`'
+    SELECT policy stays `using (true)` — a hidden post's row is still
+    technically selectable — and instead `PostCard` (the thread view)
+    checks `is_hidden` itself: non-staff get a muted placeholder ("hidden
+    pending moderator review"), staff still see the real content plus a
+    red "hidden" banner and an Unhide button. This was a deliberate
+    trade-off for this testing phase over a stricter RLS-level hide, so
+    the post can still occupy its slot in the thread (reply_count/
+    pagination stay correct) rather than needing special-casing to skip
+    it. A "Hide (test)" link next to every visible post lets staff trigger
+    the same `is_hidden` flag by hand, exactly as asked ("add a button to
+    test this visually") — it's clearly labeled as a test affordance, not
+    a real moderation action; the real path is still 5 distinct reports.
+  - **Editing someone else's post widened from admin-only to staff**
+    (the `forum_posts` UPDATE policy), which is what makes "Edited by a
+    moderator/an admin" possible in the first place — staff genuinely
+    editing others' content is now a supported action, not just a
+    hypothetical. The anonymized label only applies when the editor
+    *isn't* the author and *is* staff; a normal self-edit still always
+    shows the real name. `ForumPostWithAuthor` exposes the raw
+    `lastEditedById`/`lastEditorIsAdmin`/`lastEditorIsModerator` rather
+    than a pre-decided string — `PostCard` computes the label itself,
+    since only it knows to compare `lastEditedById` against `authorId`.
+  - **Colored staff names**: `user_profiles` now exposes `is_admin`/
+    `is_moderator` (previously admin-only info) — needed for this to
+    render anywhere a name does, not just on staff pages, and consistent
+    with staff identity being public by design here (see the badge above,
+    and the report-history link on `/u/[id]`). A new shared `PlayerLink`
+    component wraps a name in a `Link` to `/u/[id]`, colored green for a
+    moderator or deep blue for an admin (an admin is also a moderator, so
+    the admin check comes first); `staffNameColorClass()` is exported
+    separately for the one spot that needs the color without the profile
+    link (`/messages`' inbox, where the name links to the conversation).
+    Threaded through: forum post authors, the thread-list "Posted by",
+    `/profile` and `/u/[id]`'s own heading, the DM inbox and thread
+    header/messages.
+  - **DM messages become reportable** (`ReportButton`'s `targetType` grew
+    a third value, `"dm_message"`), shown on every received message (not
+    your own) in `/messages/[conversationId]`. Staff reviewing one needs
+    the surrounding conversation, not just the flagged message, so
+    `dm_conversations`/`dm_messages`' SELECT policies widened to also
+    allow `current_user_is_moderator()` — **read-only**: no insert/
+    update/delete policy changed, so this doesn't let staff post into or
+    alter a conversation they're not a participant in. The player-facing
+    `/messages/[conversationId]` page explicitly re-checks participancy
+    itself (`notFound()` if the viewer isn't `user_one_id`/`user_two_id`,
+    even though the widened SELECT policy would let a staff member's
+    query through) — staff use the separate read-only `/mod/
+    conversations/[conversationId]` viewer instead, which has no reply
+    box at all.
+  - **DM pagination + jump-to-first-unread**: `/messages/
+    [conversationId]` now works exactly like a forum thread — `PAGE_SIZE`
+    messages per page, a `PaginationBar` at the bottom. `PaginationBar`
+    itself changed slightly: "page 1" now always gets an explicit
+    `?page=1` in its link instead of a bare URL, because a bare URL (no
+    `page` param at all) means something new on this page — "land on
+    whichever page this player's first unread message is on," computed
+    from their pre-visit read marker (`count of messages with created_at
+    <= my_last_read_at`, converted to a page number) before it gets
+    bumped to "now." Sending a message reuses this for free: since
+    sending bumps the *sender's own* read marker to the new message's
+    timestamp (0026's existing trigger behavior), redirecting to the
+    bare URL after a send always resolves to the last page — showing the
+    message just sent — without the send action needing to compute a
+    page number itself.
+  - **`/mod/players/[userId]`**: a player's full moderation history,
+    100% staff-only (`requireModerator()`) and never linked from anywhere
+    a regular player can reach — `/u/[id]` shows a "Report history (staff
+    only)" link purely because the viewer's own role check already
+    passed, and every report card everywhere (`/mod/reports` too) got a
+    "View full history" link to here. Shows every report where this
+    player is the target *or* the snapshotted author of a reported post/
+    message, plus every DM conversation they're part of (each linking to
+    `/mod/conversations/[conversationId]`, the read-only log viewer), plus
+    the new warning-DM form. `ReportCard` and the reporter/target
+    resolution logic (`resolveReportDetails()`) moved to `src/app/mod/`
+    so both this page and `/mod/reports` share one implementation instead
+    of two.
+  - **Staff warning DMs**: sent as the acting moderator's own account
+    (not the Staff pseudo-account) through the ordinary DM insert path —
+    it still reads as official because the sender's name renders in
+    staff color in the thread. A dropdown of canned messages (guideline
+    reminder, content removed, behavior warning, no-action-needed) plus a
+    "write my own" option that reveals a free-text textarea; either way
+    it's the same `sendStaffWarning` Server Action underneath.
+  - Verified against local Postgres: the Staff account exists,
+    unprivileged, with the expected display name; `user_profiles` exposes
+    the new role columns; a moderator (not an admin) can edit another
+    player's post and the trigger attributes it correctly; filing a
+    report fires exactly one ack DM from Staff; auto-hide doesn't fire at
+    4 distinct reporters but does at 5, and a moderator can unhide;
+    staff can read a conversation they're not in while a non-staff
+    bystander still can't; deleting a reported post sets
+    `target_post_id` null on all its reports while `target_post_author_id`
+    (the snapshot) survives; a `dm_message` report is accepted and
+    correctly snapshots its sender.
+  - Verified visually (temporary preview route, as usual): colored names
+    at all three role levels, the hidden-post placeholder next to the
+    staff view (banner, real content, Unhide, test-hide link), the
+    anonymized "Edited by a moderator" line, a Staff-styled DM message
+    (Official badge, tinted background) next to a normal one with its
+    Report button, the DM pagination bar, and the warning-DM form's
+    canned-message picker.

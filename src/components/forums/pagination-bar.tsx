@@ -17,8 +17,13 @@ export function PaginationBar({
 }) {
   const clampedTotal = Math.max(totalPages, 1);
 
+  // Always includes ?page=, even for page 1 — a bare basePath (no page
+  // param at all) means something different on the DM thread page
+  // (jump to the first unread message), so "First page" must be able to
+  // ask for page 1 explicitly rather than looking identical to "no page
+  // specified."
   function hrefFor(p: number) {
-    return p <= 1 ? basePath : `${basePath}?page=${p}`;
+    return `${basePath}?page=${p}`;
   }
 
   return (

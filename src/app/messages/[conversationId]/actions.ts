@@ -37,7 +37,11 @@ export async function sendMessage(
     return { error: "Could not send that message. Please try again." };
   }
 
-  revalidatePath(`/messages/${conversationId}`);
   revalidatePath("/messages");
-  return null;
+  // No ?page= here on purpose: sending a message bumps the SENDER's own
+  // read marker to right now (sync_dm_conversation_on_message, 0026),
+  // so the conversation page's "no page given -> jump to first unread"
+  // logic resolves this to the last page — showing the message just
+  // sent — without this action needing to compute a page number itself.
+  redirect(`/messages/${conversationId}`);
 }

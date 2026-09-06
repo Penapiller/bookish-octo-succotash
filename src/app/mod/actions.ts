@@ -1,5 +1,6 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireModerator } from "@/lib/moderation";
 import type { ReportStatus } from "@/lib/supabase/types";
@@ -33,6 +34,54 @@ export async function resolveReport(formData: FormData): Promise<void> {
 
   revalidatePath("/mod/reports");
   revalidatePath("/mod");
+}
+
+export type SendWarningState = { error: string } | null;
+
+// Sent as the acting moderator's OWN account, through the completely
+// normal DM path (get_or_create_dm_conversation + a plain insert) — not
+// the Staff pseudo-account. It still reads as an official notice because
+// the sender's name renders in staff color (PlayerLink) in the DM thread,
+// and this action is the only way for a "you're in trouble" style
+// message to actually get sent — a canned message or a custom one, both
+// go through here.
+export async function sendStaffWarning(
+  _prevState: SendWarningState,
+  formData: FormData,
+): Promise<SendWarningState> {
+  const { supabase, user } = await requireModerator();
+
+  const targetUserId = String(formData.get("target_user_id") ?? "");
+  const message = String(formData.get("message") ?? "").trim();
+
+  if (targetUserId.length === 0) {
+    return { error: "Missing target player." };
+  }
+  if (message.length === 0) {
+    return { error: "Pick a canned message or write your own first." };
+  }
+  if (message.length > 4000) {
+    return { error: "Message must be 4000 characters or fewer." };
+  }
+
+  const { data: conversationId, error: conversationError } = await supabase.rpc(
+    "get_or_create_dm_conversation",
+    { p_user_id: user.id, p_other_user_id: targetUserId },
+  );
+
+  if (conversationError || !conversationId) {
+    return { error: conversationError?.message ?? "Could not start a conversation with that player." };
+  }
+
+  const { error: messageError } = await supabase
+    .from("dm_messages")
+    .insert({ conversation_id: conversationId, sender_id: user.id, body: message });
+
+  if (messageError) {
+    return { error: "Could not send that message. Please try again." };
+  }
+
+  redirect(`/messages/${conversationId}`);
 }
 
 // Deletes the reported post AND resolves the report in one step — the

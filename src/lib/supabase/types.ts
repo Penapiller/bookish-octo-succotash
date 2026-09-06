@@ -15,9 +15,12 @@ export type UserRow = {
   created_at: string;
 };
 
+// is_admin/is_moderator are public here on purpose — see user_profiles in
+// 0028_moderation_round_two.sql — so a colored staff name (PlayerLink)
+// can render for anyone viewing it, not just staff.
 export type PublicUserProfile = Pick<
   UserRow,
-  "id" | "display_name" | "avatar_url" | "bio" | "created_at"
+  "id" | "display_name" | "avatar_url" | "bio" | "created_at" | "is_admin" | "is_moderator"
 >;
 
 // Named rarity_tier in Postgres (renamed from pet_rarity once items also
@@ -516,15 +519,24 @@ export type DmConversationSummary = Pick<
   otherUserId: string;
   otherUserName: string;
   otherUserAvatarUrl: string | null;
+  otherUserIsAdmin: boolean;
+  otherUserIsModerator: boolean;
   lastMessageIsMine: boolean;
   isUnread: boolean;
 };
 
 // A message as shown on /messages/[conversationId] — sender name resolved,
-// same user_profiles-lookup pattern as forum posts.
+// same user_profiles-lookup pattern as forum posts. isFromStaffAccount is
+// specifically the Staff pseudo-account (STAFF_USER_ID) — the automated
+// "your report was received" notice — distinct from senderIsAdmin/
+// senderIsModerator, which mark a real staff member's own account (e.g.
+// a warning DM they sent themselves).
 export type DmMessageWithSender = Pick<DmMessageRow, "id" | "body" | "created_at"> & {
   senderId: string;
   senderName: string;
+  senderIsAdmin: boolean;
+  senderIsModerator: boolean;
+  isFromStaffAccount: boolean;
 };
 
 export type ForumCategoryRow = {
@@ -561,6 +573,8 @@ export type ForumPostRow = {
   edited_at: string | null;
   edit_count: number;
   last_edited_by: string | null;
+  is_hidden: boolean;
+  hidden_at: string | null;
 };
 
 // A top-level forum category with its subcategories nested — how /forums
@@ -579,34 +593,53 @@ export type ForumThreadListItem = Pick<
 > & {
   authorId: string;
   authorName: string;
+  authorIsAdmin: boolean;
+  authorIsModerator: boolean;
 };
 
-// A post as shown on a thread page — author name/avatar and the last
-// editor's name (which may be a different person — an admin editing
-// someone else's post) resolved.
+// A post as shown on a thread page — author name/avatar resolved, plus
+// the last editor's raw id/name/role (NOT a pre-decided display string —
+// PostCard itself decides whether to show the real name or "a moderator"/
+// "an admin", since that depends on comparing lastEditedById to authorId,
+// which the type shouldn't need to know about).
 export type ForumPostWithAuthor = Pick<
   ForumPostRow,
-  "id" | "body_raw" | "body_html" | "created_at" | "edited_at" | "edit_count"
+  "id" | "body_raw" | "body_html" | "created_at" | "edited_at" | "edit_count" | "is_hidden" | "hidden_at"
 > & {
   authorId: string;
   authorName: string;
   authorAvatarUrl: string | null;
+  authorIsAdmin: boolean;
+  authorIsModerator: boolean;
+  lastEditedById: string | null;
   lastEditorName: string | null;
+  lastEditorIsAdmin: boolean;
+  lastEditorIsModerator: boolean;
 };
 
-export type ReportTargetType = "user" | "forum_post";
+export type ReportTargetType = "user" | "forum_post" | "dm_message";
 export type ReportCategory = "spam" | "harassment" | "inappropriate_content" | "scam" | "other";
 export type ReportStatus = "open" | "resolved" | "dismissed";
 
-// See 0027_moderation.sql — exactly one of target_user_id/target_post_id
-// is set, per target_type (enforced by a check constraint, not just
-// convention).
+// See 0027_moderation.sql / 0028_moderation_round_two.sql — exactly one
+// of target_user_id/target_post_id/target_message_id is set, per
+// target_type (enforced by a check constraint, not just convention).
+// target_post_id/target_message_id can still go null later without
+// changing target_type — the reported content was deleted, but the
+// report itself (and its resolution) survives as history.
 export type ReportRow = {
   id: string;
   reporter_id: string;
   target_type: ReportTargetType;
   target_user_id: string | null;
   target_post_id: string | null;
+  target_message_id: string | null;
+  // Snapshotted at report-filing time (see snapshot_report_target_
+  // author(), 0028_moderation_round_two.sql) — stay populated even after
+  // target_post_id/target_message_id go null on deletion, so a report
+  // never loses its link to the player who authored the content.
+  target_post_author_id: string | null;
+  target_message_sender_id: string | null;
   category: ReportCategory;
   details: string | null;
   status: ReportStatus;
@@ -616,9 +649,9 @@ export type ReportRow = {
   created_at: string;
 };
 
-// A report as shown in /mod/reports — reporter name and the target
-// (whichever applies) resolved to something displayable, so the queue
-// doesn't have to join per-row in the UI.
+// A report as shown in /mod/reports (and /mod/players/[userId]) —
+// reporter name and the target (whichever applies) resolved to something
+// displayable, so the queue doesn't have to join per-row in the UI.
 export type ReportWithDetails = Pick<
   ReportRow,
   "id" | "target_type" | "category" | "details" | "status" | "resolved_at" | "resolution_note" | "created_at"
@@ -629,9 +662,15 @@ export type ReportWithDetails = Pick<
   targetUserName: string | null;
   targetPostId: string | null;
   targetPostBody: string | null;
+  targetPostAuthorId: string | null;
   targetPostAuthorName: string | null;
   targetThreadId: string | null;
   targetCategoryId: string | null;
+  targetMessageId: string | null;
+  targetMessageBody: string | null;
+  targetMessageSenderId: string | null;
+  targetMessageSenderName: string | null;
+  targetMessageConversationId: string | null;
   resolvedByName: string | null;
 };
 
