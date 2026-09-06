@@ -3,8 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Mail } from "lucide-react";
 import { requireModerator } from "@/lib/moderation";
-import { resolveReportDetails, groupReportsByTarget } from "../../resolve-reports";
-import { ReportGroupRow } from "../../reports/report-group-row";
+import { resolveReportDetails } from "../../resolve-reports";
+import { ReportCard } from "../../report-card";
 import { WarningDmForm } from "./warning-dm-form";
 import { BanForm } from "./ban-form";
 import { BansList } from "./bans-list";
@@ -49,7 +49,6 @@ export default async function ModPlayerPage(props: PageProps<"/mod/players/[user
     ]);
 
   const reports = await resolveReportDetails(supabase, (reportsData ?? []) as ReportRow[]);
-  const reportGroups = groupReportsByTarget(reports);
 
   const issuerIds = [...new Set((bansData ?? []).map((b) => b.issued_by))];
   const { data: issuerProfiles } =
@@ -140,32 +139,15 @@ export default async function ModPlayerPage(props: PageProps<"/mod/players/[user
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold tracking-tight">
-          Report history ({reports.length} report{reports.length === 1 ? "" : "s"}
-          {reportGroups.length !== reports.length ? `, ${reportGroups.length} ticket${reportGroups.length === 1 ? "" : "s"}` : ""})
-        </h2>
-        {reportGroups.length === 0 ? (
+        <h2 className="text-lg font-semibold tracking-tight">Report history ({reports.length})</h2>
+        {reports.length === 0 ? (
           <p className="text-sm italic text-stone-500">No reports about this player.</p>
         ) : (
-          <div className="overflow-hidden rounded-lg border border-amber-200 dark:border-stone-800">
-            <table className="w-full text-sm">
-              <thead className="bg-amber-100 text-left text-xs uppercase tracking-wide text-stone-500 dark:bg-stone-900">
-                <tr>
-                  <th className="px-4 py-2">Target</th>
-                  <th className="px-4 py-2">Category</th>
-                  <th className="px-4 py-2">Priority</th>
-                  <th className="px-4 py-2">Reports</th>
-                  <th className="px-4 py-2">Filed</th>
-                  <th className="px-4 py-2">Claim</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reportGroups.map((group) => (
-                  <ReportGroupRow key={group.key} group={group} viewerId={user.id} />
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ul className="flex flex-col gap-3">
+            {reports.map((report) => (
+              <ReportCard key={report.id} report={report} />
+            ))}
+          </ul>
         )}
       </section>
     </div>

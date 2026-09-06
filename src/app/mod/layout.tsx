@@ -22,12 +22,6 @@ export default async function ModLayout({
           <Link href="/mod/reports" className="hover:underline">
             Reports
           </Link>
-          <Link href="/mod/appeals" className="hover:underline">
-            Appeals
-          </Link>
-          <Link href="/mod/support" className="hover:underline">
-            Support
-          </Link>
         </nav>
       </div>
       {children}

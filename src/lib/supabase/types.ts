@@ -619,14 +619,7 @@ export type ForumPostWithAuthor = Pick<
 
 export type ReportTargetType = "user" | "forum_post" | "dm_message";
 export type ReportCategory = "spam" | "harassment" | "inappropriate_content" | "scam" | "other";
-// "escalated" added in 0031_moderation_overhaul.sql — a moderator's own
-// further edits to a report are RLS-blocked once it reaches this status,
-// so only an admin can act on it from here (resolve/dismiss/un-escalate).
-export type ReportStatus = "open" | "escalated" | "resolved" | "dismissed";
-// Auto-derived at insert time from category (set_report_priority(),
-// 0031) — not staff-editable, purely a triage signal for sorting the
-// queue.
-export type ReportPriority = "low" | "normal" | "high";
+export type ReportStatus = "open" | "resolved" | "dismissed";
 
 // See 0027_moderation.sql / 0028_moderation_round_two.sql — exactly one
 // of target_user_id/target_post_id/target_message_id is set, per
@@ -653,21 +646,6 @@ export type ReportRow = {
   resolved_by: string | null;
   resolved_at: string | null;
   resolution_note: string | null;
-  // See 0030_report_tickets.sql — which staff member is actively working
-  // this (or its ticket, if grouped with duplicates). Separate from
-  // resolved_by, which records who closed it; any staff member can claim
-  // or unclaim, so this never gets permanently stuck.
-  claimed_by: string | null;
-  claimed_at: string | null;
-  priority: ReportPriority;
-  // See 0031_moderation_overhaul.sql — a moderator's handoff to an admin.
-  // recommended_action is free text (e.g. "Permanent account ban"), not a
-  // structured ban request — the admin still issues the ban themselves,
-  // through the normal bans-table path, once they agree.
-  escalated_by: string | null;
-  escalated_at: string | null;
-  escalation_reason: string | null;
-  recommended_action: string | null;
   created_at: string;
 };
 
@@ -676,21 +654,7 @@ export type ReportRow = {
 // displayable, so the queue doesn't have to join per-row in the UI.
 export type ReportWithDetails = Pick<
   ReportRow,
-  | "id"
-  | "target_type"
-  | "category"
-  | "details"
-  | "status"
-  | "resolved_at"
-  | "resolution_note"
-  | "claimed_by"
-  | "claimed_at"
-  | "priority"
-  | "escalated_by"
-  | "escalated_at"
-  | "escalation_reason"
-  | "recommended_action"
-  | "created_at"
+  "id" | "target_type" | "category" | "details" | "status" | "resolved_at" | "resolution_note" | "created_at"
 > & {
   reporterId: string;
   reporterName: string;
@@ -708,42 +672,6 @@ export type ReportWithDetails = Pick<
   targetMessageSenderName: string | null;
   targetMessageConversationId: string | null;
   resolvedByName: string | null;
-  claimedByName: string | null;
-  escalatedByName: string | null;
-};
-
-// See 0030_report_tickets.sql — an internal, staff-only note attached to
-// a ticket (the same target_type/target_*_id shape reports itself uses,
-// not a foreign key to one specific duplicate report), for handoff
-// context between staff. Never shown to players.
-export type ReportNoteRow = {
-  id: string;
-  target_type: ReportTargetType;
-  target_user_id: string | null;
-  target_post_id: string | null;
-  target_message_id: string | null;
-  author_id: string;
-  body: string;
-  created_at: string;
-};
-
-export type ReportNoteWithAuthor = Pick<ReportNoteRow, "id" | "body" | "created_at"> & {
-  authorName: string;
-};
-
-// One ticket = every report (of any status, depending on which tab is
-// querying) sharing the same target — see groupReportsByTarget()
-// (src/app/mod/resolve-reports.ts). `report` is the representative row
-// (earliest by created_at) whose id anchors the ticket's detail-page URL
-// and whose target identity every bulk action (claim/resolve/dismiss)
-// resolves from server-side.
-export type ReportGroup = {
-  key: string;
-  report: ReportWithDetails;
-  reportCount: number;
-  categories: ReportCategory[];
-  oldestCreatedAt: string;
-  newestCreatedAt: string;
 };
 
 export type CannedStaffMessageRow = {
@@ -781,64 +709,6 @@ export type BanWithIssuer = Pick<
   "id" | "ban_type" | "reason" | "issued_at" | "expires_at" | "lifted_at"
 > & {
   issuedByName: string;
-};
-
-export type AppealStatus = "open" | "approved" | "denied";
-
-// See 0031_moderation_overhaul.sql — scoped to dm/sales/forums bans only
-// (RLS enforces this at insert time); account bans have no in-app appeal
-// path yet since the ban signs the player out before they could file
-// one. One appeal per ban (unique constraint on ban_id).
-export type AppealRow = {
-  id: string;
-  ban_id: string;
-  player_id: string;
-  reason: string;
-  status: AppealStatus;
-  reviewed_by: string | null;
-  reviewed_at: string | null;
-  review_note: string | null;
-  created_at: string;
-};
-
-export type AppealWithBan = AppealRow & {
-  banType: BanType;
-  banReason: string | null;
-  banExpiresAt: string;
-  banIssuedByName: string;
-};
-
-export type SupportTicketStatus = "open" | "closed";
-
-export type SupportTicketRow = {
-  id: string;
-  player_id: string;
-  subject: string;
-  status: SupportTicketStatus;
-  claimed_by: string | null;
-  claimed_at: string | null;
-  closed_by: string | null;
-  closed_at: string | null;
-  created_at: string;
-};
-
-export type SupportTicketWithDetails = SupportTicketRow & {
-  playerName: string;
-  claimedByName: string | null;
-};
-
-export type SupportTicketMessageRow = {
-  id: string;
-  ticket_id: string;
-  sender_id: string;
-  body: string;
-  created_at: string;
-};
-
-export type SupportTicketMessageWithSender = Pick<SupportTicketMessageRow, "id" | "body" | "created_at"> & {
-  senderId: string;
-  senderName: string;
-  senderIsStaff: boolean;
 };
 
 type TableOf<Row, Insert = Partial<Row>, Update = Partial<Row>> = {
@@ -916,10 +786,6 @@ export type Database = {
         ReportRow,
         Partial<ReportRow> & { reporter_id: string; target_type: ReportTargetType; category: ReportCategory }
       >;
-      report_notes: TableOf<
-        ReportNoteRow,
-        Partial<ReportNoteRow> & { target_type: ReportTargetType; author_id: string; body: string }
-      >;
       canned_staff_messages: TableOf<
         CannedStaffMessageRow,
         Partial<CannedStaffMessageRow> & { label: string; body: string }
@@ -927,15 +793,6 @@ export type Database = {
       bans: TableOf<
         BanRow,
         Partial<BanRow> & { user_id: string; ban_type: BanType; issued_by: string; expires_at: string }
-      >;
-      appeals: TableOf<AppealRow, Partial<AppealRow> & { ban_id: string; player_id: string; reason: string }>;
-      support_tickets: TableOf<
-        SupportTicketRow,
-        Partial<SupportTicketRow> & { player_id: string; subject: string }
-      >;
-      support_ticket_messages: TableOf<
-        SupportTicketMessageRow,
-        Partial<SupportTicketMessageRow> & { ticket_id: string; sender_id: string; body: string }
       >;
     };
     Views: {

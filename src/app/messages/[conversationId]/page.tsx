@@ -116,7 +116,6 @@ export default async function ConversationPage(
 
   const messages = (messagesData ?? []) as DmMessageRow[];
   const otherName = otherProfile?.display_name ?? "Unknown player";
-  const isStaffConversation = otherUserId === STAFF_USER_ID;
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-5 px-6 py-12">
@@ -171,7 +170,7 @@ export default async function ConversationPage(
                   isFromStaffAccount={isFromStaffAccount}
                   createdAt={message.created_at}
                   body={message.body}
-                  canReport={!isMine && !isFromStaffAccount}
+                  canReport={!isMine}
                 />
               );
             })
@@ -182,22 +181,11 @@ export default async function ConversationPage(
       </ForumPanel>
 
       <div className="overflow-hidden rounded-xl border border-amber-300 shadow-sm">
-        {isStaffConversation ? (
-          <ForumPanelSection title="This conversation is locked">
-            <div className="flex flex-col gap-2 p-5 text-sm text-stone-600 dark:text-stone-400">
-              <p>This is an automated moderation message and cannot receive replies.</p>
-              <Link href="/support/new" className="w-fit rounded-md bg-amber-800 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300">
-                Contact Support
-              </Link>
-            </div>
-          </ForumPanelSection>
-        ) : (
-          <ForumPanelSection title={`Reply to ${otherName}`}>
-            <div className="p-5">
-              <ReplyForm conversationId={conversationId} />
-            </div>
-          </ForumPanelSection>
-        )}
+        <ForumPanelSection title={`Reply to ${otherName}`}>
+          <div className="p-5">
+            <ReplyForm conversationId={conversationId} />
+          </div>
+        </ForumPanelSection>
       </div>
     </main>
   );
