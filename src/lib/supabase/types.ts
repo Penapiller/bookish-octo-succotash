@@ -619,7 +619,7 @@ export type ForumPostWithAuthor = Pick<
 
 export type ReportTargetType = "user" | "forum_post" | "dm_message";
 export type ReportCategory = "spam" | "harassment" | "inappropriate_content" | "scam" | "other";
-// "escalated" added in 0030_simple_report_handling.sql — "send this to
+// "escalated" added in 0032_simple_report_handling.sql — "send this to
 // an admin instead of handling it myself." Not access-controlled (any
 // staff member can still act on an escalated report, same as any other —
 // reports' UPDATE policy is untouched); it's an organizational status,
@@ -716,7 +716,7 @@ export type BanWithIssuer = Pick<
   issuedByName: string;
 };
 
-// See 0030_simple_report_handling.sql — self-service, one-directional
+// See 0032_simple_report_handling.sql — self-service, one-directional
 // (blocking someone stops THEM from DMing you, not the reverse).
 export type BlockRow = {
   id: string;

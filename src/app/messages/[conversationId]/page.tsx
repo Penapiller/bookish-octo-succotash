@@ -32,11 +32,15 @@ export default async function ConversationPage(
     redirect("/login");
   }
 
-  const { data: conversationData } = await supabase
+  const { data: conversationData, error: conversationError } = await supabase
     .from("dm_conversations")
     .select("*")
     .eq("id", conversationId)
     .maybeSingle();
+
+  if (conversationError) {
+    console.error("Failed to load conversation", conversationId, conversationError);
+  }
 
   const conversation = conversationData as DmConversationRow | null;
 

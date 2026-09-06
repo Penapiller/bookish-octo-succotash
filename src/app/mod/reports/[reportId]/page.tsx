@@ -19,7 +19,10 @@ export default async function ReportHandlingPage(props: PageProps<"/mod/reports/
   const { reportId } = await props.params;
   const { supabase } = await requireModerator();
 
-  const { data: reportRow } = await supabase.from("reports").select("*").eq("id", reportId).maybeSingle();
+  const { data: reportRow, error: reportError } = await supabase.from("reports").select("*").eq("id", reportId).maybeSingle();
+  if (reportError) {
+    console.error("Failed to load report", reportId, reportError);
+  }
   if (!reportRow) {
     notFound();
   }

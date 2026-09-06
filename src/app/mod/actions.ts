@@ -348,7 +348,7 @@ export async function escalateReportSimple(formData: FormData): Promise<void> {
 export type AddPlayerNoteState = { error: string } | null;
 
 // Private, staff-only, dated and attributed (player_notes,
-// 0030_simple_report_handling.sql) — shown on the report-handling page
+// 0032_simple_report_handling.sql) — shown on the report-handling page
 // for context on a player's history. Separate from resolution_note.
 export async function addPlayerNote(
   _prevState: AddPlayerNoteState,

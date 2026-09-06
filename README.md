@@ -2674,7 +2674,7 @@ signs in.
     avatar/timestamp stayed fully visible in every case. Needs more
     detail from whoever filed it — which page, ideally a screenshot —
     before attempting a fix; left open rather than guessing.
-- **Simpler report handling** (`0030_simple_report_handling.sql`) — the
+- **Simpler report handling** (`0032_simple_report_handling.sql`) — the
   two follow-up rounds after "Moderator tools round three" (grouped
   report "tickets" with claiming/dedup/internal notes, then a much larger
   invisible-staff/escalation/appeals/support-tickets overhaul) were
@@ -2764,3 +2764,22 @@ signs in.
     view, and the full report-handling page — the handling-button row,
     a ban choice revealing the duration selector, and the resulting
     Confirm/Escalate bar — matching the provided wireframe's layout.
+  - **Follow-up fix — reused migration number**: this round's migration
+    was originally filed as `0030_simple_report_handling.sql`, reusing
+    the number `0030` after the revert deleted the previous, unrelated
+    `0030_report_tickets.sql`. If a migration tool tracks "applied"
+    state by version prefix rather than full filename (Supabase CLI's
+    `supabase_migrations.schema_migrations` does exactly this), an
+    environment where the old `0030`/`0031` had already been applied
+    could see this new migration silently skipped or rejected as a
+    checksum mismatch — leaving `blocks`, `player_notes`, and the
+    `'escalated'` status never created, while old overhaul-round tables/
+    policies stayed behind. Renumbered to `0032_simple_report_handling.sql`
+    (past every number ever used by either reverted round) to make that
+    impossible going forward. Also swapped the blind
+    `if (!row) notFound()` pattern on `/messages/[conversationId]` and
+    `/mod/reports/[reportId]` for one that logs the Supabase error first
+    — `.maybeSingle()` returns `{ data: null, error }` on an RLS denial
+    or query error just as it does for a genuinely missing row, so a
+    real failure was rendering as an indistinguishable 404 with nothing
+    in the logs to tell them apart.
