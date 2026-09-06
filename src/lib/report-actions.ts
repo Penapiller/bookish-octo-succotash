@@ -72,3 +72,39 @@ export async function submitReport(
 
   return { success: true };
 }
+
+export type BlockPlayerState = { error: string } | { success: true } | null;
+
+// Self-service and one-directional (blocks.ts, 0030_simple_report_
+// handling.sql) — offered right after filing a report, since "I just
+// reported this person" is exactly the moment a player is most likely to
+// also want to stop hearing from them. Not a staff/moderation action;
+// deliberately lives next to submitReport rather than in src/app/mod/.
+export async function blockPlayer(
+  _prevState: BlockPlayerState,
+  formData: FormData,
+): Promise<BlockPlayerState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const blockedId = String(formData.get("blocked_id") ?? "");
+  if (blockedId.length === 0 || blockedId === user.id) {
+    return { error: "Could not block that player." };
+  }
+
+  const { error } = await supabase
+    .from("blocks")
+    .upsert({ blocker_id: user.id, blocked_id: blockedId }, { onConflict: "blocker_id,blocked_id" });
+
+  if (error) {
+    return { error: "Could not block that player. Please try again." };
+  }
+
+  return { success: true };
+}

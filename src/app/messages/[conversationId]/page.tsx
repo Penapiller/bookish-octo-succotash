@@ -258,7 +258,9 @@ function MessageCard({
       <div className="flex min-w-0 flex-1 flex-col gap-3">
         <div className="flex items-start justify-between gap-3">
           <div className="text-sm text-stone-500">Sent {formatForumDate(createdAt)}</div>
-          {canReport ? <ReportButton targetType="dm_message" targetId={messageId} /> : null}
+          {canReport ? (
+            <ReportButton targetType="dm_message" targetId={messageId} offendingUserId={authorId} />
+          ) : null}
         </div>
         {/* Plain text, not BBCode — a DM isn't a forum post, so this is
             never passed through bbcodeToHtml()/dangerouslySetInnerHTML. */}

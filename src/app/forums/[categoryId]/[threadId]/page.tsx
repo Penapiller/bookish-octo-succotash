@@ -241,7 +241,9 @@ function PostCard({
             {canModerate ? (
               <DeletePostButton categoryId={categoryId} threadId={threadId} postId={post.id} />
             ) : null}
-            {canReport ? <ReportButton targetType="forum_post" targetId={post.id} /> : null}
+            {canReport ? (
+              <ReportButton targetType="forum_post" targetId={post.id} offendingUserId={post.authorId} />
+            ) : null}
           </div>
         </div>
 

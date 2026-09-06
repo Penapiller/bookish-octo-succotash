@@ -619,7 +619,12 @@ export type ForumPostWithAuthor = Pick<
 
 export type ReportTargetType = "user" | "forum_post" | "dm_message";
 export type ReportCategory = "spam" | "harassment" | "inappropriate_content" | "scam" | "other";
-export type ReportStatus = "open" | "resolved" | "dismissed";
+// "escalated" added in 0030_simple_report_handling.sql — "send this to
+// an admin instead of handling it myself." Not access-controlled (any
+// staff member can still act on an escalated report, same as any other —
+// reports' UPDATE policy is untouched); it's an organizational status,
+// not a lock.
+export type ReportStatus = "open" | "escalated" | "resolved" | "dismissed";
 
 // See 0027_moderation.sql / 0028_moderation_round_two.sql — exactly one
 // of target_user_id/target_post_id/target_message_id is set, per
@@ -711,6 +716,30 @@ export type BanWithIssuer = Pick<
   issuedByName: string;
 };
 
+// See 0030_simple_report_handling.sql — self-service, one-directional
+// (blocking someone stops THEM from DMing you, not the reverse).
+export type BlockRow = {
+  id: string;
+  blocker_id: string;
+  blocked_id: string;
+  created_at: string;
+};
+
+// Private, staff-only, dated and attributed — shown on the report-
+// handling page for context on a player's history. Separate from
+// reports.resolution_note (the one-line "why this was closed").
+export type PlayerNoteRow = {
+  id: string;
+  user_id: string;
+  author_id: string;
+  body: string;
+  created_at: string;
+};
+
+export type PlayerNoteWithAuthor = Pick<PlayerNoteRow, "id" | "body" | "created_at"> & {
+  authorName: string;
+};
+
 type TableOf<Row, Insert = Partial<Row>, Update = Partial<Row>> = {
   Row: Row;
   Insert: Insert;
@@ -789,6 +818,11 @@ export type Database = {
       canned_staff_messages: TableOf<
         CannedStaffMessageRow,
         Partial<CannedStaffMessageRow> & { label: string; body: string }
+      >;
+      blocks: TableOf<BlockRow, Partial<BlockRow> & { blocker_id: string; blocked_id: string }>;
+      player_notes: TableOf<
+        PlayerNoteRow,
+        Partial<PlayerNoteRow> & { user_id: string; author_id: string; body: string }
       >;
       bans: TableOf<
         BanRow,
@@ -1000,6 +1034,10 @@ export type Database = {
       };
       user_has_active_ban: {
         Args: { p_user_id: string; p_ban_type: BanType };
+        Returns: boolean;
+      };
+      is_blocked_by: {
+        Args: { p_blocked_id: string; p_blocker_id: string };
         Returns: boolean;
       };
     };

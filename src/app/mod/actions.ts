@@ -227,3 +227,156 @@ export async function liftBan(formData: FormData): Promise<void> {
     revalidatePath(`/mod/players/${targetUserId}`);
   }
 }
+
+export type ReportHandling = "dismiss" | "warn" | "forums_ban" | "dm_ban" | "sales_ban";
+
+const HANDLING_BAN_TYPE: Partial<Record<ReportHandling, BanType>> = {
+  forums_ban: "forums",
+  dm_ban: "dm",
+  sales_ban: "sales",
+};
+
+const HANDLING_LABEL: Record<ReportHandling, string> = {
+  dismiss: "Dismissed — no action taken.",
+  warn: "Verbal warning sent.",
+  forums_ban: "Forums ban issued.",
+  dm_ban: "DM ban issued.",
+  sales_ban: "Sales ban issued.",
+};
+
+export type HandleReportState = { error: string } | null;
+
+// The single "handle this report" action behind the report page's
+// bottom action bar. `handling` decides everything: dismiss sends
+// nothing and just closes the report; every other option sends the
+// composed message (via send_staff_message, so it's always the
+// anonymous Staff account, never the acting moderator's own — see
+// 0029_bans_and_staff_fixes.sql) and, for a ban option, also issues that
+// ban with the chosen duration. Always closes the report (status =
+// resolved) — this is the "confirm and send" path, as opposed to
+// escalateReport below, which never sends a message and never closes.
+export async function handleReport(
+  _prevState: HandleReportState,
+  formData: FormData,
+): Promise<HandleReportState> {
+  const { supabase, user } = await requireModerator();
+
+  const reportId = String(formData.get("report_id") ?? "");
+  const handling = String(formData.get("handling") ?? "") as ReportHandling;
+  const message = String(formData.get("message") ?? "").trim();
+  const durationHours = Number(formData.get("duration_hours") ?? "72");
+
+  if (reportId.length === 0) return { error: "Missing report." };
+  if (!Object.keys(HANDLING_LABEL).includes(handling)) return { error: "Pick how to handle this." };
+
+  const { data: report } = await supabase
+    .from("reports")
+    .select("target_type, target_user_id, target_post_author_id, target_message_sender_id")
+    .eq("id", reportId)
+    .maybeSingle();
+  if (!report) return { error: "Report not found." };
+
+  const offendingUserId =
+    report.target_type === "user"
+      ? report.target_user_id
+      : report.target_type === "forum_post"
+        ? report.target_post_author_id
+        : report.target_message_sender_id;
+
+  if (handling !== "dismiss") {
+    if (message.length === 0) return { error: "Write a message to the player first." };
+    if (message.length > 4000) return { error: "Message must be 4000 characters or fewer." };
+    if (!offendingUserId) return { error: "Can't message this player — their account or content is gone." };
+
+    const { error: messageError } = await supabase.rpc("send_staff_message", {
+      p_target_user_id: offendingUserId,
+      p_body: message,
+    });
+    if (messageError) {
+      return { error: `Could not send that message: ${messageError.message}` };
+    }
+  }
+
+  const banType = HANDLING_BAN_TYPE[handling];
+  if (banType && offendingUserId) {
+    const expiresAt = new Date(Date.now() + durationHours * 60 * 60 * 1000).toISOString();
+    const { error: banError } = await supabase.from("bans").insert({
+      user_id: offendingUserId,
+      ban_type: banType,
+      issued_by: user.id,
+      expires_at: expiresAt,
+      reason: `From report handling (${reportId}).`,
+    });
+    if (banError) {
+      return { error: `Message sent, but the ban failed: ${banError.message}` };
+    }
+  }
+
+  await supabase
+    .from("reports")
+    .update({
+      status: "resolved",
+      resolved_by: user.id,
+      resolved_at: new Date().toISOString(),
+      resolution_note: HANDLING_LABEL[handling],
+    })
+    .eq("id", reportId);
+
+  revalidatePath("/mod/reports");
+  revalidatePath("/mod");
+  if (offendingUserId) revalidatePath(`/mod/players/${offendingUserId}`);
+  redirect("/mod/reports");
+}
+
+// "Send this to an admin instead" — no message sent, report doesn't
+// close, just moves to the 'escalated' status (0030_simple_report_
+// handling.sql). Plain form action, same "just does the thing"
+// convention as resolveReport/deleteReportedPost.
+export async function escalateReportSimple(formData: FormData): Promise<void> {
+  const { supabase } = await requireModerator();
+
+  const reportId = String(formData.get("report_id") ?? "");
+  if (reportId.length === 0) return;
+
+  await supabase.from("reports").update({ status: "escalated" }).eq("id", reportId);
+
+  revalidatePath("/mod/reports");
+  revalidatePath("/mod");
+  redirect("/mod/reports");
+}
+
+export type AddPlayerNoteState = { error: string } | null;
+
+// Private, staff-only, dated and attributed (player_notes,
+// 0030_simple_report_handling.sql) — shown on the report-handling page
+// for context on a player's history. Separate from resolution_note.
+export async function addPlayerNote(
+  _prevState: AddPlayerNoteState,
+  formData: FormData,
+): Promise<AddPlayerNoteState> {
+  const { supabase, user } = await requireModerator();
+
+  const targetUserId = String(formData.get("user_id") ?? "");
+  const reportId = formData.get("report_id");
+  const body = String(formData.get("body") ?? "").trim();
+
+  if (targetUserId.length === 0) return { error: "Missing player." };
+  if (body.length === 0) return { error: "Write a note first." };
+  if (body.length > 2000) return { error: "Note must be 2000 characters or fewer." };
+
+  const { error } = await supabase.from("player_notes").insert({
+    user_id: targetUserId,
+    author_id: user.id,
+    body,
+  });
+
+  if (error) {
+    return { error: `Could not save note: ${error.message}` };
+  }
+
+  if (typeof reportId === "string" && reportId.length > 0) {
+    revalidatePath(`/mod/reports/${reportId}`);
+  }
+  revalidatePath(`/mod/players/${targetUserId}`);
+  return null;
+}

@@ -4,14 +4,17 @@ import { requireModerator } from "@/lib/moderation";
 export default async function ModDashboardPage() {
   const { supabase } = await requireModerator();
 
-  const [{ count: openCount }, { count: resolvedCount }, { count: dismissedCount }] = await Promise.all([
-    supabase.from("reports").select("*", { count: "exact", head: true }).eq("status", "open"),
-    supabase.from("reports").select("*", { count: "exact", head: true }).eq("status", "resolved"),
-    supabase.from("reports").select("*", { count: "exact", head: true }).eq("status", "dismissed"),
-  ]);
+  const [{ count: openCount }, { count: escalatedCount }, { count: resolvedCount }, { count: dismissedCount }] =
+    await Promise.all([
+      supabase.from("reports").select("*", { count: "exact", head: true }).eq("status", "open"),
+      supabase.from("reports").select("*", { count: "exact", head: true }).eq("status", "escalated"),
+      supabase.from("reports").select("*", { count: "exact", head: true }).eq("status", "resolved"),
+      supabase.from("reports").select("*", { count: "exact", head: true }).eq("status", "dismissed"),
+    ]);
 
   const cards = [
     { href: "/mod/reports?status=open", label: "Open reports", count: openCount ?? 0 },
+    { href: "/mod/reports?status=escalated", label: "Escalated", count: escalatedCount ?? 0 },
     { href: "/mod/reports?status=resolved", label: "Resolved", count: resolvedCount ?? 0 },
     { href: "/mod/reports?status=dismissed", label: "Dismissed", count: dismissedCount ?? 0 },
   ];

@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database, ReportRow, ReportWithDetails } from "@/lib/supabase/types";
+import type { Database, PlayerNoteRow, PlayerNoteWithAuthor, ReportRow, ReportWithDetails } from "@/lib/supabase/types";
 
 // Shared by /mod/reports and /mod/players/[userId] — both need the same
 // reporter/target-content resolution (batched user_profiles/forum_posts/
@@ -84,4 +84,25 @@ export async function resolveReportDetails(
       resolvedByName: r.resolved_by ? (profileById.get(r.resolved_by)?.display_name ?? "Unknown") : null,
     };
   });
+}
+
+// Same author-name-resolution pattern as resolveReportDetails, for the
+// private per-player notes shown on the report-handling page.
+export async function resolvePlayerNotes(
+  supabase: SupabaseClient<Database>,
+  notes: PlayerNoteRow[],
+): Promise<PlayerNoteWithAuthor[]> {
+  const authorIds = [...new Set(notes.map((n) => n.author_id))];
+  const { data: profilesData } =
+    authorIds.length > 0
+      ? await supabase.from("user_profiles").select("id, display_name").in("id", authorIds)
+      : { data: [] };
+  const nameById = new Map((profilesData ?? []).map((p) => [p.id, p.display_name]));
+
+  return notes.map((n) => ({
+    id: n.id,
+    body: n.body,
+    created_at: n.created_at,
+    authorName: nameById.get(n.author_id) ?? "Unknown",
+  }));
 }

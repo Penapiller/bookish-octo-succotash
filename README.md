@@ -191,6 +191,17 @@ This project is being built one module at a time. Current state:
       (account bans admin-only to issue), each independently issued/
       lifted with a duration and reason, enforced at the database layer
       and blocking sign-in itself for an account ban. See Notes below
+- [x] Simpler report handling — two follow-up rounds (grouped "tickets"
+      with claiming/dedup/notes, then a full invisible-staff/escalation/
+      appeals/support-tickets overhaul) turned out to feel too complex
+      and were reverted. Replaced with: reporting is now a modal popup
+      that offers to block the offending player right after you submit;
+      a single dedicated `/mod/reports/[reportId]` page per report shows
+      the offending player's info, private staff notes, and past reports
+      alongside the report itself, a message box, and handling buttons
+      (Dismiss/Verbal Warning/Forums Ban/DMs Ban/Sales Ban) — picking one
+      reveals a "Confirm and Send" / "Escalate to Admin" bar. See Notes
+      below
 
 ---
 
@@ -2663,3 +2674,93 @@ signs in.
     avatar/timestamp stayed fully visible in every case. Needs more
     detail from whoever filed it — which page, ideally a screenshot —
     before attempting a fix; left open rather than guessing.
+- **Simpler report handling** (`0030_simple_report_handling.sql`) — the
+  two follow-up rounds after "Moderator tools round three" (grouped
+  report "tickets" with claiming/dedup/internal notes, then a much larger
+  invisible-staff/escalation/appeals/support-tickets overhaul) were
+  reverted wholesale with `git revert` — feedback was that it had gotten
+  too complex. This round replaces them with something closer to the
+  original reports system plus exactly what was asked for: a modal-based
+  report flow with a block-player follow-up, and a single dedicated
+  report-handling page laid out to a provided wireframe.
+  - **The revert itself**: `git revert --no-commit <overhaul-sha>
+    <tickets-sha>` followed by one commit — confirmed with `git diff
+    <pre-tickets-sha> -- . ':!README.md'` returning empty, i.e. every
+    file except README.md matched the pre-tickets state exactly. No
+    manual file edits were needed for the revert to apply cleanly, since
+    nothing landed on the branch between those two rounds and this one.
+  - **Report button becomes a modal** (`components/report-button.tsx`)
+    — was an inline toggle-to-form; now a `fixed inset-0` overlay with a
+    backdrop (click-outside or Cancel closes it), so filing a report
+    doesn't shift the surrounding page layout. On successful submit the
+    modal swaps to a confirmation ("Report submitted. Thanks for
+    flagging this.") and, if the report has a resolvable offending
+    player, a "Would you like to block this player?" prompt.
+  - **Blocking** (`blocks` table) — self-service and deliberately
+    one-directional: blocking someone stops THEM from DMing you, not the
+    reverse (you can still message someone you've blocked, if you want
+    to — the point is "I don't want to hear from them," not "we can't
+    talk"). `ReportButton` gained an `offendingUserId` prop so the
+    block prompt knows who to block for a forum-post or DM-message
+    report (a "user" report already has this as `targetId`); the forum
+    thread page and the DM thread page pass the post author's/message
+    sender's id through explicitly.
+  - **A real RLS bug caught during verification**: the first version of
+    the dm_messages block check was an inline `exists (select 1 from
+    public.blocks ...)` — which silently did nothing, because `blocks`'
+    own "Players can view their own blocks" SELECT policy hides the
+    blocker's row from the blocked sender, so the subquery always saw
+    zero rows regardless of whether a block existed. Fixed with a
+    `security definer` helper (`is_blocked_by()`), same reasoning as
+    `user_has_active_ban()` (0029) needing definer privileges to see
+    rows the calling role's own RLS would otherwise filter out. Caught
+    by the local-Postgres test suite, not by inspection — a good
+    reminder that "add an exists() referencing another RLS-protected
+    table inside a policy" is a pattern that needs this treatment by
+    default, not just when a bug shows up.
+  - **`player_notes`** — private, staff-only, dated and attributed notes
+    about a PLAYER (not a specific report), shown on the report-handling
+    page for at-a-glance context ("has this player caused trouble
+    before?"). Separate from `reports.resolution_note` (the one-line
+    "why this report was closed").
+  - **Escalation, minimal version** — `reports.status` regains the
+    `'escalated'` value from the reverted round, but nothing else: no
+    escalation-reason columns, no admin-only RLS lock, no separate
+    queue. It's purely "send this to an admin instead of handling it
+    myself" — any staff member can still act on an escalated report the
+    same as any other, matching the "much simpler" brief.
+  - **The report-handling page** (`/mod/reports/[reportId]`, new) —
+    laid out to the provided wireframe: a left column with the offending
+    player's avatar/name/join date, the player-notes box (list + add
+    form), and a compact linked list of their past reports (each linking
+    to that report's own handling page — this is how a mod notices a
+    pattern, not automatic grouping); a right column with the original
+    report (reporter, category, details, the reported content itself),
+    a message textarea, and a row of handling-choice buttons (Nothing/
+    Dismiss, Verbal Warning, Forums Ban, DMs Ban, Sales Ban). Picking a
+    handling choice reveals a bottom bar with two independent forms —
+    "Confirm and Send" (disabled until a message is present, for any
+    choice but Dismiss) and "Escalate to Admin" — implemented as two
+    sibling `<form>`s rather than nesting, with the ban-duration
+    `<select>` connected to the confirm form via HTML's `form="..."`
+    attribute despite living outside it in the DOM.
+  - **`handleReport`** (mod/actions.ts) is the one action behind
+    "Confirm and Send": `dismiss` sends nothing and just closes the
+    report; every other choice sends the composed message through
+    `send_staff_message` (always the anonymous Staff account, never the
+    acting moderator's own — unchanged from 0029) and, for a ban choice,
+    also inserts that ban at the chosen duration; always ends by setting
+    the report to `resolved`. `escalateReportSimple` is the other path —
+    never sends a message, never closes, just flips the status.
+  - Verified against local Postgres (10 scenarios): a block correctly
+    stops the blocked player's DM but not the blocker's own outgoing
+    DMs (confirming the one-directional design), an unrelated player
+    can't see someone else's block list, unblocking works, staff-only
+    read/write on `player_notes` holds, `'escalated'` is accepted as a
+    status, and a normal (unblocked) DM is completely unaffected by any
+    of this.
+  - Verified visually (temporary preview route, as usual): the report
+    modal in its closed/open states, the submitted-plus-block-prompt
+    view, and the full report-handling page — the handling-button row,
+    a ban choice revealing the duration selector, and the resulting
+    Confirm/Escalate bar — matching the provided wireframe's layout.

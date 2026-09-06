@@ -45,14 +45,16 @@ export function ReportCard({ report }: { report: ReportWithDetails }) {
           </p>
           <p className="text-xs text-stone-500">{createdAt}</p>
         </div>
-        {offendingUserId ? (
-          <Link
-            href={`/mod/players/${offendingUserId}`}
-            className="shrink-0 whitespace-nowrap text-xs text-stone-500 underline"
-          >
-            View full history
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          <Link href={`/mod/reports/${report.id}`} className="whitespace-nowrap text-xs text-stone-500 underline">
+            Open report
           </Link>
-        ) : null}
+          {offendingUserId ? (
+            <Link href={`/mod/players/${offendingUserId}`} className="whitespace-nowrap text-xs text-stone-500 underline">
+              View full history
+            </Link>
+          ) : null}
+        </div>
       </div>
 
       {report.target_type === "user" ? (
