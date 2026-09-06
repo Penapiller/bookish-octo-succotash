@@ -1,10 +1,18 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database, ReportRow, ReportWithDetails } from "@/lib/supabase/types";
+import type {
+  Database,
+  ReportGroup,
+  ReportNoteRow,
+  ReportNoteWithAuthor,
+  ReportRow,
+  ReportWithDetails,
+} from "@/lib/supabase/types";
 
-// Shared by /mod/reports and /mod/players/[userId] — both need the same
-// reporter/target-content resolution (batched user_profiles/forum_posts/
-// dm_messages lookups, never per-row joins) to go from raw ReportRow[] to
-// something a ReportCard can render.
+// Shared by /mod/reports, /mod/reports/[reportId], /mod/players/[userId],
+// and the player-facing /reports — all need the same reporter/target-
+// content resolution (batched user_profiles/forum_posts/dm_messages
+// lookups, never per-row joins) to go from raw ReportRow[] to something
+// renderable.
 export async function resolveReportDetails(
   supabase: SupabaseClient<Database>,
   reports: ReportRow[],
@@ -15,6 +23,7 @@ export async function resolveReportDetails(
         r.reporter_id,
         r.target_user_id,
         r.resolved_by,
+        r.claimed_by,
         r.target_post_author_id,
         r.target_message_sender_id,
       ].filter((id): id is string => id !== null)),
@@ -61,6 +70,8 @@ export async function resolveReportDetails(
       status: r.status,
       resolved_at: r.resolved_at,
       resolution_note: r.resolution_note,
+      claimed_by: r.claimed_by,
+      claimed_at: r.claimed_at,
       created_at: r.created_at,
       reporterId: r.reporter_id,
       reporterName: profileById.get(r.reporter_id)?.display_name ?? "Unknown",
@@ -82,6 +93,137 @@ export async function resolveReportDetails(
         : null,
       targetMessageConversationId: message?.conversation_id ?? null,
       resolvedByName: r.resolved_by ? (profileById.get(r.resolved_by)?.display_name ?? "Unknown") : null,
+      claimedByName: r.claimed_by ? (profileById.get(r.claimed_by)?.display_name ?? "Unknown") : null,
     };
   });
+}
+
+// One "ticket" = every report sharing the same target — same target_type
+// plus whichever of target_post_id/target_message_id/target_user_id is
+// non-null. Deliberately computed in application code rather than a
+// schema change (see 0030_report_tickets.sql's header comment): grouping
+// this way means claim/resolve/dismiss can bulk-apply to a whole ticket
+// just by looking up one representative report's target identity
+// server-side, with no separate "ticket" table to keep in sync.
+//
+// If the underlying content has since been deleted (target_post_id/
+// target_message_id go null via ON DELETE SET NULL), that report is
+// deliberately NOT grouped with every OTHER deleted-content report —
+// falling back to grouping by null id columns would silently merge
+// unrelated tickets. It renders as its own singleton group instead,
+// keyed by its own id.
+export function groupReportsByTarget(reports: ReportWithDetails[]): ReportGroup[] {
+  const groups = new Map<string, ReportWithDetails[]>();
+
+  for (const report of reports) {
+    let key: string;
+    if (report.target_type === "user" && report.targetUserId) {
+      key = `user:${report.targetUserId}`;
+    } else if (report.target_type === "forum_post" && report.targetPostId) {
+      key = `post:${report.targetPostId}`;
+    } else if (report.target_type === "dm_message" && report.targetMessageId) {
+      key = `message:${report.targetMessageId}`;
+    } else {
+      key = `solo:${report.id}`;
+    }
+
+    const existing = groups.get(key);
+    if (existing) {
+      existing.push(report);
+    } else {
+      groups.set(key, [report]);
+    }
+  }
+
+  return [...groups.entries()].map(([key, members]) => {
+    const sorted = [...members].sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+    );
+    return {
+      key,
+      report: sorted[0],
+      reportCount: sorted.length,
+      categories: [...new Set(sorted.map((r) => r.category))],
+      oldestCreatedAt: sorted[0].created_at,
+      newestCreatedAt: sorted[sorted.length - 1].created_at,
+    };
+  });
+}
+
+type TargetIdentity = {
+  target_type: ReportRow["target_type"];
+  target_user_id: string | null;
+  target_post_id: string | null;
+  target_message_id: string | null;
+};
+
+// Every report sharing a ticket with `identity`, any status — used by
+// the ticket detail page to show the full duplicate history (unlike
+// mod/actions.ts's findOpenTicketReportIds, which only needs OPEN rows
+// since it's driving bulk claim/resolve/dismiss). Falls back to just the
+// one representative report when the live target id has gone null
+// (content deleted outside the reports flow) — same reasoning as
+// findOpenTicketReportIds: matching on a null id column would otherwise
+// silently sweep in every other deleted-content ticket too.
+export async function fetchTicketReports(
+  supabase: SupabaseClient<Database>,
+  identity: TargetIdentity,
+  fallbackReportId: string,
+): Promise<ReportRow[]> {
+  let query = supabase.from("reports").select("*").eq("target_type", identity.target_type);
+  if (identity.target_type === "user" && identity.target_user_id) {
+    query = query.eq("target_user_id", identity.target_user_id);
+  } else if (identity.target_type === "forum_post" && identity.target_post_id) {
+    query = query.eq("target_post_id", identity.target_post_id);
+  } else if (identity.target_type === "dm_message" && identity.target_message_id) {
+    query = query.eq("target_message_id", identity.target_message_id);
+  } else {
+    query = query.eq("id", fallbackReportId);
+  }
+
+  const { data } = await query.order("created_at", { ascending: true });
+  return (data ?? []) as ReportRow[];
+}
+
+// The internal notes attached to the same ticket. Returns nothing when
+// the live target id is null, rather than risk matching every other
+// deleted-content ticket's notes too — see fetchTicketReports above.
+export async function fetchTicketNotes(
+  supabase: SupabaseClient<Database>,
+  identity: TargetIdentity,
+): Promise<ReportNoteRow[]> {
+  let query = supabase.from("report_notes").select("*").eq("target_type", identity.target_type);
+  if (identity.target_type === "user" && identity.target_user_id) {
+    query = query.eq("target_user_id", identity.target_user_id);
+  } else if (identity.target_type === "forum_post" && identity.target_post_id) {
+    query = query.eq("target_post_id", identity.target_post_id);
+  } else if (identity.target_type === "dm_message" && identity.target_message_id) {
+    query = query.eq("target_message_id", identity.target_message_id);
+  } else {
+    return [];
+  }
+
+  const { data } = await query.order("created_at", { ascending: true });
+  return (data ?? []) as ReportNoteRow[];
+}
+
+// Same author-name-resolution pattern as resolveReportDetails, for the
+// internal notes thread on a ticket's detail page.
+export async function resolveReportNotes(
+  supabase: SupabaseClient<Database>,
+  notes: ReportNoteRow[],
+): Promise<ReportNoteWithAuthor[]> {
+  const authorIds = [...new Set(notes.map((n) => n.author_id))];
+  const { data: profilesData } =
+    authorIds.length > 0
+      ? await supabase.from("user_profiles").select("id, display_name").in("id", authorIds)
+      : { data: [] };
+  const nameById = new Map((profilesData ?? []).map((p) => [p.id, p.display_name]));
+
+  return notes.map((n) => ({
+    id: n.id,
+    body: n.body,
+    created_at: n.created_at,
+    authorName: nameById.get(n.author_id) ?? "Unknown",
+  }));
 }

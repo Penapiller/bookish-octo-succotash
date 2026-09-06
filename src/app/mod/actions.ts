@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireModerator } from "@/lib/moderation";
-import type { BanType, ReportStatus } from "@/lib/supabase/types";
+import type { BanType, ReportStatus, ReportTargetType } from "@/lib/supabase/types";
 
 const BAN_TYPES: BanType[] = ["dm", "sales", "forums", "account"];
 
@@ -13,6 +13,57 @@ const BAN_TYPES: BanType[] = ["dm", "sales", "forums", "account"];
 // is defense in depth: the button is only rendered inside /mod (already
 // gated by its own layout), and reports' staff-only UPDATE RLS policy
 // (0027_moderation.sql) is the real backstop either way.
+
+type Supa = Awaited<ReturnType<typeof requireModerator>>["supabase"];
+
+type TargetIdentity = {
+  target_type: ReportTargetType;
+  target_user_id: string | null;
+  target_post_id: string | null;
+  target_message_id: string | null;
+};
+
+async function getReportTargetIdentity(supabase: Supa, reportId: string): Promise<TargetIdentity | null> {
+  const { data } = await supabase
+    .from("reports")
+    .select("target_type, target_user_id, target_post_id, target_message_id")
+    .eq("id", reportId)
+    .maybeSingle();
+  return data;
+}
+
+// Every OPEN report sharing a ticket with `reportId` — same target
+// identity (same reported post/message/user) — so claim/resolve/dismiss
+// can bulk-apply across every duplicate report on that ticket instead of
+// a mod having to click through them one at a time (see
+// groupReportsByTarget(), mod/resolve-reports.ts, for the matching
+// grouping logic used to render the queue). Falls back to just
+// `[reportId]` when the live target id has gone null (content deleted
+// outside the reports flow, e.g. a direct forum delete) — matching on a
+// null id column would otherwise silently sweep in every OTHER
+// deleted-content report too.
+async function findOpenTicketReportIds(
+  supabase: Supa,
+  reportId: string,
+): Promise<{ ids: string[]; identity: TargetIdentity } | null> {
+  const identity = await getReportTargetIdentity(supabase, reportId);
+  if (!identity) return null;
+
+  let query = supabase.from("reports").select("id").eq("status", "open").eq("target_type", identity.target_type);
+  if (identity.target_type === "user" && identity.target_user_id) {
+    query = query.eq("target_user_id", identity.target_user_id);
+  } else if (identity.target_type === "forum_post" && identity.target_post_id) {
+    query = query.eq("target_post_id", identity.target_post_id);
+  } else if (identity.target_type === "dm_message" && identity.target_message_id) {
+    query = query.eq("target_message_id", identity.target_message_id);
+  } else {
+    return { ids: [reportId], identity };
+  }
+
+  const { data } = await query;
+  const ids = (data ?? []).map((r) => r.id);
+  return { ids: ids.length > 0 ? ids : [reportId], identity };
+}
 
 export async function resolveReport(formData: FormData): Promise<void> {
   const { supabase, user } = await requireModerator();
@@ -24,6 +75,9 @@ export async function resolveReport(formData: FormData): Promise<void> {
   const noteRaw = formData.get("resolution_note");
   const note = typeof noteRaw === "string" ? noteRaw.trim() : "";
 
+  const ticket = await findOpenTicketReportIds(supabase, reportId);
+  if (!ticket) return;
+
   await supabase
     .from("reports")
     .update({
@@ -32,10 +86,90 @@ export async function resolveReport(formData: FormData): Promise<void> {
       resolved_at: new Date().toISOString(),
       resolution_note: note.length > 0 ? note : null,
     })
-    .eq("id", reportId);
+    .in("id", ticket.ids);
 
   revalidatePath("/mod/reports");
   revalidatePath("/mod");
+  revalidatePath(`/mod/reports/${reportId}`);
+}
+
+// Marks every open report on this ticket as being actively worked by the
+// claiming mod, so a second mod opening the queue sees it's already
+// spoken for instead of duplicating the investigation. Any staff member
+// can claim or unclaim any ticket (no "only the claimant can release it"
+// restriction) — see 0030_report_tickets.sql.
+export async function claimReport(formData: FormData): Promise<void> {
+  const { supabase, user } = await requireModerator();
+
+  const reportId = String(formData.get("report_id") ?? "");
+  if (reportId.length === 0) return;
+
+  const ticket = await findOpenTicketReportIds(supabase, reportId);
+  if (!ticket) return;
+
+  await supabase
+    .from("reports")
+    .update({ claimed_by: user.id, claimed_at: new Date().toISOString() })
+    .in("id", ticket.ids);
+
+  revalidatePath("/mod/reports");
+  revalidatePath("/mod");
+  revalidatePath(`/mod/reports/${reportId}`);
+}
+
+export async function unclaimReport(formData: FormData): Promise<void> {
+  const { supabase } = await requireModerator();
+
+  const reportId = String(formData.get("report_id") ?? "");
+  if (reportId.length === 0) return;
+
+  const ticket = await findOpenTicketReportIds(supabase, reportId);
+  if (!ticket) return;
+
+  await supabase.from("reports").update({ claimed_by: null, claimed_at: null }).in("id", ticket.ids);
+
+  revalidatePath("/mod/reports");
+  revalidatePath("/mod");
+  revalidatePath(`/mod/reports/${reportId}`);
+}
+
+export type AddNoteState = { error: string } | null;
+
+// An internal, staff-only note on a ticket (report_notes,
+// 0030_report_tickets.sql) — for leaving context/handoff notes, separate
+// from resolution_note (which is written once, at close time, and is
+// really "why this was resolved this way" rather than a running log).
+export async function addReportNote(
+  _prevState: AddNoteState,
+  formData: FormData,
+): Promise<AddNoteState> {
+  const { supabase, user } = await requireModerator();
+
+  const reportId = String(formData.get("report_id") ?? "");
+  const body = String(formData.get("body") ?? "").trim();
+
+  if (reportId.length === 0) return { error: "Missing report." };
+  if (body.length === 0) return { error: "Write a note first." };
+  if (body.length > 2000) return { error: "Note must be 2000 characters or fewer." };
+
+  const identity = await getReportTargetIdentity(supabase, reportId);
+  if (!identity) return { error: "Report not found." };
+
+  const { error } = await supabase.from("report_notes").insert({
+    target_type: identity.target_type,
+    target_user_id: identity.target_user_id,
+    target_post_id: identity.target_post_id,
+    target_message_id: identity.target_message_id,
+    author_id: user.id,
+    body,
+  });
+
+  if (error) {
+    return { error: `Could not save note: ${error.message}` };
+  }
+
+  revalidatePath(`/mod/reports/${reportId}`);
+  return null;
 }
 
 export type SendWarningState = { error: string } | null;
@@ -125,11 +259,14 @@ export async function sendQuickQuote(
   redirect(`/messages/${conversationId}`);
 }
 
-// Deletes the reported post AND resolves the report in one step — the
-// same underlying delete as forums/actions.ts's deletePost, just entered
-// from the queue's workflow instead of the thread view, so it also closes
-// out the report rather than leaving it pointing at a post that no longer
-// exists.
+// Deletes the reported post AND resolves the WHOLE ticket in one step —
+// the same underlying delete as forums/actions.ts's deletePost, just
+// entered from the queue's workflow instead of the thread view. The
+// bulk-resolve happens BEFORE the delete on purpose: forum_posts'
+// ON DELETE SET NULL means every report's target_post_id goes null the
+// moment the post is gone, which would break the target-identity match —
+// resolving first, while target_post_id is still valid, closes out every
+// duplicate report on this post, not just the one that was clicked.
 export async function deleteReportedPost(formData: FormData): Promise<void> {
   const { supabase, user } = await requireModerator();
 
@@ -137,16 +274,20 @@ export async function deleteReportedPost(formData: FormData): Promise<void> {
   const postId = String(formData.get("post_id") ?? "");
   if (reportId.length === 0 || postId.length === 0) return;
 
+  const ticket = await findOpenTicketReportIds(supabase, reportId);
+  if (ticket) {
+    await supabase
+      .from("reports")
+      .update({
+        status: "resolved",
+        resolved_by: user.id,
+        resolved_at: new Date().toISOString(),
+        resolution_note: "Post deleted.",
+      })
+      .in("id", ticket.ids);
+  }
+
   await supabase.from("forum_posts").delete().eq("id", postId);
-  await supabase
-    .from("reports")
-    .update({
-      status: "resolved",
-      resolved_by: user.id,
-      resolved_at: new Date().toISOString(),
-      resolution_note: "Post deleted.",
-    })
-    .eq("id", reportId);
 
   revalidatePath("/mod/reports");
   revalidatePath("/mod");

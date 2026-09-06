@@ -646,6 +646,12 @@ export type ReportRow = {
   resolved_by: string | null;
   resolved_at: string | null;
   resolution_note: string | null;
+  // See 0030_report_tickets.sql — which staff member is actively working
+  // this (or its ticket, if grouped with duplicates). Separate from
+  // resolved_by, which records who closed it; any staff member can claim
+  // or unclaim, so this never gets permanently stuck.
+  claimed_by: string | null;
+  claimed_at: string | null;
   created_at: string;
 };
 
@@ -654,7 +660,16 @@ export type ReportRow = {
 // displayable, so the queue doesn't have to join per-row in the UI.
 export type ReportWithDetails = Pick<
   ReportRow,
-  "id" | "target_type" | "category" | "details" | "status" | "resolved_at" | "resolution_note" | "created_at"
+  | "id"
+  | "target_type"
+  | "category"
+  | "details"
+  | "status"
+  | "resolved_at"
+  | "resolution_note"
+  | "claimed_by"
+  | "claimed_at"
+  | "created_at"
 > & {
   reporterId: string;
   reporterName: string;
@@ -672,6 +687,41 @@ export type ReportWithDetails = Pick<
   targetMessageSenderName: string | null;
   targetMessageConversationId: string | null;
   resolvedByName: string | null;
+  claimedByName: string | null;
+};
+
+// See 0030_report_tickets.sql — an internal, staff-only note attached to
+// a ticket (the same target_type/target_*_id shape reports itself uses,
+// not a foreign key to one specific duplicate report), for handoff
+// context between staff. Never shown to players.
+export type ReportNoteRow = {
+  id: string;
+  target_type: ReportTargetType;
+  target_user_id: string | null;
+  target_post_id: string | null;
+  target_message_id: string | null;
+  author_id: string;
+  body: string;
+  created_at: string;
+};
+
+export type ReportNoteWithAuthor = Pick<ReportNoteRow, "id" | "body" | "created_at"> & {
+  authorName: string;
+};
+
+// One ticket = every report (of any status, depending on which tab is
+// querying) sharing the same target — see groupReportsByTarget()
+// (src/app/mod/resolve-reports.ts). `report` is the representative row
+// (earliest by created_at) whose id anchors the ticket's detail-page URL
+// and whose target identity every bulk action (claim/resolve/dismiss)
+// resolves from server-side.
+export type ReportGroup = {
+  key: string;
+  report: ReportWithDetails;
+  reportCount: number;
+  categories: ReportCategory[];
+  oldestCreatedAt: string;
+  newestCreatedAt: string;
 };
 
 export type CannedStaffMessageRow = {
@@ -785,6 +835,10 @@ export type Database = {
       reports: TableOf<
         ReportRow,
         Partial<ReportRow> & { reporter_id: string; target_type: ReportTargetType; category: ReportCategory }
+      >;
+      report_notes: TableOf<
+        ReportNoteRow,
+        Partial<ReportNoteRow> & { target_type: ReportTargetType; author_id: string; body: string }
       >;
       canned_staff_messages: TableOf<
         CannedStaffMessageRow,

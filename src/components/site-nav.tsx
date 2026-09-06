@@ -45,6 +45,7 @@ export async function SiteNav() {
       links: [
         { href: "/forums", label: "Forums" },
         { href: "/messages", label: "Messages" },
+        { href: "/reports", label: "My Reports" },
       ],
     },
     {

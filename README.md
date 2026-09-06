@@ -191,6 +191,17 @@ This project is being built one module at a time. Current state:
       (account bans admin-only to issue), each independently issued/
       lifted with a duration and reason, enforced at the database layer
       and blocking sign-in itself for an account ban. See Notes below
+- [x] Reports become tickets — duplicate reports about the same post,
+      message, or player now collapse into one "ticket" in the queue
+      instead of a card per report; staff can claim a ticket so two mods
+      don't duplicate work, leave internal handoff notes (never shown to
+      players), and resolve/dismiss/delete-post act on the whole ticket
+      at once. `/mod/reports` is now a tabbed queue (Unclaimed/My
+      claims/All open/History) with a dedicated ticket detail page.
+      Players get a new "My Reports" page showing their own filed
+      reports' status (Under review/Action taken/No violation found),
+      closing the loop after the one-time automatic ack DM. See Notes
+      below
 
 ---
 
@@ -2663,3 +2674,98 @@ signs in.
     avatar/timestamp stayed fully visible in every case. Needs more
     detail from whoever filed it — which page, ideally a screenshot —
     before attempting a fix; left open rather than guessing.
+- **Reports become tickets** (`0030_report_tickets.sql`) — the reports
+  queue was a flat list of individual reports, which meant N players
+  reporting the same post was N identical-looking cards to click through,
+  nothing stopped two moderators from working the same report at once,
+  and there was nowhere to leave context for a handoff. Deliberately NOT
+  a new "ticket" table: a ticket is just every report sharing the same
+  target (same `target_type` plus whichever of `target_post_id`/
+  `target_message_id`/`target_user_id` is non-null), grouped in
+  application code.
+  - **`groupReportsByTarget()`** (`mod/resolve-reports.ts`) collapses an
+    already-fetched `ReportWithDetails[]` into `ReportGroup[]` — one
+    representative report (earliest by `created_at`, whose id anchors the
+    ticket's URL) plus a duplicate count and the union of categories
+    involved. If the underlying content has been deleted
+    (`target_post_id`/`target_message_id` gone null via the existing
+    `ON DELETE SET NULL`), that report renders as its own singleton group
+    keyed by its own id — grouping by a null id column would otherwise
+    silently merge every OTHER deleted-content report into one giant
+    false ticket.
+  - **Claiming** (`claimed_by`/`claimed_at` added directly to `reports`,
+    no new RLS needed — the existing staff-only UPDATE policy already
+    covers every column). `claimReport`/`unclaimReport` (`mod/actions.ts`)
+    bulk-apply to every OPEN report sharing a ticket, looked up
+    server-side from one representative `report_id` via
+    `findOpenTicketReportIds()` — the same null-id-avoidance rule as
+    grouping applies here too. Any staff member can claim or unclaim any
+    ticket; there's no "only the claimant can release it" restriction, so
+    a claim can never get permanently stuck.
+  - **`resolveReport` and `deleteReportedPost` now bulk-apply across the
+    whole ticket**, not just the one report that was clicked — resolving
+    or dismissing closes out every duplicate at once.
+    `deleteReportedPost` resolves the ticket BEFORE deleting the post on
+    purpose: deleting first would null out `target_post_id` on every
+    report via the cascade, breaking the target-identity match before the
+    bulk-resolve could run.
+  - **Internal notes** (`report_notes` table) — staff-only to read and
+    write (insert `with check` also pins `author_id = auth.uid()` so a
+    mod can't forge another staff member as the note's author), mirroring
+    `reports`' own `target_type`/`target_*_id` shape rather than a
+    foreign key to one specific report row, since a note is about the
+    ticket as a whole, not whichever duplicate happened to be open when
+    it was written. Never shown to players — this is for staff handoff
+    ("checked their history, escalating if it happens again"), distinct
+    from `resolution_note` (the one-line "why this was closed," written
+    once at resolve/dismiss time).
+  - **`/mod/reports` rebuilt as a tabbed ticket queue** — Unclaimed / My
+    claims / All open / History, replacing the old flat open/resolved/
+    dismissed status tabs. A compact table (`ReportGroupRow`, shared with
+    `/mod/players/[userId]`'s report-history section) shows one row per
+    ticket: target, category (or "N categories" if duplicates disagree),
+    a red "N reports" badge when there's more than one, filed date, and
+    claim state.
+  - **New `/mod/reports/[reportId]`** — the full ticket view. The URL
+    names one representative report, but every action on the page
+    (claim/resolve/dismiss/delete-post/quick-quote/notes) resolves that
+    report's target identity server-side and applies to the whole ticket.
+    Shows the reported content once (`ReportTargetSummary`), every
+    individual report in the ticket (`ReportEntry` — reporter, category,
+    details, and its own resolution line if already closed), and the
+    notes thread. `report-card.tsx` was split into these two pieces plus
+    `offendingUserId()`/`targetSummaryLine()` helpers, replacing the old
+    monolithic `ReportCard` (which rendered one full card — target,
+    actions, and all — per individual report).
+  - **Player-facing `/reports`** ("My Reports," linked from the
+    Community nav group) — closes the loop the old flow left open: after
+    the one-time automatic "we got it" DM from Staff, a reporter
+    previously had no way to check back. Shows their own filed reports
+    with a plain three-state status (Under review/Action taken/No
+    violation found) — deliberately NOT `resolution_note` or
+    `resolvedByName`, since those are staff-internal and could name a
+    specific moderator, which would undercut the mod-anonymity design
+    elsewhere in this app. Relies entirely on reports' existing
+    `reporter_id = auth.uid()` SELECT policy (0027) — no new RLS needed.
+  - `CATEGORY_LABELS` (previously duplicated between `ReportButton` and
+    `ReportCard`) moved to a shared `src/lib/report-labels.ts`, now also
+    used by the new player-facing page — three call sites was one too
+    many for a copy-pasted constant.
+  - The `/mod` dashboard's open count now reflects distinct TICKETS
+    (grouped by target), not raw report rows, so the number matches what
+    the queue actually shows; a separate "Unclaimed reports" tile uses a
+    plain row count instead, since counting unclaimed tickets would
+    require the same grouping fetch just to produce one number.
+  - Verified against local Postgres (10 scenarios): a player has no
+    UPDATE policy on `reports` at all so can never claim one; a moderator
+    can claim; staff can insert a note; a player can neither read nor
+    insert `report_notes`; a staff member cannot forge another staff
+    member's id as a note's `author_id`; a player can still read their
+    own filed report and an unrelated player cannot.
+  - Verified visually (temporary preview route, as usual): the ticket
+    queue table (unclaimed/claimed-by-me/claimed-by-other rows, the
+    red "N reports" badge), all three claim-button states, the ticket
+    detail page's target summary plus a mix of open and resolved report
+    entries, the notes thread with an existing note and the add-note
+    form, and the player-facing My Reports status rows in all three
+    color-coded states.

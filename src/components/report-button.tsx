@@ -3,17 +3,10 @@
 import { useActionState, useState } from "react";
 import { Flag } from "lucide-react";
 import { submitReport, type ReportFormState } from "@/lib/report-actions";
+import { CATEGORY_LABELS } from "@/lib/report-labels";
 import type { ReportTargetType } from "@/lib/supabase/types";
 
 const initialState: ReportFormState = null;
-
-const CATEGORY_LABELS: Record<string, string> = {
-  spam: "Spam",
-  harassment: "Harassment",
-  inappropriate_content: "Inappropriate content",
-  scam: "Scamming",
-  other: "Other",
-};
 
 /**
  * Shared by /u/[id] ("user"), the forums' PostCard ("forum_post"), and
