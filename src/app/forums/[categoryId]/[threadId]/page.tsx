@@ -120,6 +120,7 @@ export default async function ForumThreadPage(props: PageProps<"/forums/[categor
             <ThreadAdminControls
               categoryId={categoryId}
               threadId={thread.id}
+              title={thread.title}
               isPinned={thread.is_pinned}
               isLocked={thread.is_locked}
             />

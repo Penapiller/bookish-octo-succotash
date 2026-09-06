@@ -674,6 +674,43 @@ export type ReportWithDetails = Pick<
   resolvedByName: string | null;
 };
 
+export type CannedStaffMessageRow = {
+  id: string;
+  label: string;
+  body: string;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+};
+
+export type BanType = "dm" | "sales" | "forums" | "account";
+
+// See 0029_bans_and_staff_fixes.sql — a player can hold several of these
+// at once, each independent. lifted_at stays null for a ban that simply
+// ran out the clock; an early end (a staff member reversing it) is the
+// only thing that sets lifted_at/lifted_by.
+export type BanRow = {
+  id: string;
+  user_id: string;
+  ban_type: BanType;
+  reason: string | null;
+  issued_by: string;
+  issued_at: string;
+  expires_at: string;
+  lifted_at: string | null;
+  lifted_by: string | null;
+  created_at: string;
+};
+
+// A ban as shown on /mod/players/[userId] — issuer name resolved, same
+// resolved-details pattern as ReportWithDetails.
+export type BanWithIssuer = Pick<
+  BanRow,
+  "id" | "ban_type" | "reason" | "issued_at" | "expires_at" | "lifted_at"
+> & {
+  issuedByName: string;
+};
+
 type TableOf<Row, Insert = Partial<Row>, Update = Partial<Row>> = {
   Row: Row;
   Insert: Insert;
@@ -748,6 +785,14 @@ export type Database = {
       reports: TableOf<
         ReportRow,
         Partial<ReportRow> & { reporter_id: string; target_type: ReportTargetType; category: ReportCategory }
+      >;
+      canned_staff_messages: TableOf<
+        CannedStaffMessageRow,
+        Partial<CannedStaffMessageRow> & { label: string; body: string }
+      >;
+      bans: TableOf<
+        BanRow,
+        Partial<BanRow> & { user_id: string; ban_type: BanType; issued_by: string; expires_at: string }
       >;
     };
     Views: {
@@ -948,6 +993,14 @@ export type Database = {
       mark_dm_conversation_read: {
         Args: { p_user_id: string; p_conversation_id: string };
         Returns: null;
+      };
+      send_staff_message: {
+        Args: { p_target_user_id: string; p_body: string };
+        Returns: string;
+      };
+      user_has_active_ban: {
+        Args: { p_user_id: string; p_ban_type: BanType };
+        Returns: boolean;
       };
     };
   };

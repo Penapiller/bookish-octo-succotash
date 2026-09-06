@@ -31,6 +31,9 @@ export default async function AdminLayout({
           <Link href="/admin/forums" className="hover:underline">
             Forums
           </Link>
+          <Link href="/admin/canned-messages" className="hover:underline">
+            Canned messages
+          </Link>
           <Link href="/admin/currency" className="hover:underline">
             Currency
           </Link>

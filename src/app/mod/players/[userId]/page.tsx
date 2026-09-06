@@ -6,8 +6,10 @@ import { requireModerator } from "@/lib/moderation";
 import { resolveReportDetails } from "../../resolve-reports";
 import { ReportCard } from "../../report-card";
 import { WarningDmForm } from "./warning-dm-form";
+import { BanForm } from "./ban-form";
+import { BansList } from "./bans-list";
 import { formatShortDate } from "@/lib/format-forum-date";
-import type { ReportRow } from "@/lib/supabase/types";
+import type { BanWithIssuer, ReportRow } from "@/lib/supabase/types";
 
 // Staff-only (requireModerator()) — a player's full moderation history:
 // every report where they're the target (directly, or as the author of a
@@ -19,7 +21,7 @@ import type { ReportRow } from "@/lib/supabase/types";
 // to a viewer whose own role check already passed.
 export default async function ModPlayerPage(props: PageProps<"/mod/players/[userId]">) {
   const { userId } = await props.params;
-  const { supabase } = await requireModerator();
+  const { supabase, user } = await requireModerator();
 
   const { data: profile } = await supabase.from("user_profiles").select("*").eq("id", userId).maybeSingle();
 
@@ -27,22 +29,42 @@ export default async function ModPlayerPage(props: PageProps<"/mod/players/[user
     notFound();
   }
 
-  const [{ data: reportsData }, { data: conversationsData }] = await Promise.all([
-    supabase
-      .from("reports")
-      .select("*")
-      .or(
-        `target_user_id.eq.${userId},target_post_author_id.eq.${userId},target_message_sender_id.eq.${userId}`,
-      )
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("dm_conversations")
-      .select("*")
-      .or(`user_one_id.eq.${userId},user_two_id.eq.${userId}`)
-      .order("last_message_at", { ascending: false }),
-  ]);
+  const [{ data: viewerProfile }, { data: reportsData }, { data: conversationsData }, { data: cannedData }, { data: bansData }] =
+    await Promise.all([
+      supabase.from("users").select("is_admin").eq("id", user.id).single(),
+      supabase
+        .from("reports")
+        .select("*")
+        .or(
+          `target_user_id.eq.${userId},target_post_author_id.eq.${userId},target_message_sender_id.eq.${userId}`,
+        )
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("dm_conversations")
+        .select("*")
+        .or(`user_one_id.eq.${userId},user_two_id.eq.${userId}`)
+        .order("last_message_at", { ascending: false }),
+      supabase.from("canned_staff_messages").select("label, body").eq("is_active", true).order("sort_order"),
+      supabase.from("bans").select("*").eq("user_id", userId).order("issued_at", { ascending: false }),
+    ]);
 
   const reports = await resolveReportDetails(supabase, (reportsData ?? []) as ReportRow[]);
+
+  const issuerIds = [...new Set((bansData ?? []).map((b) => b.issued_by))];
+  const { data: issuerProfiles } =
+    issuerIds.length > 0
+      ? await supabase.from("user_profiles").select("id, display_name").in("id", issuerIds)
+      : { data: [] };
+  const issuerNameById = new Map((issuerProfiles ?? []).map((p) => [p.id, p.display_name]));
+  const bans: BanWithIssuer[] = (bansData ?? []).map((b) => ({
+    id: b.id,
+    ban_type: b.ban_type,
+    reason: b.reason,
+    issued_at: b.issued_at,
+    expires_at: b.expires_at,
+    lifted_at: b.lifted_at,
+    issuedByName: issuerNameById.get(b.issued_by) ?? "Unknown",
+  }));
 
   const conversations = conversationsData ?? [];
   const otherUserIds = [
@@ -77,7 +99,17 @@ export default async function ModPlayerPage(props: PageProps<"/mod/players/[user
         </div>
       </div>
 
-      <WarningDmForm targetUserId={profile.id} targetName={profile.display_name} />
+      <WarningDmForm
+        targetUserId={profile.id}
+        targetName={profile.display_name}
+        cannedMessages={cannedData ?? []}
+      />
+
+      <section className="flex flex-col gap-3">
+        <h2 className="text-lg font-semibold tracking-tight">Bans</h2>
+        <BanForm targetUserId={profile.id} isAdmin={viewerProfile?.is_admin ?? false} />
+        <BansList bans={bans} targetUserId={profile.id} />
+      </section>
 
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold tracking-tight">Conversations</h2>

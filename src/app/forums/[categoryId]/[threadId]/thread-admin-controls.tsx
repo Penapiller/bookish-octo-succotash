@@ -16,11 +16,13 @@ import { updateThreadFlags, deleteThread } from "../../actions";
 export function ThreadAdminControls({
   categoryId,
   threadId,
+  title,
   isPinned,
   isLocked,
 }: {
   categoryId: string;
   threadId: string;
+  title: string;
   isPinned: boolean;
   isLocked: boolean;
 }) {
@@ -57,6 +59,17 @@ export function ThreadAdminControls({
           <form action={updateThreadFlags} className="flex flex-col gap-3">
             <input type="hidden" name="category_id" value={categoryId} />
             <input type="hidden" name="thread_id" value={threadId} />
+            <label className="flex flex-col gap-1 text-xs font-medium text-stone-500">
+              Title
+              <input
+                type="text"
+                name="title"
+                defaultValue={title}
+                maxLength={200}
+                required
+                className="rounded-md border border-amber-300 px-2 py-1 text-sm font-normal text-stone-900 dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100"
+              />
+            </label>
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"

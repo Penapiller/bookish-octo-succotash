@@ -2,33 +2,30 @@
 
 import { useActionState, useState } from "react";
 import { sendStaffWarning, type SendWarningState } from "../../actions";
+import type { CannedStaffMessageRow } from "@/lib/supabase/types";
 
 const initialState: SendWarningState = null;
 
-const CANNED_MESSAGES: { label: string; body: string }[] = [
-  {
-    label: "General guideline reminder",
-    body: "Please review our community guidelines. Continued violations may result in further action on your account.",
-  },
-  {
-    label: "Content removed",
-    body: "Your recent content was removed for violating our community guidelines. Please keep future posts and messages respectful.",
-  },
-  {
-    label: "Behavior warning",
-    body: "This is a warning regarding your recent behavior toward other players. Further incidents may result in a suspension.",
-  },
-  {
-    label: "No action needed",
-    body: "Thanks for your patience — we looked into a recent report involving your account and no action was needed.",
-  },
-];
-
 const CUSTOM_VALUE = "__custom__";
 
-export function WarningDmForm({ targetUserId, targetName }: { targetUserId: string; targetName: string }) {
+// cannedMessages comes from the admin-managed canned_staff_messages table
+// (0029_bans_and_staff_fixes.sql) — this used to be a hardcoded array
+// here, but staff wanted to add/edit these without a code change (see
+// /admin/canned-messages). Fetched server-side by the page (this is a
+// client component, and the RLS-backed select is staff-only) and passed
+// down, same pattern as any other server-fetched-then-client-rendered
+// list in this app.
+export function WarningDmForm({
+  targetUserId,
+  targetName,
+  cannedMessages,
+}: {
+  targetUserId: string;
+  targetName: string;
+  cannedMessages: Pick<CannedStaffMessageRow, "label" | "body">[];
+}) {
   const [state, formAction, isPending] = useActionState(sendStaffWarning, initialState);
-  const [selected, setSelected] = useState<string>(CANNED_MESSAGES[0].body);
+  const [selected, setSelected] = useState<string>(cannedMessages[0]?.body ?? CUSTOM_VALUE);
   const isCustom = selected === CUSTOM_VALUE;
 
   return (
@@ -43,7 +40,7 @@ export function WarningDmForm({ targetUserId, targetName }: { targetUserId: stri
         onChange={(event) => setSelected(event.target.value)}
         className="rounded-md border border-amber-300 px-2 py-1.5 text-sm dark:border-stone-700 dark:bg-stone-950"
       >
-        {CANNED_MESSAGES.map((m) => (
+        {cannedMessages.map((m) => (
           <option key={m.label} value={m.body}>
             {m.label}
           </option>

@@ -29,12 +29,25 @@ export async function sendMessage(
     return { error: "Messages must be 4000 characters or fewer." };
   }
 
+  // Friendly pre-check — dm_messages' INSERT policy (0029_bans_and_
+  // staff_fixes.sql) is the real backstop either way, this just turns a
+  // rejected insert into a readable message instead of a generic one.
+  const { data: isDmBanned } = await supabase.rpc("user_has_active_ban", {
+    p_user_id: user.id,
+    p_ban_type: "dm",
+  });
+  if (isDmBanned) {
+    return { error: "You're currently banned from sending direct messages." };
+  }
+
   const { error } = await supabase
     .from("dm_messages")
     .insert({ conversation_id: conversationId, sender_id: user.id, body });
 
   if (error) {
-    return { error: "Could not send that message. Please try again." };
+    return {
+      error: "Could not send that message — the other player may be unable to receive DMs right now.",
+    };
   }
 
   revalidatePath("/messages");

@@ -181,6 +181,16 @@ This project is being built one module at a time. Current state:
       [conversationId]` now paginates like the forums and opens to
       wherever the player's unread messages start instead of always page
       1. See Notes below
+- [x] Moderator tools round three — staff warning DMs (and a new "quick
+      quote" tool) now always send from the Staff account instead of the
+      acting moderator's own, so mods stay anonymous to players; the
+      canned warning messages are now admin-managed (`/admin/
+      canned-messages`) instead of hardcoded; moderators can edit a
+      thread's title from the same moderation popover as pin/lock; and a
+      full time-based ban system — DM, sales, forums, and account bans
+      (account bans admin-only to issue), each independently issued/
+      lifted with a duration and reason, enforced at the database layer
+      and blocking sign-in itself for an account ban. See Notes below
 
 ---
 
@@ -2512,3 +2522,144 @@ signs in.
     (Official badge, tinted background) next to a normal one with its
     Report button, the DM pagination bar, and the warning-DM form's
     canned-message picker.
+- **Moderator tools round three** (`0029_bans_and_staff_fixes.sql`) — a
+  bug fix (staff messages were sending from the mod's own account,
+  contradicting the intended mod anonymity), a new quick-quote tool, an
+  admin-managed canned-message library, thread title editing, and a full
+  ban system. All in one migration since the ban system's `bans` table
+  and its `user_has_active_ban()` helper get reused across every
+  enforcement point below.
+  - **`send_staff_message(p_target_user_id, p_body)`**: the fix for the
+    anonymity bug. A `security definer` RPC that inlines the same
+    find-or-create-conversation logic as `get_or_create_dm_conversation()`
+    (which it can't call directly — that function requires
+    `auth.uid() = p_user_id`, and the caller here is a moderator, not the
+    Staff account) and always inserts the message as `STAFF_USER_ID`,
+    never the acting moderator's own id. `sendStaffWarning` (`/mod/
+    actions.ts`) now calls this instead of the old get-or-create-then-
+    plain-insert-as-`user.id` path. Being `security definer` and a direct
+    table write, it also naturally bypasses the new DM-ban policy below
+    without needing a special-cased exemption — same shape as
+    `handle_new_report()`'s automated acknowledgment DM.
+  - **Quick quote** (`sendQuickQuote` action, `QuickQuoteButton` on
+    `ReportCard`): for a `forum_post`/`dm_message` report specifically,
+    quotes the offending content back to the player plus a short
+    staff-written note on which rule it broke, composed into one message
+    and sent through the same `send_staff_message` path — same anonymity
+    guarantee, since quoting content back at someone is exactly the kind
+    of message a targeted player would most want to attribute to a
+    specific mod.
+  - **Canned messages move to the database** (`canned_staff_messages`
+    table) — previously a hardcoded array in `warning-dm-form.tsx`.
+    Admin-managed (insert/update RLS is admin-only) but staff-readable
+    (`current_user_is_moderator()`), no delete policy (deactivate via
+    `is_active` instead, same convention as every other admin catalog).
+    `/admin/canned-messages` mirrors `/admin/species`'s exact list/new/
+    `[id]` CRUD convention. The migration seeds the original 4 hardcoded
+    messages as rows so this is a no-op for existing staff workflows.
+    `WarningDmForm` now takes `cannedMessages` as a prop (fetched
+    server-side by the page) instead of importing a hardcoded constant.
+  - **Thread title editing**: forum_threads' UPDATE policy was already
+    staff-wide (`"Staff can update any thread"`, 0027) and covers every
+    column including `title` — no RLS change needed. `updateThreadFlags`
+    (`forums/actions.ts`) now also reads an optional `title` field
+    (blank/missing = leave it alone, so the action still works for
+    pin/lock-only submissions), and `ThreadAdminControls`' "Moderation"
+    popover gained a title text input above the pin/lock checkboxes.
+  - **Bans**: a `bans` table (`user_id`, `ban_type` — `'dm' | 'sales' |
+    'forums' | 'account'` — `reason`, `issued_by`, `issued_at`,
+    `expires_at`, `lifted_at`, `lifted_by`). Always time-based:
+    `expires_at` is `not null` with a `check (expires_at > issued_at)` —
+    there's no permanent-ban option, staff always pick a duration (the
+    `BanForm` UI offers 1 hour up to 1 year). A ban that simply ran out
+    the clock leaves `lifted_at` null forever; only an early staff
+    reversal sets it. A player can hold several ban types at once, each
+    independent. INSERT/UPDATE RLS requires `current_user_is_moderator()`
+    for `dm`/`sales`/`forums` but `current_user_is_admin()` for
+    `account` — "Admins are the only people that can issue account
+    bans" — checked per-row by `ban_type`, so the same policy covers
+    issuing and (separately) lifting early at the same authority tier.
+    SELECT is staff-everything plus a self-select (`user_id = auth.uid()`)
+    so a banned player can see their own ban's reason/expiry. No delete
+    policy — bans are a permanent record like reports.
+  - **`user_has_active_ban(p_user_id, p_ban_type)`**: the one reusable
+    check (`exists (... lifted_at is null and expires_at > now())`),
+    `stable security definer`, left with default (unrevoked) execute
+    privileges — same tier as `current_user_is_admin()`/
+    `current_user_is_moderator()` — since it's called both from inside
+    RLS policies (which requires the evaluating role to have execute on
+    it) and directly by the app for a player's own friendly pre-check
+    messages and the account-ban login check.
+  - **DM ban enforcement** — bidirectional, per spec ("Players are unable
+    to DM these players either!"): `dm_messages`' INSERT policy checks
+    both that the sender isn't DM-banned AND that the other conversation
+    participant (derived from the conversation row, whichever of
+    `user_one_id`/`user_two_id` isn't the sender) isn't DM-banned either.
+    Reports are a separate table/policy entirely, so a DM-banned player
+    can still file one ("Players can still send in reports with this
+    ban"). `messages/[conversationId]/actions.ts`'s `sendMessage` adds a
+    friendly pre-check (`user_has_active_ban(user.id, 'dm')`) before
+    attempting the insert.
+  - **Forums ban enforcement** — `forum_threads`/`forum_posts`' INSERT
+    policies both gained `and not user_has_active_ban(author_id,
+    'forums')`. `createForumThread`/`createForumReply` (`forums/
+    actions.ts`) each get the same friendly pre-check.
+  - **Sales ban enforcement** — `create_pet_listing`/`create_item_listing`
+    (both `security definer`, unchanged signatures, `create or replace`d
+    in place) now raise a friendly exception up front if the seller has
+    an active `sales` ban. `buy_listing` is untouched — "can still
+    purchase things!" No app-side pre-check needed: `sell-form.tsx`
+    already calls these RPCs directly from the browser and surfaces
+    `rpcError.message` verbatim, so the RPC's own exception message
+    reaches the player with no extra plumbing.
+  - **Account ban enforcement** — the only ban type that can't be
+    stopped by an RLS policy, since Google's OAuth handshake itself can't
+    be intercepted. Instead `/auth/callback/route.ts` lets
+    `exchangeCodeForSession` succeed, then immediately checks
+    `user_has_active_ban(user.id, 'account')`; if true, it looks up the
+    ban's `reason`/`expires_at`, calls `supabase.auth.signOut()`, and
+    redirects to `/?banned=account&until=...&reason=...` — "cannot log
+    in" means the session never survives past this check, not that the
+    OAuth flow itself was blocked mid-handshake. The home page
+    (`src/app/page.tsx`) reads those query params and renders a ban
+    notice (reason + formatted expiry) in place of the normal
+    welcome/sign-in content.
+  - **Ban issuance UI** (`/mod/players/[userId]`): a new "Bans" section
+    with `BanForm` (ban type — `account` hidden entirely unless the
+    viewer is an admin, not just disabled, since a moderator submitting
+    it anyway would just get `issueBan`'s friendly rejection from the
+    RLS reject — plus a duration dropdown and an optional staff-only
+    reason) and `BansList` (every ban ever issued to this player, active
+    ones highlighted red with a "Lift ban" button calling `liftBan`,
+    which relies entirely on the UPDATE policy's own role/ban-type check
+    to reject an unauthorized lift attempt as a quiet no-op).
+  - Verified against local Postgres (18 scenarios): a moderator can issue
+    a forums/dm/sales ban but is rejected issuing an account ban (RLS),
+    an admin can issue an account ban and later lift it early while a
+    moderator's attempt to lift that same ban is silently a no-op; a
+    forums-banned player is rejected creating a thread while a
+    non-banned player succeeds; a dm-banned player is rejected sending a
+    DM and, separately, a non-banned player is rejected messaging *them*
+    (bidirectional); a dm-banned player can still file a report;
+    `send_staff_message` delivers as `STAFF_USER_ID` (confirmed by
+    reading `sender_id` back) and bypasses the dm ban entirely, while a
+    non-moderator calling it directly is rejected; a sales-banned player
+    is rejected by `create_pet_listing`; `user_has_active_ban` correctly
+    flips to false once a ban's `expires_at` is in the past; canned
+    messages are staff-readable/admin-writable only; and a player can
+    `select` their own ban row but not another player's.
+  - Verified visually (temporary preview route, as usual): both ban-form
+    variants (moderator vs. admin, confirming the `account` option only
+    appears for the latter), the bans list's three states (active/
+    expired/lifted-early, color-coded), the quick-quote button collapsed
+    and expanded, the canned-message admin form, the warning-DM form
+    reading from the (mocked) database-backed list, the thread admin
+    popover's new title field, and the home page's account-ban notice.
+  - The "message preview is clipping" bug report from this round could
+    not be reproduced: a dedicated preview route mounted the exact
+    `MessageCard` (DM thread) and DM-inbox `<table>` row markup with
+    deliberately adversarial content (very long display names, a long
+    unbroken-word snippet) at both desktop and mobile widths, and the
+    avatar/timestamp stayed fully visible in every case. Needs more
+    detail from whoever filed it — which page, ideally a screenshot —
+    before attempting a fix; left open rather than guessing.

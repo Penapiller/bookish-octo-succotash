@@ -45,6 +45,17 @@ export async function createForumThread(
   if (title.length === 0) return { error: "Title can't be empty." };
   if (title.length > 200) return { error: "Title must be 200 characters or fewer." };
 
+  // Friendly pre-check — forum_threads' INSERT policy (0029_bans_and_
+  // staff_fixes.sql) is the real backstop, this just turns a rejected
+  // insert into a readable message.
+  const { data: isForumsBanned } = await supabase.rpc("user_has_active_ban", {
+    p_user_id: user.id,
+    p_ban_type: "forums",
+  });
+  if (isForumsBanned) {
+    return { error: "You're currently banned from posting to the forums." };
+  }
+
   // Parent categories with subcategories are pure dividers, not postable
   // — see 0023_forum_category_no_direct_posts.sql, which enforces this
   // same rule at the RLS layer as the real backstop. This check just
@@ -96,6 +107,14 @@ export async function createForumReply(
   const categoryId = String(formData.get("category_id") ?? "");
   const threadId = String(formData.get("thread_id") ?? "");
   if (categoryId.length === 0 || threadId.length === 0) return { error: "Missing thread." };
+
+  const { data: isForumsBanned } = await supabase.rpc("user_has_active_ban", {
+    p_user_id: user.id,
+    p_ban_type: "forums",
+  });
+  if (isForumsBanned) {
+    return { error: "You're currently banned from posting to the forums." };
+  }
 
   const body = readAndRenderBody(formData);
   if (!body.ok) return { error: body.error };
@@ -156,12 +175,15 @@ export async function updateForumPost(
   redirect(`/forums/${categoryId}/${threadId}`);
 }
 
-// Pin/lock are staff (moderator or admin) actions. The button that
+// Pin/lock/title are staff (moderator or admin) actions. The button that
 // submits this form is only rendered for staff (see ThreadAdminControls),
 // but that's just UI convenience — the real enforcement is forum_threads'
 // staff-only UPDATE RLS policy (0027_moderation.sql, widened from
 // admin-only in 0021_forums.sql), which rejects this write outright for
-// anyone else regardless of what the client sends.
+// anyone else regardless of what the client sends. Title is optional in
+// the form data (blank/missing means "don't touch it") so this one action
+// can serve both the original pin/lock checkboxes and the newer title
+// field without every caller needing to resend a title.
 export async function updateThreadFlags(formData: FormData): Promise<void> {
   const supabase = await createClient();
   const {
@@ -173,13 +195,17 @@ export async function updateThreadFlags(formData: FormData): Promise<void> {
   const threadId = String(formData.get("thread_id") ?? "");
   if (categoryId.length === 0 || threadId.length === 0) return;
 
-  await supabase
-    .from("forum_threads")
-    .update({
-      is_pinned: formData.get("is_pinned") === "on",
-      is_locked: formData.get("is_locked") === "on",
-    })
-    .eq("id", threadId);
+  const title = String(formData.get("title") ?? "").trim();
+
+  const update: { is_pinned: boolean; is_locked: boolean; title?: string } = {
+    is_pinned: formData.get("is_pinned") === "on",
+    is_locked: formData.get("is_locked") === "on",
+  };
+  if (title.length > 0 && title.length <= 200) {
+    update.title = title;
+  }
+
+  await supabase.from("forum_threads").update(update).eq("id", threadId);
 
   revalidatePath(`/forums/${categoryId}/${threadId}`);
   redirect(`/forums/${categoryId}/${threadId}`);

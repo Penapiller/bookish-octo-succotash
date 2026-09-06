@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ResolveReportForm } from "./reports/resolve-report-form";
 import { DeleteReportedPostButton } from "./reports/delete-reported-post-button";
+import { QuickQuoteButton } from "./quick-quote-button";
 import type { ReportWithDetails } from "@/lib/supabase/types";
 
 // Shared by /mod/reports (the queue) and /mod/players/[userId] (one
@@ -129,6 +130,12 @@ export function ReportCard({ report }: { report: ReportWithDetails }) {
           <ResolveReportForm reportId={report.id} status="dismissed" label="Dismiss" />
           {report.target_type === "forum_post" && report.targetPostId ? (
             <DeleteReportedPostButton reportId={report.id} postId={report.targetPostId} />
+          ) : null}
+          {offendingUserId && report.target_type === "forum_post" && report.targetPostBody ? (
+            <QuickQuoteButton targetUserId={offendingUserId} quotedContent={report.targetPostBody} />
+          ) : null}
+          {offendingUserId && report.target_type === "dm_message" && report.targetMessageBody ? (
+            <QuickQuoteButton targetUserId={offendingUserId} quotedContent={report.targetMessageBody} />
           ) : null}
         </div>
       ) : (
