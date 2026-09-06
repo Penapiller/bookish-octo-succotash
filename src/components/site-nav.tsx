@@ -46,12 +46,14 @@ export async function SiteNav() {
         { href: "/forums", label: "Forums" },
         { href: "/messages", label: "Messages" },
         { href: "/reports", label: "My Reports" },
+        { href: "/support", label: "Support" },
       ],
     },
     {
       label: "Account",
       links: [
         { href: "/settings", label: "Settings" },
+        { href: "/bans", label: "My Bans" },
         // Separate links, not one merged entry — a moderator who isn't
         // also an admin gets Mod Tools but must never see (or be able to
         // guess their way into) Admin. An admin gets both, since is_admin

@@ -153,6 +153,7 @@ export default async function ModPlayerPage(props: PageProps<"/mod/players/[user
                 <tr>
                   <th className="px-4 py-2">Target</th>
                   <th className="px-4 py-2">Category</th>
+                  <th className="px-4 py-2">Priority</th>
                   <th className="px-4 py-2">Reports</th>
                   <th className="px-4 py-2">Filed</th>
                   <th className="px-4 py-2">Claim</th>

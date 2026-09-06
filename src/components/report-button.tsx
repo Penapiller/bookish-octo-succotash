@@ -28,7 +28,11 @@ export function ReportButton({
   const [state, formAction, isPending] = useActionState(submitReport, initialState);
 
   if (state && "success" in state) {
-    return <p className="text-sm text-stone-500">Report submitted. Thanks for flagging this.</p>;
+    return (
+      <p className="text-sm text-stone-500">
+        Your report has been submitted. Thank you for helping keep the community safe.
+      </p>
+    );
   }
 
   if (!isOpen) {

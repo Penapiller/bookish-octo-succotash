@@ -1,30 +1,27 @@
 import Link from "next/link";
 import { requireModerator } from "@/lib/moderation";
-import { resolveReportDetails, groupReportsByTarget } from "./resolve-reports";
-import type { ReportRow } from "@/lib/supabase/types";
 
 export default async function ModDashboardPage() {
-  const { supabase } = await requireModerator();
+  const { supabase, user } = await requireModerator();
+  const { data: viewerProfile } = await supabase.from("users").select("is_admin").eq("id", user.id).single();
+  const isAdmin = viewerProfile?.is_admin ?? false;
 
-  const [{ data: openRowsData }, { count: unclaimedCount }, { count: resolvedCount }, { count: dismissedCount }] =
+  const [{ count: unclaimedCount }, { count: mineCount }, { count: needsAdminCount }, { count: closedCount }] =
     await Promise.all([
-      // Open counts reflect TICKETS (distinct targets), not raw report
-      // rows — 5 duplicate reports on one post should read as "1 open
-      // ticket," matching what the queue actually shows.
-      supabase.from("reports").select("*").eq("status", "open"),
       supabase.from("reports").select("*", { count: "exact", head: true }).eq("status", "open").is("claimed_by", null),
-      supabase.from("reports").select("*", { count: "exact", head: true }).eq("status", "resolved"),
-      supabase.from("reports").select("*", { count: "exact", head: true }).eq("status", "dismissed"),
+      supabase.from("reports").select("*", { count: "exact", head: true }).eq("status", "open").eq("claimed_by", user.id),
+      supabase.from("reports").select("*", { count: "exact", head: true }).eq("status", "escalated"),
+      supabase
+        .from("reports")
+        .select("*", { count: "exact", head: true })
+        .in("status", ["resolved", "dismissed"]),
     ]);
 
-  const openReports = await resolveReportDetails(supabase, (openRowsData ?? []) as ReportRow[]);
-  const openTicketCount = groupReportsByTarget(openReports).length;
-
   const cards = [
-    { href: "/mod/reports?tab=open", label: "Open tickets", count: openTicketCount },
-    { href: "/mod/reports?tab=unclaimed", label: "Unclaimed reports", count: unclaimedCount ?? 0 },
-    { href: "/mod/reports?tab=history", label: "Resolved", count: resolvedCount ?? 0 },
-    { href: "/mod/reports?tab=history", label: "Dismissed", count: dismissedCount ?? 0 },
+    { href: "/mod/reports?tab=unclaimed", label: "Unclaimed", count: unclaimedCount ?? 0 },
+    { href: "/mod/reports?tab=mine", label: "Mine", count: mineCount ?? 0 },
+    ...(isAdmin ? [{ href: "/mod/reports?tab=needs_admin", label: "Needs Admin", count: needsAdminCount ?? 0 }] : []),
+    { href: "/mod/reports?tab=closed", label: "Closed", count: closedCount ?? 0 },
   ];
 
   return (

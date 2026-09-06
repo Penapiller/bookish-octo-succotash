@@ -9,6 +9,12 @@ const TARGET_TYPE_ICON_LABEL: Record<string, string> = {
   dm_message: "Direct message",
 };
 
+const PRIORITY_CLASSES: Record<string, string> = {
+  high: "text-red-700 dark:text-red-400",
+  normal: "text-stone-600 dark:text-stone-400",
+  low: "text-stone-400",
+};
+
 // One row per ticket (a report or a group of duplicate reports sharing
 // the same target) — the compact queue view. Shared by /mod/reports and
 // /mod/players/[userId]'s report-history section so both read as the
@@ -31,6 +37,9 @@ export function ReportGroupRow({ group, viewerId }: { group: ReportGroup; viewer
         <p className="text-xs text-stone-500">{TARGET_TYPE_ICON_LABEL[report.target_type] ?? report.target_type}</p>
       </td>
       <td className="px-4 py-2.5">{categoryLabel}</td>
+      <td className={`px-4 py-2.5 text-xs font-medium capitalize ${PRIORITY_CLASSES[report.priority]}`}>
+        {report.priority}
+      </td>
       <td className="px-4 py-2.5">
         {group.reportCount > 1 ? (
           <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-950 dark:text-red-300">

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
+  BanRow,
   Database,
   ReportGroup,
   ReportNoteRow,
@@ -7,6 +8,7 @@ import type {
   ReportRow,
   ReportWithDetails,
 } from "@/lib/supabase/types";
+import { STAFF_USER_ID } from "@/lib/staff-account";
 
 // Shared by /mod/reports, /mod/reports/[reportId], /mod/players/[userId],
 // and the player-facing /reports — all need the same reporter/target-
@@ -24,6 +26,7 @@ export async function resolveReportDetails(
         r.target_user_id,
         r.resolved_by,
         r.claimed_by,
+        r.escalated_by,
         r.target_post_author_id,
         r.target_message_sender_id,
       ].filter((id): id is string => id !== null)),
@@ -72,6 +75,11 @@ export async function resolveReportDetails(
       resolution_note: r.resolution_note,
       claimed_by: r.claimed_by,
       claimed_at: r.claimed_at,
+      priority: r.priority,
+      escalated_by: r.escalated_by,
+      escalated_at: r.escalated_at,
+      escalation_reason: r.escalation_reason,
+      recommended_action: r.recommended_action,
       created_at: r.created_at,
       reporterId: r.reporter_id,
       reporterName: profileById.get(r.reporter_id)?.display_name ?? "Unknown",
@@ -94,6 +102,7 @@ export async function resolveReportDetails(
       targetMessageConversationId: message?.conversation_id ?? null,
       resolvedByName: r.resolved_by ? (profileById.get(r.resolved_by)?.display_name ?? "Unknown") : null,
       claimedByName: r.claimed_by ? (profileById.get(r.claimed_by)?.display_name ?? "Unknown") : null,
+      escalatedByName: r.escalated_by ? (profileById.get(r.escalated_by)?.display_name ?? "Unknown") : null,
     };
   });
 }
@@ -205,6 +214,50 @@ export async function fetchTicketNotes(
 
   const { data } = await query.order("created_at", { ascending: true });
   return (data ?? []) as ReportNoteRow[];
+}
+
+// For an escalated ticket's admin view — "Previous actions: 2 warnings,
+// 1 temporary restriction" context so an admin isn't deciding on a
+// permanent/account ban in a vacuum. warningCount counts every message
+// ever sent from the Staff/Community Team account to this player
+// (report acks, canned/custom warnings, and quick quotes all go through
+// the same send_staff_message() path, so this is a reasonable proxy for
+// "how many times has staff had to say something to them" without a
+// separate warnings table to maintain).
+export async function getModerationHistory(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+): Promise<{ bans: BanRow[]; warningCount: number }> {
+  // dm_conversations stores its pair in canonical (user_one_id <
+  // user_two_id) order (see 0026_direct_messages.sql) — computing that
+  // ordering directly and matching on both columns avoids chaining two
+  // .or() calls, which would generate two separate `or=` query params
+  // that don't AND together the way a naive read suggests (the exact
+  // bug fixed on the marketplace browse page earlier in this project).
+  const [staffConvUserOne, staffConvUserTwo] =
+    STAFF_USER_ID < userId ? [STAFF_USER_ID, userId] : [userId, STAFF_USER_ID];
+
+  const [{ data: bans }, { data: conversation }] = await Promise.all([
+    supabase.from("bans").select("*").eq("user_id", userId).order("issued_at", { ascending: false }),
+    supabase
+      .from("dm_conversations")
+      .select("id")
+      .eq("user_one_id", staffConvUserOne)
+      .eq("user_two_id", staffConvUserTwo)
+      .maybeSingle(),
+  ]);
+
+  let warningCount = 0;
+  if (conversation) {
+    const { count } = await supabase
+      .from("dm_messages")
+      .select("id", { count: "exact", head: true })
+      .eq("conversation_id", conversation.id)
+      .eq("sender_id", STAFF_USER_ID);
+    warningCount = count ?? 0;
+  }
+
+  return { bans: (bans ?? []) as BanRow[], warningCount };
 }
 
 // Same author-name-resolution pattern as resolveReportDetails, for the

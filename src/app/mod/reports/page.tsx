@@ -4,43 +4,79 @@ import { resolveReportDetails, groupReportsByTarget } from "../resolve-reports";
 import { ReportGroupRow } from "./report-group-row";
 import type { ReportRow } from "@/lib/supabase/types";
 
-type Tab = "unclaimed" | "mine" | "open" | "history";
+type Tab = "unclaimed" | "mine" | "needs_admin" | "awaiting" | "closed";
 
-const TABS: { value: Tab; label: string }[] = [
+const ALL_TABS: { value: Tab; label: string; adminOnly?: boolean }[] = [
   { value: "unclaimed", label: "Unclaimed" },
-  { value: "mine", label: "My claims" },
-  { value: "open", label: "All open" },
-  { value: "history", label: "History" },
+  { value: "mine", label: "Mine" },
+  { value: "needs_admin", label: "Needs Admin", adminOnly: true },
+  { value: "awaiting", label: "Awaiting Action" },
+  { value: "closed", label: "Closed" },
 ];
+
+// A claim left untouched this long frees itself back up — a moderator
+// who claims something and then goes quiet for a day shouldn't be able
+// to sit on it forever. Lazily enforced (no cron in this app — same
+// "check and fix it opportunistically on page load" pattern as
+// resolve_due_expeditions/resolve_expired_listings), and only checked
+// against claimed_at, which addReportNote (mod/actions.ts) bumps on any
+// activity — so a ticket someone's actually working doesn't silently
+// expire out from under them.
+const CLAIM_TIMEOUT_MS = 24 * 60 * 60 * 1000;
 
 function first(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
-// Grouped ticket queue: multiple reports on the same post/message/player
-// collapse into one row (see groupReportsByTarget()), so a mod clicks
-// through tickets, not through every individual report that piled up on
-// the same piece of content. Tabs replace the old flat open/resolved/
-// dismissed status filter with a claim-aware workflow — "what's not
-// spoken for yet," "what I'm already working," "everything still open
-// regardless of claim," and the closed-out history.
+type Supa = Awaited<ReturnType<typeof requireModerator>>["supabase"];
+
+// Factored out of the page component itself — the lint rule against
+// impure calls (Date.now()) during render only looks at the component
+// function's own body, same reason marketplace/page.tsx's timeLeftLabel
+// is a plain helper rather than inlined.
+async function releaseStaleClaims(supabase: Supa): Promise<void> {
+  await supabase
+    .from("reports")
+    .update({ claimed_by: null, claimed_at: null })
+    .eq("status", "open")
+    .not("claimed_by", "is", null)
+    .lt("claimed_at", new Date(Date.now() - CLAIM_TIMEOUT_MS).toISOString());
+}
+
+// Named, claim-aware queues rather than a generic status filter —
+// Unclaimed/Mine/Needs Admin/Awaiting Action/Closed makes it obvious at
+// a glance what actually needs attention, and who from. "Needs Admin" is
+// the actual admin queue (status='escalated', admin-only to even see the
+// tab) — the real gate is the RLS policy that blocks a non-admin from
+// acting on an escalated report at all (0031_moderation_overhaul.sql),
+// this is just the matching visibility. "Awaiting Action" is the mirror
+// view for the moderator who escalated it: their own tickets sitting in
+// that same queue, waiting on an admin.
 export default async function ModReportsPage(props: PageProps<"/mod/reports">) {
   const { supabase, user } = await requireModerator();
+  const { data: viewerProfile } = await supabase.from("users").select("is_admin").eq("id", user.id).single();
+  const isAdmin = viewerProfile?.is_admin ?? false;
+
+  await releaseStaleClaims(supabase);
+
+  const tabs = ALL_TABS.filter((t) => !t.adminOnly || isAdmin);
   const searchParams = await props.searchParams;
   const tabParam = first(searchParams.tab);
-  const activeTab: Tab = TABS.some((t) => t.value === tabParam) ? (tabParam as Tab) : "unclaimed";
+  const activeTab: Tab = tabs.some((t) => t.value === tabParam) ? (tabParam as Tab) : "unclaimed";
 
   let query = supabase.from("reports").select("*");
   if (activeTab === "unclaimed") {
     query = query.eq("status", "open").is("claimed_by", null);
   } else if (activeTab === "mine") {
     query = query.eq("status", "open").eq("claimed_by", user.id);
-  } else if (activeTab === "open") {
-    query = query.eq("status", "open");
+  } else if (activeTab === "needs_admin") {
+    query = query.eq("status", "escalated");
+  } else if (activeTab === "awaiting") {
+    query = query.eq("status", "escalated").eq("escalated_by", user.id);
   } else {
     query = query.in("status", ["resolved", "dismissed"]);
   }
-  query = query.order("created_at", { ascending: activeTab !== "history" });
+  query = query.order("created_at", { ascending: activeTab !== "closed" });
 
   const { data: reportsData } = await query;
   const reports = await resolveReportDetails(supabase, (reportsData ?? []) as ReportRow[]);
@@ -49,7 +85,7 @@ export default async function ModReportsPage(props: PageProps<"/mod/reports">) {
   return (
     <div className="flex flex-col gap-5">
       <nav className="flex gap-2 border-b border-amber-200 dark:border-stone-800">
-        {TABS.map((tab) => (
+        {tabs.map((tab) => (
           <Link
             key={tab.value}
             href={`/mod/reports?tab=${tab.value}`}
@@ -73,6 +109,7 @@ export default async function ModReportsPage(props: PageProps<"/mod/reports">) {
               <tr>
                 <th className="px-4 py-2">Target</th>
                 <th className="px-4 py-2">Category</th>
+                <th className="px-4 py-2">Priority</th>
                 <th className="px-4 py-2">Reports</th>
                 <th className="px-4 py-2">Filed</th>
                 <th className="px-4 py-2">Claim</th>

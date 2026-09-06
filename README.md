@@ -196,12 +196,28 @@ This project is being built one module at a time. Current state:
       instead of a card per report; staff can claim a ticket so two mods
       don't duplicate work, leave internal handoff notes (never shown to
       players), and resolve/dismiss/delete-post act on the whole ticket
-      at once. `/mod/reports` is now a tabbed queue (Unclaimed/My
-      claims/All open/History) with a dedicated ticket detail page.
-      Players get a new "My Reports" page showing their own filed
-      reports' status (Under review/Action taken/No violation found),
-      closing the loop after the one-time automatic ack DM. See Notes
-      below
+      at once. `/mod/reports` is a tabbed queue with a dedicated ticket
+      detail page, and players get a "My Reports" page listing what
+      they've filed. See Notes below
+- [x] Moderation overhaul: invisible staff, one-way warnings, escalation,
+      appeals, and support tickets — a much stricter "staff are
+      invisible" model. Reports auto-get a priority (harassment/scam
+      jump the queue); the queue is five named tabs (Unclaimed/Mine/Needs
+      Admin/Awaiting Action/Closed) with a 24h claim timeout; a
+      moderator's own ban authority is capped at 7 days (dm/sales/forums
+      only) — anything longer, or any account ban, requires escalating
+      the report to an admin, who reviews it (with the player's prior
+      warnings/bans surfaced) and either issues the ban or sends it back.
+      All staff-to-player DMs (warnings, quick quotes, report acks) are
+      now genuinely one-way: a player can never reply into a conversation
+      with the renamed "Community Team" account, the reply box is
+      replaced with a locked notice and a Contact Support link, and "My
+      Reports" no longer shows a status at all — just a private log of
+      what was filed. Two new player-facing pieces: "My Bans" (appeal a
+      DM/sales/forums ban — never an account ban — reviewed by a
+      DIFFERENT staff member than the one who issued it) and Support
+      (two-way tickets for non-moderation issues, separate from reports
+      since only these get a staff reply). See Notes below
 
 ---
 
@@ -2769,3 +2785,130 @@ signs in.
     entries, the notes thread with an existing note and the add-note
     form, and the player-facing My Reports status rows in all three
     color-coded states.
+- **Moderation overhaul** (`0031_moderation_overhaul.sql`) — feedback on
+  the ticket system from the round above: "still feels very chunky."
+  Reduces to four rules — staff are invisible, moderation is one-way, a
+  ticket has one owner, moderators cannot ban — plus two smaller sibling
+  systems (ban appeals, support tickets) that share the claim-based staff
+  workflow without sharing a table with reports.
+  - **Priority, auto-derived**: a new `report_priority` enum
+    (`low`/`normal`/`high`) and a `before insert` trigger
+    (`set_report_priority()`) that sets it once, from `category` —
+    harassment/scam → high, spam → low, everything else → normal. Not
+    staff-editable, purely a triage signal; shown as a color-coded column
+    in the queue.
+  - **Escalation, not moderator bans past a point**: `reports` gained a
+    fourth status, `'escalated'`, plus `escalated_by`/`escalated_at`/
+    `escalation_reason`/`recommended_action`. `escalateReport` (mod/
+    actions.ts) bulk-moves every open report on a ticket into that
+    status — same "operate on the whole ticket, not just the clicked
+    row" shape as resolve/dismiss/claim. The REAL gate on "only admins
+    can act on it from here" is a rewritten UPDATE policy: `using
+    (current_user_is_moderator() and (status <> 'escalated' or
+    current_user_is_admin()))` — the escalating moderator's own write
+    still passes (the row's OLD status is still `'open'` at that moment),
+    but any FURTHER write to an already-escalated row requires admin,
+    full stop. `returnEscalation` (admin-only via that same policy) sends
+    it back to `'open'` and clears the escalation fields, landing back in
+    the escalating moderator's own queue rather than Unclaimed.
+  - **`findTicketReportIds` (renamed from `findOpenTicketReportIds`) now
+    matches on the representative report's OWN current status**, not a
+    hardcoded `'open'` — a real bug this round's escalation feature would
+    otherwise have hit immediately: an admin resolving an escalated
+    ticket needs to find its escalated SIBLINGS (status `'escalated'`,
+    not `'open'`), or a multi-report ticket would only ever get its one
+    clicked row closed out, leaving the rest stuck forever.
+  - **Hybrid ban authority**: bans' INSERT policy now reads `is_admin()
+    OR (is_moderator() AND ban_type <> 'account' AND expires_at <=
+    issued_at + interval '7 days')`. A moderator keeps direct authority
+    over short dm/sales/forums restrictions (unchanged from 0029);
+    anything longer, or any account ban, is rejected outright — the
+    moderator's own path from there is escalating the report, not
+    retrying with different bans-table arguments. `BanForm` hides both
+    the `account` option and every >7-day duration option for a
+    non-admin, and a required "I have reviewed the evidence" checkbox
+    (client-side friction only, no schema) gates every ban submission,
+    admin or moderator.
+  - **DMs with Staff become genuinely one-way**: `dm_messages`' INSERT
+    policy now rejects `sender_id = STAFF_USER_ID`'s own account trying
+    to be impersonated AND rejects any insert into a conversation that
+    has the Staff account as a participant unless it comes through a
+    security-definer function (`send_staff_message`,
+    `handle_new_report`'s trigger) — a player literally cannot write into
+    that conversation anymore, not just "the UI doesn't offer a reply
+    box." The Staff account itself was renamed from "Staff Team" to
+    "Community Team" (a session-scoped `set_config('app.trusted_user_
+    write', ...)` around the UPDATE, since migrations run one statement
+    per implicit transaction and `SET LOCAL` wouldn't survive to the next
+    one) — reads as an institution, not a person, everywhere its display
+    name already appears. `/messages/[conversationId]` detects
+    `otherUserId === STAFF_USER_ID` and swaps the reply box for a locked
+    notice ("This is an automated moderation message and cannot receive
+    replies") plus a Contact Support link; the Report button also no
+    longer renders on a Staff-authored message (reporting an automated
+    notice doesn't make sense).
+  - **"My Reports" drops status entirely** — the previous round's
+    Under review/Action taken/No violation found labels set an
+    expectation staff would keep players updated, which contradicts
+    "staff are invisible." It's now purely a private submission log:
+    what was reported, when, nothing about the outcome. The report
+    confirmation copy also changed to the exact requested wording
+    ("Your report has been submitted. Thank you for helping keep the
+    community safe.").
+  - **Appeals** (`appeals` table) — scoped to dm/sales/forums bans only;
+    account bans have no in-app appeal path since the ban signs the
+    player out before they could file one, and accepting an
+    unauthenticated appeal would mean trusting a bare ban id with no
+    identity check (a real feature, not something to improvise here).
+    One appeal per ban (`ban_id unique`). "The person reviewing isn't the
+    person who made the original decision" is an RLS backstop, not a UI
+    nicety: the UPDATE policy requires `exists (select 1 from bans where
+    id = ban_id and issued_by <> auth.uid())`, so the issuing staff
+    member's own review attempt is rejected outright — `/mod/appeals`
+    just doesn't render the approve/deny controls for them, with a note
+    explaining why. Approving lifts the ban (`lifted_at`/`lifted_by`,
+    reusing the exact columns a manual early-lift already sets); denying
+    just closes the appeal. New player-facing `/bans` ("My Bans") lists
+    a player's own ban history (existing self-select policy from 0029,
+    no new RLS needed) with an Appeal button per un-appealed eligible
+    ban.
+  - **Support tickets** (`support_tickets` + `support_ticket_messages`)
+    — deliberately separate tables from reports/report_notes, not a
+    shared "ticket" type with a discriminator column: a support ticket
+    is two-way (both player and staff reply) where a report never gets a
+    staff reply at all. Mirrors reports' claim shape (`claimed_by`/
+    `claimed_at`) for a consistent staff workflow. Either side can
+    reply while `status = 'open'`; closing (staff-only) locks it the same
+    way a Staff-warning DM is locked, and staff can reopen if it
+    genuinely needs to continue — a player can't reopen their own,
+    they'd file a new one. `/support` (list + new ticket) and
+    `/support/[ticketId]` (two-way thread, staff replies shown as
+    "Support Team" — same anonymity treatment as warning DMs, even
+    though the real `sender_id` is kept for staff-side accountability)
+    on the player side; `/mod/support` (Unclaimed/Mine/Closed queue) and
+    `/mod/support/[ticketId]` (claim, reply with real names shown for
+    staff coordination, close, reopen) on the staff side.
+  - Verified against local Postgres (14 scenarios covering escalation,
+    the ban duration cap, the one-way DM lock, and appeal reviewer
+    exclusion, plus 8 more for support tickets): priority auto-derives
+    correctly per category; a moderator can escalate but a further edit
+    to that same report is rejected while an admin's edit succeeds; a
+    moderator can issue a 7-day forums ban but not a 30-day one, while an
+    admin can issue either; a player cannot reply into a Staff
+    conversation (confirmed both as a direct insert and by re-checking
+    `send_staff_message` still works, since it bypasses this policy
+    entirely) while a normal player-to-player DM is unaffected; a player
+    can appeal a forums ban but not an account ban; the issuing staff
+    member's review attempt on that appeal is rejected while a different
+    staff member's succeeds; a support ticket's participants (and staff)
+    can read/write it, an unrelated player can't see it at all, nobody
+    can message a closed ticket, and a player can't close their own
+    ticket directly.
+  - Verified visually (temporary preview route, as usual): the ticket
+    queue with its new priority column, the escalate-form collapsed and
+    open, the escalated ticket's full admin panel (reason, recommended
+    action, moderation history summary, embedded ban form with the
+    reviewed-evidence checkbox, return-to-moderator button), the My Bans
+    appeal button collapsed and open, and a support ticket thread
+    rendered both ways — anonymized ("Support Team") for the player,
+    real names for staff.
