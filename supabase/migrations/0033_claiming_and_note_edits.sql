@@ -10,8 +10,15 @@
 -- resolve reports", 0027_moderation.sql) already covers every column,
 -- claimed_by/claimed_at included, and a player has no UPDATE policy on
 -- reports at all.
-alter table public.reports add column claimed_by uuid references public.users (id);
-alter table public.reports add column claimed_at timestamptz;
+--
+-- IF NOT EXISTS on both: git-reverting the ticket round's application
+-- code never undid its already-applied migration on a project that ran
+-- it before the revert, so these columns (added under the exact same
+-- definition by that reverted round's own 0030_report_tickets.sql) may
+-- already exist here. Adding them again would otherwise be a hard
+-- error, not a no-op.
+alter table public.reports add column if not exists claimed_by uuid references public.users (id);
+alter table public.reports add column if not exists claimed_at timestamptz;
 
 comment on column public.reports.claimed_by is
   'Which staff member is actively working this report — separate from resolved_by, which records who closed it. Null means unclaimed.';
