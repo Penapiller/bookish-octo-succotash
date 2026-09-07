@@ -206,6 +206,12 @@ This project is being built one module at a time. Current state:
       ticket claiming (any staff member, no ownership lock on unclaim)
       from the reverted round, and let a staff member edit a player note
       they wrote earlier. See Notes below
+- [x] Pets tab rework + pet detail page — a modernized, image-forward
+      grid (a Flight-Rising-lair-inspired but decluttered version — the
+      rename/folder/for-trade controls that used to live on every card
+      moved to a new `/pets/[petId]` page) that shows a pet's full info
+      (species, rarity, color, adopted date, ID) and a player-editable,
+      BBCode-supported bio. See Notes below
 
 ---
 
@@ -2837,3 +2843,69 @@ signs in.
     button's three states (unclaimed / claimed by you / claimed by
     someone else) and the player-notes list swapping into inline edit
     mode with prefilled text and Save/Cancel.
+
+- **Pets tab rework + pet detail page** (`0034_pet_bio.sql`) — inspired
+  by a Flight Rising lair screenshot, "a slightly more modern version
+  that gives players more room to decorate," plus a new per-pet page
+  with full info and a BBCode bio.
+  - **The grid card, decluttered** (`/pets`, `pets/page.tsx`) — the old
+    card packed a name editor, a folder `<select>`, and a for-trade
+    toggle into every tile; the whole thing is now a single `Link` to
+    `/pets/[petId]`, image-forward (bigger art, rounded-xl, a subtle
+    hover lift/shadow) with just name and species/rarity underneath, and
+    a small "For trade" badge overlapping the top-right corner when
+    applicable. An unnamed pet now reads as italic gray "Unnamed" text
+    (informational) rather than a "+ Name this pet" button, since
+    renaming moved to the detail page along with everything else that
+    used to live on the card. This is a real tradeoff, not a pure
+    improvement: managing many pets across folders one at a time now
+    costs a click-through per pet instead of an inline control — bulk
+    for-trade marking (`BulkForTradeButton`, folder-level) still doesn't
+    require it, but a one-off folder move now does.
+  - **`/pets/[petId]`** (new) — owner-only, same as the grid itself
+    (pets has no public-viewing story yet — see `/u/[id]`'s "Browsing
+    another player's pets isn't available yet"); a pet belonging to
+    someone else 404s exactly like a nonexistent one, never revealing
+    which case it is. Left column: portrait + the existing
+    `PetNameEditor` reused as-is. Right column, three sections: Details
+    (species, rarity, color variant if set, adopted date formatted the
+    same "Month Day, Year" way as `/profile`'s "Joined" date, and the
+    pet's raw id as "ID" — there's no separate friendly pet number,
+    since nothing else in this app has one either); Organize (the
+    existing `MoveToFolderSelect` and `ForTradeToggle`, reused as-is,
+    just relocated here from the grid card); Bio (new, below).
+  - **Pet bios** — same BBCode pipeline as `users.bio`
+    (`bbcodeToHtml()` re-rendered fresh on every read, no separate
+    rendered column) and the same "pets has never had a client UPDATE
+    policy" reasoning behind `custom_name`/`folder_id`/`is_for_trade`
+    (species_id/rarity/owner_id must never be client-writable, so a
+    blanket owner-update policy was never an option) — `set_pet_bio()`
+    is a narrow `security definer` RPC, same shape as `rename_pet()`
+    (0013_pet_names.sql): validates the caller against `p_user_id`,
+    trims/nulls blank input, enforces a 2000-character cap, updates only
+    `bio` and only where `owner_id` matches. `PetBioEditor`
+    (`pets/pet-bio-editor.tsx`, new) follows the same "call the RPC
+    directly from the client" pattern as `PetNameEditor`/
+    `ForTradeToggle`/`MoveToFolderSelect` rather than a server action —
+    it wraps `BBCodeEditor` in a local `<form>` with an `onSubmit`
+    handler (`preventDefault`, read the textarea's value via
+    `FormData`) purely so `BBCodeEditor`'s existing uncontrolled-
+    textarea design (built for a real form submission) still works
+    without actually navigating anywhere.
+  - Verified against local Postgres (5 scenarios): the owner can set a
+    bio, blank input clears it, an over-2000-character bio is rejected
+    (value unchanged), a caller can't pass someone else's id as
+    `p_user_id` ("Not authorized"), and a caller can't touch a pet they
+    don't own even with their own id ("Pet not found") — the last two
+    also incidentally confirmed RLS hides the other player's pet from
+    them entirely, not just blocking the write.
+  - Verified visually (temporary preview route, as usual): the
+    modernized grid (named/unnamed pets, the for-trade badge) and the
+    full detail page layout, including the bio editor actually opening
+    into `BBCodeEditor` with the existing raw source prefilled.
+  - **Not built, out of scope for this round**: layered pet art
+    rendering and accessory equip/unequip (still an open, unchecked
+    roadmap item — the "room to decorate" language here is about the
+    grid's own layout breathing room, not a new lair-decoration/
+    background-customization feature) and public pet browsing (still
+    explicitly unavailable per `/u/[id]`).

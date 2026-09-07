@@ -1,12 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Tag } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { NewFolderForm } from "./new-folder-form";
 import { FolderHeader } from "./folder-header";
-import { MoveToFolderSelect } from "./move-to-folder-select";
-import { PetNameEditor } from "./pet-name-editor";
-import { ForTradeToggle } from "./for-trade-toggle";
 import { BulkForTradeButton } from "./bulk-for-trade-button";
 import { TRADING_ENABLED } from "@/lib/feature-flags";
 import { ExpandDenButton } from "@/components/expand-den-button";
@@ -17,46 +15,47 @@ const PAGE_SIZE = 25;
 const ALL_TAB = "all";
 const UNSORTED_TAB = "unsorted";
 
-function PetGrid({
-  list,
-  userId,
-  folderOptions,
-}: {
-  list: PetWithSpecies[];
-  userId: string;
-  folderOptions: { id: string; name: string }[];
-}) {
+// Image-forward and click-through to /pets/[petId] for everything else
+// (renaming, folder, for-trade, bio) — modernized from the old card,
+// which packed a name editor, a folder select, and a for-trade toggle
+// into every tile. Leaves the card itself purely about showing the pet
+// off, with room for real art (layered rendering/accessories are still
+// unbuilt — see the README roadmap) once that lands.
+function PetGrid({ list }: { list: PetWithSpecies[] }) {
   return (
-    <ul className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+    <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
       {list.map((pet) => (
-        <li
-          key={pet.id}
-          className="flex flex-col items-center gap-2 rounded-lg border border-amber-200 p-3 text-center dark:border-stone-800"
-        >
-          {pet.species?.image_url ? (
-            <Image
-              src={pet.species.image_url}
-              alt={pet.species?.name ?? ""}
-              width={96}
-              height={96}
-              className="h-24 w-24 rounded border-2 border-blue-600"
-            />
-          ) : (
-            <div className="h-24 w-24 rounded bg-amber-200 dark:bg-stone-800" />
-          )}
-          <PetNameEditor userId={userId} petId={pet.id} customName={pet.custom_name} />
-          <p className="text-xs capitalize text-stone-500">
-            {pet.species?.name} · {pet.rarity}
-          </p>
-          <MoveToFolderSelect
-            userId={userId}
-            petId={pet.id}
-            currentFolderId={pet.folder_id}
-            folders={folderOptions}
-          />
-          {TRADING_ENABLED ? (
-            <ForTradeToggle userId={userId} petId={pet.id} isForTrade={pet.is_for_trade} />
-          ) : null}
+        <li key={pet.id}>
+          <Link
+            href={`/pets/${pet.id}`}
+            className="flex flex-col items-center gap-2 rounded-xl border border-amber-200 bg-white/60 p-4 text-center shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-stone-800 dark:bg-stone-950/40"
+          >
+            <div className="relative">
+              {pet.species?.image_url ? (
+                <Image
+                  src={pet.species.image_url}
+                  alt={pet.species?.name ?? ""}
+                  width={112}
+                  height={112}
+                  className="h-28 w-28 rounded-lg border-2 border-blue-600 object-cover"
+                />
+              ) : (
+                <div className="h-28 w-28 rounded-lg bg-amber-200 dark:bg-stone-800" />
+              )}
+              {TRADING_ENABLED && pet.is_for_trade ? (
+                <span className="absolute -right-2 -top-2 flex items-center gap-1 rounded-full bg-amber-800 px-2 py-0.5 text-[10px] font-semibold text-white shadow dark:bg-amber-200 dark:text-amber-950">
+                  <Tag size={10} />
+                  For trade
+                </span>
+              ) : null}
+            </div>
+            <p className={`text-sm font-semibold ${pet.custom_name ? "" : "italic text-stone-500"}`}>
+              {pet.custom_name ?? "Unnamed"}
+            </p>
+            <p className="text-xs capitalize text-stone-500">
+              {pet.species?.name} · {pet.rarity}
+            </p>
+          </Link>
         </li>
       ))}
     </ul>
@@ -97,7 +96,6 @@ export default async function PetsPage(props: PageProps<"/pets">) {
     .order("created_at", { ascending: true });
 
   const folders = (foldersData ?? []) as PetFolderRow[];
-  const folderOptions = folders.map((f) => ({ id: f.id, name: f.name }));
   const activeFolder = folders.find((f) => f.id === activeTab) ?? null;
 
   const [{ count: totalCount }, { count: unsortedCount }, folderCounts] = await Promise.all([
@@ -224,7 +222,7 @@ export default async function PetsPage(props: PageProps<"/pets">) {
               : "No pets in this folder yet."}
         </p>
       ) : (
-        <PetGrid list={pets} userId={userId} folderOptions={folderOptions} />
+        <PetGrid list={pets} />
       )}
 
       {totalPages > 1 ? (

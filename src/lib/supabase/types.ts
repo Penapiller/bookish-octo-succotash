@@ -65,6 +65,10 @@ export type PetRow = {
   folder_id: string | null;
   custom_name: string | null;
   is_for_trade: boolean;
+  // Player-written BBCode source, same convention as users.bio — set
+  // only through set_pet_bio() (0034_pet_bio.sql), never a direct
+  // client UPDATE (pets has never had one; see custom_name/folder_id).
+  bio: string | null;
   created_at: string;
 };
 
@@ -233,6 +237,9 @@ export type PetWithSpecies = Pick<
 > & {
   species: Pick<SpeciesRow, "name" | "image_url"> | null;
 };
+
+// Everything PetWithSpecies has, plus bio — shown on /pets/[petId].
+export type PetDetail = PetWithSpecies & Pick<PetRow, "bio">;
 
 // A stack in the player's inventory, as shown on /items.
 export type ItemWithQuantity = {
@@ -917,6 +924,14 @@ export type Database = {
           p_user_id: string;
           p_pet_id: string;
           p_name: string;
+        };
+        Returns: null;
+      };
+      set_pet_bio: {
+        Args: {
+          p_user_id: string;
+          p_pet_id: string;
+          p_bio: string;
         };
         Returns: null;
       };
