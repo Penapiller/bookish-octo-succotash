@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ResolveReportForm } from "./reports/resolve-report-form";
 import { DeleteReportedPostButton } from "./reports/delete-reported-post-button";
+import { ClaimButton } from "./reports/claim-button";
 import { QuickQuoteButton } from "./quick-quote-button";
 import type { ReportWithDetails } from "@/lib/supabase/types";
 
@@ -23,7 +24,13 @@ const TARGET_TYPE_LABELS: Record<string, string> = {
   dm_message: "a direct message",
 };
 
-export function ReportCard({ report }: { report: ReportWithDetails }) {
+export function ReportCard({
+  report,
+  currentUserId,
+}: {
+  report: ReportWithDetails;
+  currentUserId?: string;
+}) {
   const createdAt = new Date(report.created_at).toLocaleString();
   const offendingUserId =
     report.target_type === "user"
@@ -126,8 +133,15 @@ export function ReportCard({ report }: { report: ReportWithDetails }) {
 
       {report.details ? <p className="text-sm text-stone-600 dark:text-stone-400">&ldquo;{report.details}&rdquo;</p> : null}
 
-      {report.status === "open" ? (
+      {report.status === "open" || report.status === "escalated" ? (
         <div className="flex flex-wrap items-center gap-2 border-t border-amber-100 pt-3 dark:border-stone-800">
+          {currentUserId ? (
+            <ClaimButton
+              reportId={report.id}
+              claimedByName={report.claimedByName}
+              isMine={report.claimedById === currentUserId}
+            />
+          ) : null}
           <ResolveReportForm reportId={report.id} status="resolved" label="Mark resolved" />
           <ResolveReportForm reportId={report.id} status="dismissed" label="Dismiss" />
           {report.target_type === "forum_post" && report.targetPostId ? (

@@ -651,6 +651,12 @@ export type ReportRow = {
   resolved_by: string | null;
   resolved_at: string | null;
   resolution_note: string | null;
+  // Restored in 0033_claiming_and_note_edits.sql — which staff member is
+  // actively working this, separate from resolved_by (who closed it).
+  // Any staff member can claim or unclaim any report; there's no "only
+  // the claimant can unclaim" lock.
+  claimed_by: string | null;
+  claimed_at: string | null;
   created_at: string;
 };
 
@@ -677,6 +683,8 @@ export type ReportWithDetails = Pick<
   targetMessageSenderName: string | null;
   targetMessageConversationId: string | null;
   resolvedByName: string | null;
+  claimedById: string | null;
+  claimedByName: string | null;
 };
 
 export type CannedStaffMessageRow = {
@@ -733,10 +741,15 @@ export type PlayerNoteRow = {
   user_id: string;
   author_id: string;
   body: string;
+  // Null until the first edit — set in 0033_claiming_and_note_edits.sql,
+  // which also lets the author (only) edit body. A note has exactly one
+  // author, so there's no "someone else edited this" case to track.
+  edited_at: string | null;
   created_at: string;
 };
 
-export type PlayerNoteWithAuthor = Pick<PlayerNoteRow, "id" | "body" | "created_at"> & {
+export type PlayerNoteWithAuthor = Pick<PlayerNoteRow, "id" | "body" | "created_at" | "edited_at"> & {
+  authorId: string;
   authorName: string;
 };
 

@@ -15,6 +15,7 @@ export async function resolveReportDetails(
         r.reporter_id,
         r.target_user_id,
         r.resolved_by,
+        r.claimed_by,
         r.target_post_author_id,
         r.target_message_sender_id,
       ].filter((id): id is string => id !== null)),
@@ -82,6 +83,8 @@ export async function resolveReportDetails(
         : null,
       targetMessageConversationId: message?.conversation_id ?? null,
       resolvedByName: r.resolved_by ? (profileById.get(r.resolved_by)?.display_name ?? "Unknown") : null,
+      claimedById: r.claimed_by,
+      claimedByName: r.claimed_by ? (profileById.get(r.claimed_by)?.display_name ?? "Unknown") : null,
     };
   });
 }
@@ -103,6 +106,8 @@ export async function resolvePlayerNotes(
     id: n.id,
     body: n.body,
     created_at: n.created_at,
+    edited_at: n.edited_at,
+    authorId: n.author_id,
     authorName: nameById.get(n.author_id) ?? "Unknown",
   }));
 }

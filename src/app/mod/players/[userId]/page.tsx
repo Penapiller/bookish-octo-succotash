@@ -145,7 +145,7 @@ export default async function ModPlayerPage(props: PageProps<"/mod/players/[user
         ) : (
           <ul className="flex flex-col gap-3">
             {reports.map((report) => (
-              <ReportCard key={report.id} report={report} />
+              <ReportCard key={report.id} report={report} currentUserId={user.id} />
             ))}
           </ul>
         )}

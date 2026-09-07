@@ -202,6 +202,10 @@ This project is being built one module at a time. Current state:
       (Dismiss/Verbal Warning/Forums Ban/DMs Ban/Sales Ban) — picking one
       reveals a "Confirm and Send" / "Escalate to Admin" bar. See Notes
       below
+- [x] Report claiming, restored + editable player notes — brought back
+      ticket claiming (any staff member, no ownership lock on unclaim)
+      from the reverted round, and let a staff member edit a player note
+      they wrote earlier. See Notes below
 
 ---
 
@@ -2783,3 +2787,53 @@ signs in.
     or query error just as it does for a genuinely missing row, so a
     real failure was rendering as an indistinguishable 404 with nothing
     in the logs to tell them apart.
+
+- **Report claiming, restored + editable player notes**
+  (`0033_claiming_and_note_edits.sql`) — two independent QOL additions
+  requested after the simplified round shipped.
+  - **Claiming** — same design as the reverted ticket round:
+    `reports.claimed_by`/`claimed_at`, any staff member can claim or
+    unclaim any report (no "only the claimant can unclaim" lock, so a
+    claim never gets permanently stuck if that mod goes AFK), no new RLS
+    needed since reports' existing staff-only UPDATE policy
+    (0027_moderation.sql) already covers the new columns. `claimReport`/
+    `unclaimReport` (mod/actions.ts) are plain form actions, same
+    "just does the thing" convention as `resolveReport`. Surfaced in
+    three places via one shared `ClaimButton` component
+    (mod/reports/claim-button.tsx): the `/mod/reports` queue rows (open/
+    escalated tabs only — a claim is meaningless once a report is
+    closed), the top of `/mod/reports/[reportId]`, and `ReportCard`
+    (shared with `/mod/players/[userId]`'s report history) — fixed a
+    latent display bug there too, where an `'escalated'` report fell
+    through to the closed-report footer branch and would have rendered
+    as "Dismissed by [nothing]"; the action row (now including Claim/
+    Unclaim) correctly covers escalated reports too.
+  - **Player notes become editable by their author** — notes were
+    write-once; staff asked to fix typos/add detail to one they already
+    wrote. Scoped to the author only (`"Authors can edit their own
+    player notes"` RLS policy), not any staff member, since these are
+    attributed record entries. `edited_at` (null until the first edit)
+    shows "(edited)" without needing forum_posts' full edit_count/
+    last_edited_by pair — a note has exactly one author, so there's no
+    "someone else edited this" case. `updatePlayerNote` (mod/actions.ts)
+    tells "edited" from "silently blocked by RLS" apart via
+    `.select().maybeSingle()` on the update (a non-author's UPDATE
+    matches 0 rows rather than erroring), returning a friendly "You can
+    only edit your own notes." instead of a quiet no-op. `PlayerNotes`
+    (mod/reports/player-notes.tsx) shows an "Edit" link only on the
+    current staff member's own notes, swapping that note to an inline
+    edit form; closing the form on success uses React's "adjust state
+    during render when related state changes" pattern rather than a
+    `useEffect` with `setState` in it (which the project's lint rules
+    flag, and which would also incorrectly fire the instant the edit
+    form opens, before anything is submitted).
+  - Verified against local Postgres (7 scenarios): any staff member can
+    claim a report, any OTHER staff member can unclaim it (no ownership
+    lock), a plain player's attempted claim is silently rejected by RLS,
+    a note's author can edit it, a different staff member's edit attempt
+    is rejected, and the target player themself can't edit (or even see)
+    a note about them.
+  - Verified visually (temporary preview route, as usual): the claim
+    button's three states (unclaimed / claimed by you / claimed by
+    someone else) and the player-notes list swapping into inline edit
+    mode with prefilled text and Save/Cancel.

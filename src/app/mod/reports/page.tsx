@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireModerator } from "@/lib/moderation";
 import { resolveReportDetails } from "../resolve-reports";
 import { CATEGORY_LABELS } from "../report-card";
+import { ClaimButton } from "./claim-button";
 import type { ReportRow, ReportStatus } from "@/lib/supabase/types";
 
 const TABS: { value: ReportStatus; label: string }[] = [
@@ -19,7 +20,7 @@ function first(value: string | string[] | undefined): string | undefined {
 // links out to /mod/reports/[reportId], the single-report handling page
 // where all the actual work happens.
 export default async function ModReportsPage(props: PageProps<"/mod/reports">) {
-  const { supabase } = await requireModerator();
+  const { supabase, user } = await requireModerator();
   const searchParams = await props.searchParams;
   const statusParam = first(searchParams.status);
   const activeStatus: ReportStatus = TABS.some((t) => t.value === statusParam)
@@ -57,11 +58,11 @@ export default async function ModReportsPage(props: PageProps<"/mod/reports">) {
       ) : (
         <ul className="flex flex-col gap-2">
           {reports.map((report) => (
-            <li key={report.id}>
-              <Link
-                href={`/mod/reports/${report.id}`}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-200 px-4 py-2.5 text-sm hover:bg-amber-50 dark:border-stone-800 dark:hover:bg-stone-900"
-              >
+            <li
+              key={report.id}
+              className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-200 px-4 py-2.5 text-sm hover:bg-amber-50 dark:border-stone-800 dark:hover:bg-stone-900"
+            >
+              <Link href={`/mod/reports/${report.id}`} className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-3">
                 <span>
                   <span className="font-medium">{report.reporterName}</span> reported{" "}
                   {report.target_type === "user"
@@ -73,6 +74,17 @@ export default async function ModReportsPage(props: PageProps<"/mod/reports">) {
                 </span>
                 <span className="text-xs text-stone-500">{new Date(report.created_at).toLocaleDateString()}</span>
               </Link>
+              {activeStatus === "open" || activeStatus === "escalated" ? (
+                <ClaimButton
+                  reportId={report.id}
+                  claimedByName={report.claimedByName}
+                  isMine={report.claimedById === user.id}
+                />
+              ) : report.claimedByName ? (
+                <span className="whitespace-nowrap text-xs text-stone-500">
+                  Was claimed by {report.claimedById === user.id ? "you" : report.claimedByName}
+                </span>
+              ) : null}
             </li>
           ))}
         </ul>

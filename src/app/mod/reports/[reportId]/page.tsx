@@ -6,6 +6,7 @@ import { resolveReportDetails, resolvePlayerNotes } from "../../resolve-reports"
 import { CATEGORY_LABELS } from "../../report-card";
 import { PlayerNotes } from "../player-notes";
 import { ReportHandlingForm } from "../report-handling-form";
+import { ClaimButton } from "../claim-button";
 import type { ReportRow } from "@/lib/supabase/types";
 
 // The report-handling page — one report, one page, laid out to match the
@@ -17,7 +18,7 @@ import type { ReportRow } from "@/lib/supabase/types";
 // notices that pattern, not automatic grouping).
 export default async function ReportHandlingPage(props: PageProps<"/mod/reports/[reportId]">) {
   const { reportId } = await props.params;
-  const { supabase } = await requireModerator();
+  const { supabase, user } = await requireModerator();
 
   const { data: reportRow, error: reportError } = await supabase.from("reports").select("*").eq("id", reportId).maybeSingle();
   if (reportError) {
@@ -69,9 +70,14 @@ export default async function ReportHandlingPage(props: PageProps<"/mod/reports/
 
   return (
     <div className="flex flex-col gap-4">
-      <Link href="/mod/reports" className="text-sm text-stone-500 hover:underline">
-        ← Back to queue
-      </Link>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link href="/mod/reports" className="text-sm text-stone-500 hover:underline">
+          ← Back to queue
+        </Link>
+        {report.status === "open" || report.status === "escalated" ? (
+          <ClaimButton reportId={reportId} claimedByName={report.claimedByName} isMine={report.claimedById === user.id} />
+        ) : null}
+      </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr]">
         {/* ── Left column: the offending player ─────────────────────── */}
@@ -106,7 +112,7 @@ export default async function ReportHandlingPage(props: PageProps<"/mod/reports/
           <section className="flex flex-col gap-2 rounded-lg border border-amber-200 p-4 dark:border-stone-800">
             <h2 className="text-xs font-semibold uppercase tracking-wide text-stone-500">Player notes</h2>
             {offendingUserId ? (
-              <PlayerNotes userId={offendingUserId} reportId={reportId} notes={playerNotes} />
+              <PlayerNotes userId={offendingUserId} reportId={reportId} notes={playerNotes} currentUserId={user.id} />
             ) : (
               <p className="text-sm italic text-stone-500">No player to attach notes to.</p>
             )}

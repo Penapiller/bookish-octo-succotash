@@ -345,6 +345,38 @@ export async function escalateReportSimple(formData: FormData): Promise<void> {
   redirect("/mod/reports");
 }
 
+// Claiming, restored from the reverted ticket round (0033_claiming_and_
+// note_edits.sql) — plain form actions, same "just does the thing"
+// convention as resolveReport/deleteReportedPost. No ownership check on
+// unclaim: any staff member can claim or unclaim any report, so a claim
+// never gets permanently stuck if that mod goes AFK.
+export async function claimReport(formData: FormData): Promise<void> {
+  const { supabase, user } = await requireModerator();
+
+  const reportId = String(formData.get("report_id") ?? "");
+  if (reportId.length === 0) return;
+
+  await supabase
+    .from("reports")
+    .update({ claimed_by: user.id, claimed_at: new Date().toISOString() })
+    .eq("id", reportId);
+
+  revalidatePath("/mod/reports");
+  revalidatePath(`/mod/reports/${reportId}`);
+}
+
+export async function unclaimReport(formData: FormData): Promise<void> {
+  const { supabase } = await requireModerator();
+
+  const reportId = String(formData.get("report_id") ?? "");
+  if (reportId.length === 0) return;
+
+  await supabase.from("reports").update({ claimed_by: null, claimed_at: null }).eq("id", reportId);
+
+  revalidatePath("/mod/reports");
+  revalidatePath(`/mod/reports/${reportId}`);
+}
+
 export type AddPlayerNoteState = { error: string } | null;
 
 // Private, staff-only, dated and attributed (player_notes,
@@ -379,4 +411,50 @@ export async function addPlayerNote(
   }
   revalidatePath(`/mod/players/${targetUserId}`);
   return null;
+}
+
+export type UpdatePlayerNoteState = { error: string } | { success: true } | null;
+
+// Lets the author (only) fix a note they already wrote — RLS ("Authors
+// can edit their own player notes", 0033_claiming_and_note_edits.sql) is
+// the real backstop; a non-author's update matches 0 rows rather than
+// erroring, so `.select().maybeSingle()` is how this tells "edited" from
+// "silently blocked" apart to give a friendly message instead of a quiet
+// no-op.
+export async function updatePlayerNote(
+  _prevState: UpdatePlayerNoteState,
+  formData: FormData,
+): Promise<UpdatePlayerNoteState> {
+  const { supabase } = await requireModerator();
+
+  const noteId = String(formData.get("note_id") ?? "");
+  const targetUserId = String(formData.get("user_id") ?? "");
+  const reportId = formData.get("report_id");
+  const body = String(formData.get("body") ?? "").trim();
+
+  if (noteId.length === 0) return { error: "Missing note." };
+  if (body.length === 0) return { error: "Write a note first." };
+  if (body.length > 2000) return { error: "Note must be 2000 characters or fewer." };
+
+  const { data: updated, error } = await supabase
+    .from("player_notes")
+    .update({ body, edited_at: new Date().toISOString() })
+    .eq("id", noteId)
+    .select("id")
+    .maybeSingle();
+
+  if (error) {
+    return { error: `Could not save note: ${error.message}` };
+  }
+  if (!updated) {
+    return { error: "You can only edit your own notes." };
+  }
+
+  if (typeof reportId === "string" && reportId.length > 0) {
+    revalidatePath(`/mod/reports/${reportId}`);
+  }
+  if (targetUserId.length > 0) {
+    revalidatePath(`/mod/players/${targetUserId}`);
+  }
+  return { success: true };
 }
