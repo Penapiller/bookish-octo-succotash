@@ -7,7 +7,9 @@ export default async function AdminGardenPlantsPage() {
 
   const { data: plants } = await supabase
     .from("garden_plants")
-    .select("id, name, image_stage1_url, image_stage2_url, image_stage3_url, base_coin_yield, is_active")
+    .select(
+      "id, name, image_stage1_url, image_stage2_url, image_stage3_url, image_stage4_url, base_coin_yield, is_active",
+    )
     .order("name");
 
   return (
@@ -45,7 +47,7 @@ export default async function AdminGardenPlantsPage() {
                 </td>
                 <td className="px-4 py-2">
                   <div className="flex items-center gap-1">
-                    {[p.image_stage1_url, p.image_stage2_url, p.image_stage3_url].map((url, i) =>
+                    {[p.image_stage1_url, p.image_stage2_url, p.image_stage3_url, p.image_stage4_url].map((url, i) =>
                       url ? (
                         <Image key={i} src={url} alt={`Stage ${i + 1}`} width={20} height={20} className="h-5 w-5 rounded" />
                       ) : (

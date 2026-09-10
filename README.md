@@ -236,9 +236,13 @@ This project is being built one module at a time. Current state:
       item edit form), and the shop lists everything currently priced
       (only the two seed items so far, since that's what was asked for)
       with a Buy button. New admin tooling also adds live thumbnail
-      previews next to each garden plant's 3 growth-stage image fields,
+      previews next to each garden plant's growth-stage image fields,
       so editing them (already possible) is easier to see at a glance.
       See Notes below
+- [x] Garden plants now have 4 growth stages (widened from 3) — a 4th
+      `image_stage4_url` field on `/admin/garden-plants`, and the
+      client-side stage calc split into quarters instead of thirds so
+      plots visually progress through all four. See Notes below
 
 ---
 
@@ -3177,3 +3181,26 @@ signs in.
     affordable/unaffordable items and an "owned" quantity badge, and the
     admin plant form's new stage-image thumbnails rendering next to each
     URL field.
+- **Growth stages widened from 3 to 4** (`0037_garden_plant_stage4.sql`):
+  one new nullable `garden_plants.image_stage4_url` column, no RPC
+  changes — `plant_seed`/`water_plant`/`resolve_due_garden`/
+  `harvest_plot` never knew or cared how many visual stages there were,
+  only `src/lib/garden.ts`'s client-side stage calc did.
+  `getGardenPlantingDisplay()`'s thresholds moved from thirds
+  (`progressFraction >= 2/3`/`>= 1/3`) to quarters (`>= 3/4`/`>= 2/4`/
+  `>= 1/4`), and `GardenGrid`'s image lookup switched from a
+  stage-2-or-3-or-else ternary to indexing a `[stage1, stage2, stage3,
+  stage4]` array by `display.stage - 1` — reads better than a longer
+  ternary chain once there's a 4th case, and the array shape makes it
+  obvious how to add a 5th later if this changes again.
+  `admin/garden-plants` gained a 4th `StageImageField` (the live-preview
+  component added in the shop round) and its list page now shows all 4
+  stage thumbnails instead of 3. Verified against local Postgres (all
+  37 migrations, including this one, apply cleanly; spot-checked the
+  seed data landed the right per-plant stage-4 URL for each of the 3
+  existing plants) and visually via a temporary preview route (cleaned
+  up after) rendering 4 mock plantings at 1/8, 3/8, 5/8, and 7/8
+  progress to confirm they land on stages 1, 2, 3, and 4 respectively
+  (worked out algebraically from the display math, since the sandbox
+  can't load the placehold.co preview art itself to eyeball directly),
+  plus the admin form showing all 4 stage fields with live thumbnails.

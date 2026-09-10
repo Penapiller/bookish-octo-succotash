@@ -11,7 +11,7 @@ export default async function EditGardenPlantPage(props: PageProps<"/admin/garde
     supabase
       .from("garden_plants")
       .select(
-        "id, name, image_stage1_url, image_stage2_url, image_stage3_url, produce_item_id, produce_quantity_min, produce_quantity_max, base_coin_yield, is_active, created_at",
+        "id, name, image_stage1_url, image_stage2_url, image_stage3_url, image_stage4_url, produce_item_id, produce_quantity_min, produce_quantity_max, base_coin_yield, is_active, created_at",
       )
       .eq("id", id)
       .maybeSingle(),

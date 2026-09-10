@@ -26,7 +26,7 @@ export default async function GardenPage() {
     supabase
       .from("garden_plantings")
       .select(
-        "id, user_id, plot_index, plant_id, fertilizer_item_id, status, planted_at, total_duration_seconds, last_watered_at, next_water_needed_at, grow_completes_at, is_pest_affected, created_at, plant:garden_plants(name, image_stage1_url, image_stage2_url, image_stage3_url)",
+        "id, user_id, plot_index, plant_id, fertilizer_item_id, status, planted_at, total_duration_seconds, last_watered_at, next_water_needed_at, grow_completes_at, is_pest_affected, created_at, plant:garden_plants(name, image_stage1_url, image_stage2_url, image_stage3_url, image_stage4_url)",
       )
       .eq("user_id", user.id),
     supabase

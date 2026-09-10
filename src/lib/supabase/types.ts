@@ -151,6 +151,7 @@ export type GardenPlantRow = {
   image_stage1_url: string | null;
   image_stage2_url: string | null;
   image_stage3_url: string | null;
+  image_stage4_url: string | null;
   produce_item_id: string | null;
   produce_quantity_min: number;
   produce_quantity_max: number;
@@ -198,7 +199,10 @@ export type GardenPlantingRow = {
 // A planting joined with its plant's display info — what /garden actually
 // renders per occupied plot.
 export type GardenPlantingWithPlant = GardenPlantingRow & {
-  plant: Pick<GardenPlantRow, "name" | "image_stage1_url" | "image_stage2_url" | "image_stage3_url"> | null;
+  plant: Pick<
+    GardenPlantRow,
+    "name" | "image_stage1_url" | "image_stage2_url" | "image_stage3_url" | "image_stage4_url"
+  > | null;
 };
 
 // Written only by the log_admin_action() trigger (see

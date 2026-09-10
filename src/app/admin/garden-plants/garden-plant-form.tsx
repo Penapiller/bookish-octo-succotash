@@ -6,7 +6,7 @@ import type { GardenPlantRow } from "@/lib/supabase/types";
 
 const initialState: GardenPlantFormState = null;
 
-// A live thumbnail next to each stage's URL field — the 3 stages are the
+// A live thumbnail next to each stage's URL field — the 4 stages are the
 // part of this form most worth being able to see and compare at a
 // glance, not just paste text into.
 function StageImageField({
@@ -14,7 +14,7 @@ function StageImageField({
   label,
   defaultValue,
 }: {
-  stage: 1 | 2 | 3;
+  stage: 1 | 2 | 3 | 4;
   label: string;
   defaultValue: string;
 }) {
@@ -53,7 +53,7 @@ function StageImageField({
   );
 }
 
-// URL-only for the 3 stage images (no file upload, unlike species/items) —
+// URL-only for the 4 stage images (no file upload, unlike species/items) —
 // this is the game's own crop catalog, small in number and, like zones/
 // recipes, fine starting with placeholder art wired in by hand. A plain
 // <select> for the produce item (not SearchablePicker) — that component
@@ -91,7 +91,8 @@ export function GardenPlantForm({
 
       <StageImageField stage={1} label="Stage 1 image URL (sprout)" defaultValue={plant?.image_stage1_url ?? ""} />
       <StageImageField stage={2} label="Stage 2 image URL (growing)" defaultValue={plant?.image_stage2_url ?? ""} />
-      <StageImageField stage={3} label="Stage 3 image URL (mature)" defaultValue={plant?.image_stage3_url ?? ""} />
+      <StageImageField stage={3} label="Stage 3 image URL (budding)" defaultValue={plant?.image_stage3_url ?? ""} />
+      <StageImageField stage={4} label="Stage 4 image URL (mature)" defaultValue={plant?.image_stage4_url ?? ""} />
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="produce_item_id" className="text-sm font-medium">

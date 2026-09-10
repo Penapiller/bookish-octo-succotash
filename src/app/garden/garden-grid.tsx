@@ -73,12 +73,13 @@ function PlotCell({
   }
 
   const display = getGardenPlantingDisplay(planting);
-  const imageUrl =
-    display.stage === 3
-      ? planting.plant?.image_stage3_url
-      : display.stage === 2
-        ? planting.plant?.image_stage2_url
-        : planting.plant?.image_stage1_url;
+  const stageImageUrls = [
+    planting.plant?.image_stage1_url,
+    planting.plant?.image_stage2_url,
+    planting.plant?.image_stage3_url,
+    planting.plant?.image_stage4_url,
+  ];
+  const imageUrl = stageImageUrls[display.stage - 1];
 
   return (
     <div

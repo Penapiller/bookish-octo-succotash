@@ -4,7 +4,7 @@ const WATER_INTERVAL_MS = 8 * 60 * 60 * 1000;
 const WILT_GRACE_MS = 72 * 60 * 60 * 1000;
 
 export type GardenPlantingDisplay = {
-  stage: 1 | 2 | 3;
+  stage: 1 | 2 | 3 | 4;
   needsWater: boolean;
   isReady: boolean;
   isWilted: boolean;
@@ -43,7 +43,14 @@ export function getGardenPlantingDisplay(
     ? 1
     : Math.max(0, Math.min(1, 1 - remainingMs / totalDurationMs));
 
-  const stage: 1 | 2 | 3 = isReady || progressFraction >= 2 / 3 ? 3 : progressFraction >= 1 / 3 ? 2 : 1;
+  const stage: 1 | 2 | 3 | 4 =
+    isReady || progressFraction >= 3 / 4
+      ? 4
+      : progressFraction >= 2 / 4
+        ? 3
+        : progressFraction >= 1 / 4
+          ? 2
+          : 1;
 
   return { stage, needsWater, isReady, isWilted, progressFraction };
 }

@@ -11,6 +11,7 @@ function readGardenPlantFields(formData: FormData) {
   const imageStage1 = String(formData.get("image_stage1_url") ?? "").trim();
   const imageStage2 = String(formData.get("image_stage2_url") ?? "").trim();
   const imageStage3 = String(formData.get("image_stage3_url") ?? "").trim();
+  const imageStage4 = String(formData.get("image_stage4_url") ?? "").trim();
   const produceItemId = String(formData.get("produce_item_id") ?? "").trim();
   const qtyMinRaw = String(formData.get("produce_quantity_min") ?? "");
   const qtyMaxRaw = String(formData.get("produce_quantity_max") ?? "");
@@ -40,6 +41,7 @@ function readGardenPlantFields(formData: FormData) {
       image_stage1_url: imageStage1.length > 0 ? imageStage1 : null,
       image_stage2_url: imageStage2.length > 0 ? imageStage2 : null,
       image_stage3_url: imageStage3.length > 0 ? imageStage3 : null,
+      image_stage4_url: imageStage4.length > 0 ? imageStage4 : null,
       produce_item_id: produceItemId.length > 0 ? produceItemId : null,
       produce_quantity_min: qtyMin,
       produce_quantity_max: qtyMax,
