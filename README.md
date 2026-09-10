@@ -213,12 +213,14 @@ This project is being built one module at a time. Current state:
       (species, rarity, color, adopted date, ID) and a player-editable,
       BBCode-supported bio. See Notes below
 - [x] Furgarden rebrand — the site is now named Furgarden (page title,
-      footer, this README's own title), and the whole `amber-*` Tailwind
-      accent palette became `green-*` sitewide to match a provided
-      "Furgarden" hero banner (sky blue, spring green, sunny yellow,
-      brown outlines). A placeholder reserves the hero banner's spot on
-      the homepage until the actual art file makes it into the repo —
-      see Notes below for why it isn't wired in yet.
+      footer, this README's own title), the real hero banner is live on
+      the homepage (`public/ui/furgarden-hero.png`), the whole `amber-*`
+      Tailwind accent palette became `green-*` sitewide, and a follow-up
+      pass brought the header/nav/footer/page background in line too:
+      brown borders on the logo/account/nav chrome, a brown footer, and
+      a sky-to-grass gradient backdrop replacing the flat blue one — all
+      echoing the hero's own sky/grass/brown-outline palette. See Notes
+      below
 
 ---
 
@@ -2969,3 +2971,37 @@ signs in.
     and primary button, and the `/login` page's button, all render in
     the new green/yellow/blue palette with the updated page title and
     footer text.
+  - **Follow-up: the header/nav/footer/background weren't part of the
+    original ask's scope but should have been** — the first pass only
+    touched `amber-*` classes, which never covered these (the header
+    was already green/yellow from an unrelated earlier round; the nav
+    was already yellow; the footer was `blue-900`; the page background
+    was a flat blue). Asked to extend the recolor to "the whole site"
+    and to bring some brown back in for earthy tones:
+    - `site-header.tsx`/`site-nav.tsx`: added a `border-2 border-
+      amber-900` (a real Tailwind brown — this is a fresh, deliberate
+      use of the `amber` family for a new accent, unrelated to the
+      `amber-*`-becomes-`green-*` rename from the previous round, which
+      only ever touched what was already in the codebase at the time)
+      to the logo box, the signed-in/signed-out account panel, and the
+      nav bar itself — echoing the hero wordmark's own brown outline.
+    - `site-footer.tsx`: `bg-blue-900`/`text-blue-100` → `bg-amber-950`/
+      `text-amber-100`, an earthy dark-brown bar instead of navy.
+    - `globals.css`: the body background gained a second
+      `background-image` layer — a `linear-gradient(to bottom, sky-blue
+      0%, pale-green 65%, grass-green 100%)` — sitting underneath the
+      existing diagonal stripe texture, echoing the hero art's own
+      sky-above/grass-below composition instead of one flat color.
+      `background-attachment: fixed` on that layer (the stripe texture
+      stays `scroll`, its default) keeps the blue-to-green transition
+      sized to one viewport height regardless of how long a page's
+      content makes it scroll — without that, a long page would stretch
+      the gradient across its full scrollable height and show mostly
+      blue with barely a sliver of green at the very bottom.
+    - Verified visually (temporary preview route + dev server +
+      Playwright, both cleaned up after): the homepage end-to-end (hero,
+      gradient background, brown-bordered header) and a mock render of
+      the signed-in nav bar (real component, `NavGroups`, with sample
+      groups — the real `SiteNav` needs a live Supabase session to
+      render anything, since it returns `null` for a signed-out
+      request) against the same gradient/footer.

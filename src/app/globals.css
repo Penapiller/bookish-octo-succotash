@@ -27,19 +27,30 @@
 
 /* Sitewide backdrop, behind the header/nav/white content box/footer
    (see layout.tsx). This is a placeholder pattern standing in for a
-   real background image later — swap the `background-image` line below
-   for `url(...)` when that art exists and everything else (the solid
-   --background color underneath, sizing, the rest of the page) keeps
-   working unchanged. */
+   real background image later — swap the two `background-image` layers
+   below for `url(...)` when that art exists and everything else (the
+   solid --background color underneath, sizing, the rest of the page)
+   keeps working unchanged. Two layers: the diagonal stripe texture on
+   top, and underneath it a sky-to-grass gradient echoing the Furgarden
+   hero art's own scene (blue sky above, green ground below) rather than
+   a flat single color. `background-attachment: fixed` pins the
+   gradient to the viewport height so the blue-to-green transition reads
+   the same on a short page and a long, scrolling one — without it, the
+   gradient would stretch across the full scrollable height and a tall
+   page would show almost nothing but blue. */
 body {
   background-color: var(--background);
-  background-image: repeating-linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.35) 0px,
-    rgba(255, 255, 255, 0.35) 2px,
-    transparent 2px,
-    transparent 26px
-  );
+  background-image:
+    repeating-linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.35) 0px,
+      rgba(255, 255, 255, 0.35) 2px,
+      transparent 2px,
+      transparent 26px
+    ),
+    linear-gradient(to bottom, #a9ddf9 0%, #cdeeda 65%, #a8dd9a 100%);
+  background-repeat: repeat, no-repeat;
+  background-attachment: scroll, fixed;
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }

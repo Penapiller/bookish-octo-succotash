@@ -41,14 +41,14 @@ export async function SiteHeader() {
           behavior underneath won't need to change. */}
       <Link
         href="/"
-        className="flex min-w-40 flex-col items-center justify-center gap-0.5 rounded-md bg-green-500 px-6 py-3 text-center text-white shadow-sm hover:bg-green-600"
+        className="flex min-w-40 flex-col items-center justify-center gap-0.5 rounded-md border-2 border-amber-900 bg-green-500 px-6 py-3 text-center text-white shadow-sm hover:bg-green-600"
       >
         <span className="text-sm font-bold uppercase tracking-wide">Logo image placeholder</span>
         <span className="text-xs opacity-90">Clicking this returns player to home</span>
       </Link>
 
       {user ? (
-        <div className="flex items-center gap-3 rounded-md bg-yellow-400 px-4 py-2 shadow-sm">
+        <div className="flex items-center gap-3 rounded-md border-2 border-amber-900 bg-yellow-400 px-4 py-2 shadow-sm">
           <div className="flex items-center gap-2 text-sm font-medium text-stone-900">
             <span title="Coins">🪙 {coinBalance ?? 0}</span>
             <span title="Gems">💎 {gemBalance ?? 0}</span>
@@ -86,7 +86,7 @@ export async function SiteHeader() {
       ) : (
         <Link
           href="/login"
-          className="rounded-md bg-yellow-400 px-5 py-2.5 text-sm font-semibold text-stone-900 shadow-sm hover:bg-yellow-300"
+          className="rounded-md border-2 border-amber-900 bg-yellow-400 px-5 py-2.5 text-sm font-semibold text-stone-900 shadow-sm hover:bg-yellow-300"
         >
           Sign in
         </Link>
