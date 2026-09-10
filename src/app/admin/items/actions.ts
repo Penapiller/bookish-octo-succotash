@@ -17,6 +17,7 @@ function readItemFields(formData: FormData) {
   const rarity = String(formData.get("rarity") ?? "");
   const imageUrlRaw = String(formData.get("image_url") ?? "").trim();
   const sellValueRaw = String(formData.get("sell_value") ?? "");
+  const shopPriceRaw = String(formData.get("shop_price") ?? "").trim();
   const isActive = formData.get("is_active") === "on";
 
   if (name.length === 0) return { ok: false as const, error: "Name can't be empty." };
@@ -30,6 +31,14 @@ function readItemFields(formData: FormData) {
     return { ok: false as const, error: "Sell value must be a non-negative whole number." };
   }
 
+  let shopPrice: number | null = null;
+  if (shopPriceRaw.length > 0) {
+    shopPrice = Number(shopPriceRaw);
+    if (!Number.isInteger(shopPrice) || shopPrice < 0) {
+      return { ok: false as const, error: "Shop price must be a non-negative whole number, or blank." };
+    }
+  }
+
   return {
     ok: true as const,
     fields: {
@@ -38,6 +47,7 @@ function readItemFields(formData: FormData) {
       rarity: rarity as ItemRarity,
       image_url: imageUrlRaw.length > 0 ? imageUrlRaw : null,
       sell_value: sellValue,
+      shop_price: shopPrice,
       is_active: isActive,
     },
   };

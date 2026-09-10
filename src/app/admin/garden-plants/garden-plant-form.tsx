@@ -1,10 +1,57 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import type { GardenPlantFormState } from "./actions";
 import type { GardenPlantRow } from "@/lib/supabase/types";
 
 const initialState: GardenPlantFormState = null;
+
+// A live thumbnail next to each stage's URL field — the 3 stages are the
+// part of this form most worth being able to see and compare at a
+// glance, not just paste text into.
+function StageImageField({
+  stage,
+  label,
+  defaultValue,
+}: {
+  stage: 1 | 2 | 3;
+  label: string;
+  defaultValue: string;
+}) {
+  const [url, setUrl] = useState(defaultValue);
+  const fieldName = `image_stage${stage}_url`;
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={fieldName} className="text-sm font-medium">
+        {label}
+      </label>
+      <div className="flex items-center gap-3">
+        {url ? (
+          // eslint-disable-next-line @next/next/no-img-element -- arbitrary admin-pasted URL, not a next/image-optimizable local asset
+          <img
+            src={url}
+            alt=""
+            className="h-14 w-14 rounded border border-green-300 object-cover dark:border-stone-700"
+            onError={(e) => {
+              e.currentTarget.style.visibility = "hidden";
+            }}
+          />
+        ) : (
+          <div className="h-14 w-14 rounded border border-dashed border-green-300 dark:border-stone-700" />
+        )}
+        <input
+          id={fieldName}
+          name={fieldName}
+          defaultValue={defaultValue}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="https://…"
+          className="flex-1 rounded-md border border-green-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
+        />
+      </div>
+    </div>
+  );
+}
 
 // URL-only for the 3 stage images (no file upload, unlike species/items) —
 // this is the game's own crop catalog, small in number and, like zones/
@@ -42,44 +89,9 @@ export function GardenPlantForm({
         />
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="image_stage1_url" className="text-sm font-medium">
-          Stage 1 image URL (sprout)
-        </label>
-        <input
-          id="image_stage1_url"
-          name="image_stage1_url"
-          defaultValue={plant?.image_stage1_url ?? ""}
-          placeholder="https://…"
-          className="rounded-md border border-green-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
-        />
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="image_stage2_url" className="text-sm font-medium">
-          Stage 2 image URL (growing)
-        </label>
-        <input
-          id="image_stage2_url"
-          name="image_stage2_url"
-          defaultValue={plant?.image_stage2_url ?? ""}
-          placeholder="https://…"
-          className="rounded-md border border-green-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
-        />
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="image_stage3_url" className="text-sm font-medium">
-          Stage 3 image URL (mature)
-        </label>
-        <input
-          id="image_stage3_url"
-          name="image_stage3_url"
-          defaultValue={plant?.image_stage3_url ?? ""}
-          placeholder="https://…"
-          className="rounded-md border border-green-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
-        />
-      </div>
+      <StageImageField stage={1} label="Stage 1 image URL (sprout)" defaultValue={plant?.image_stage1_url ?? ""} />
+      <StageImageField stage={2} label="Stage 2 image URL (growing)" defaultValue={plant?.image_stage2_url ?? ""} />
+      <StageImageField stage={3} label="Stage 3 image URL (mature)" defaultValue={plant?.image_stage3_url ?? ""} />
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="produce_item_id" className="text-sm font-medium">

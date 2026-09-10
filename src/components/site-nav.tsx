@@ -37,6 +37,7 @@ export async function SiteNav() {
     {
       label: "Trade",
       links: [
+        { href: "/shop", label: "Shop" },
         { href: "/marketplace", label: "Marketplace" },
         ...(TRADING_ENABLED ? [{ href: "/trades", label: "Trades" }] : []),
       ],

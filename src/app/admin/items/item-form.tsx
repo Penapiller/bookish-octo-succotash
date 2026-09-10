@@ -130,6 +130,23 @@ export function ItemForm({
         />
       </div>
 
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="shop_price" className="text-sm font-medium">
+          Shop price (coins)
+        </label>
+        <input
+          id="shop_price"
+          name="shop_price"
+          type="number"
+          min={0}
+          step={1}
+          defaultValue={item?.shop_price ?? ""}
+          placeholder="Blank = not sold in the shop"
+          className="rounded-md border border-green-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
+        />
+        <p className="text-xs text-stone-500">Leave blank to keep this item out of /shop.</p>
+      </div>
+
       <label className="flex items-center gap-2 text-sm font-medium">
         <input
           type="checkbox"

@@ -7,7 +7,7 @@ export default async function AdminGardenPlantsPage() {
 
   const { data: plants } = await supabase
     .from("garden_plants")
-    .select("id, name, image_stage1_url, base_coin_yield, is_active")
+    .select("id, name, image_stage1_url, image_stage2_url, image_stage3_url, base_coin_yield, is_active")
     .order("name");
 
   return (
@@ -27,6 +27,7 @@ export default async function AdminGardenPlantsPage() {
           <thead className="bg-green-100 text-left text-xs uppercase tracking-wide text-stone-500 dark:bg-stone-900">
             <tr>
               <th className="px-4 py-2">Plant</th>
+              <th className="px-4 py-2">Growth stages</th>
               <th className="px-4 py-2">Base coin yield</th>
               <th className="px-4 py-2">Active</th>
             </tr>
@@ -42,13 +43,24 @@ export default async function AdminGardenPlantsPage() {
                     {p.name}
                   </Link>
                 </td>
+                <td className="px-4 py-2">
+                  <div className="flex items-center gap-1">
+                    {[p.image_stage1_url, p.image_stage2_url, p.image_stage3_url].map((url, i) =>
+                      url ? (
+                        <Image key={i} src={url} alt={`Stage ${i + 1}`} width={20} height={20} className="h-5 w-5 rounded" />
+                      ) : (
+                        <div key={i} className="h-5 w-5 rounded border border-dashed border-green-300 dark:border-stone-700" />
+                      ),
+                    )}
+                  </div>
+                </td>
                 <td className="px-4 py-2">{p.base_coin_yield}</td>
                 <td className="px-4 py-2">{p.is_active ? "Yes" : "No"}</td>
               </tr>
             ))}
             {(plants ?? []).length === 0 ? (
               <tr>
-                <td colSpan={3} className="px-4 py-6 text-center text-stone-500">
+                <td colSpan={4} className="px-4 py-6 text-center text-stone-500">
                   No garden plants yet.
                 </td>
               </tr>

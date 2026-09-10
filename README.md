@@ -231,6 +231,14 @@ This project is being built one module at a time. Current state:
       kinds of seeds (grows one specific plant, or rolls from a weighted
       pool of several). New admin tooling manages the plant/seed/
       fertilizer catalog. See Notes below
+- [x] Shop — a new `/shop` page: any item can be marked for sale with an
+      admin-set coin price (a new field right next to sell value on the
+      item edit form), and the shop lists everything currently priced
+      (only the two seed items so far, since that's what was asked for)
+      with a Buy button. New admin tooling also adds live thumbnail
+      previews next to each garden plant's 3 growth-stage image fields,
+      so editing them (already possible) is easier to see at a glance.
+      See Notes below
 
 ---
 
@@ -3115,3 +3123,57 @@ signs in.
     right plots, a wilted plot's harvest-for-nothing styling, the
     locked/expansion row, and the planting pop-up with seed and
     fertilizer (including a "None" option) selectable.
+- **Growth stages were already fully wired up from the gardening round**
+  (`garden_plants.image_stage{1,2,3}_url`, editable on the
+  `/admin/garden-plants` form, rendered client-side by
+  `getGardenPlantingDisplay()`) — asked to "make sure" this worked, the
+  answer was mostly "it already does." Two small, purely-visual
+  additions made it easier to see and trust, rather than changing any
+  of the stage logic itself:
+  - `garden-plant-form.tsx`'s three stage URL fields each gained a live
+    14×14 thumbnail (a new `StageImageField` client component wrapping
+    each `<input>` in local `useState`) that updates as the admin types,
+    the same "see what you're pasting" idea as the file-upload preview
+    on the regular item form, just URL-driven instead of
+    `URL.createObjectURL` since there's still no file upload for this
+    catalog (see the existing scope-trim note above).
+  - The `/admin/garden-plants` list page's one column showed only the
+    stage-1 thumbnail before; it now shows all three side by side (a
+    dashed placeholder box for any stage left blank), so a glance at
+    the list itself confirms a plant has real stage art rather than
+    having to open each row.
+- **Shop** (`0036_shop.sql`) is one nullable column, `items.shop_price`,
+  plus one RPC, `buy_shop_item(user, item, quantity)` — no separate
+  "shop listings" table. The RPC mirrors `expand_garden`'s shape exactly
+  (lock the user row, validate, `begin_trusted_user_write()` before the
+  `coin_balance` debit, same "not authorized"/insufficient-funds
+  exception style) and grants the purchased item the same
+  upsert-onto-`user_inventory` way `harvest_plot` already does. Verified
+  against local Postgres with 8 scripted scenarios: a purchase debits
+  coins and credits inventory correctly, a second purchase of the same
+  item stacks quantity rather than creating a duplicate row,
+  insufficient funds/an unpriced item/a nonexistent item/quantity 0/a
+  mismatched `auth.uid()` are all correctly rejected, and the final
+  balance matches exactly what the accepted purchases should have cost.
+  - Deliberately not seed-specific in the schema or the RPC — any item
+    can be priced for the shop from the same field on the existing item
+    edit form (right below sell value, with a "blank = not sold" hint),
+    consistent with this codebase's habit of avoiding special-case
+    tables/branches when one general mechanism covers it. Only the two
+    existing seed items are actually priced by this migration's seed
+    data (15/40 coins) because that's what was asked for — an admin can
+    price a fertilizer or anything else for sale later with no code
+    changes, but nothing else is for sale out of the box.
+  - `/shop` (new page, added to the nav's Trade group ahead of
+    Marketplace) lists everything with a `shop_price` set, each item's
+    art/type/rarity, the player's own quantity already owned (if any),
+    and a `BuyShopItemButton` — the same client-calls-RPC-then-
+    `router.refresh()` shape as `ExpandGardenButton`/`ForTradeToggle`,
+    disabled with a "Not enough coins" hint when the displayed price
+    exceeds the player's balance (display-only; the RPC is what actually
+    enforces it).
+  - Verified visually with a temporary preview route + dev server +
+    Playwright (cleaned up after): the shop grid with a mix of
+    affordable/unaffordable items and an "owned" quantity badge, and the
+    admin plant form's new stage-image thumbnails rendering next to each
+    URL field.

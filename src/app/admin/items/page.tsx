@@ -7,7 +7,7 @@ export default async function AdminItemsPage() {
 
   const { data: items } = await supabase
     .from("items")
-    .select("id, name, type, rarity, image_url, sell_value, is_active")
+    .select("id, name, type, rarity, image_url, sell_value, shop_price, is_active")
     .order("name");
 
   return (
@@ -30,6 +30,7 @@ export default async function AdminItemsPage() {
               <th className="px-4 py-2">Type</th>
               <th className="px-4 py-2">Rarity</th>
               <th className="px-4 py-2">Sell value</th>
+              <th className="px-4 py-2">Shop price</th>
               <th className="px-4 py-2">Active</th>
             </tr>
           </thead>
@@ -56,12 +57,13 @@ export default async function AdminItemsPage() {
                 <td className="px-4 py-2">{item.type}</td>
                 <td className="px-4 py-2 capitalize">{item.rarity}</td>
                 <td className="px-4 py-2">{item.sell_value}</td>
+                <td className="px-4 py-2">{item.shop_price ?? "—"}</td>
                 <td className="px-4 py-2">{item.is_active ? "Yes" : "No"}</td>
               </tr>
             ))}
             {(items ?? []).length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-stone-500">
+                <td colSpan={6} className="px-4 py-6 text-center text-stone-500">
                   No items yet.
                 </td>
               </tr>

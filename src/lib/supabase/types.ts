@@ -109,6 +109,9 @@ export type ItemRow = {
   rarity: ItemRarity;
   image_url: string | null;
   sell_value: number;
+  // Coin price in the NPC shop (/shop) — see 0036_shop.sql. Null means
+  // not for sale there; distinct from sell_value.
+  shop_price: number | null;
   is_active: boolean;
   created_at: string;
 };
@@ -376,6 +379,22 @@ export type ExpandDenResult = {
 export type ExpandGardenResult = {
   new_garden_rows: number;
   coins_spent: number;
+};
+
+// What buy_shop_item returns — see 0036_shop.sql.
+export type BuyShopItemResult = {
+  item_id: string;
+  quantity: number;
+  total_cost: number;
+  new_coin_balance: number;
+};
+
+// A shop item as shown on /shop — the catalog item plus the player's
+// current owned quantity, so the page can show "you have 3" without a
+// second round trip (same idea as RecipeIngredientWithStock).
+export type ShopItem = Pick<ItemRow, "id" | "name" | "image_url" | "rarity" | "type"> & {
+  shopPrice: number;
+  quantityOwned: number;
 };
 
 // What harvest_plot() returns — either nothing (a wilted plant) or what
@@ -1004,6 +1023,10 @@ export type Database = {
       harvest_plot: {
         Args: { p_user_id: string; p_planting_id: string };
         Returns: HarvestResult;
+      };
+      buy_shop_item: {
+        Args: { p_user_id: string; p_item_id: string; p_quantity?: number };
+        Returns: BuyShopItemResult;
       };
       admin_grant_self_currency: {
         Args: {
