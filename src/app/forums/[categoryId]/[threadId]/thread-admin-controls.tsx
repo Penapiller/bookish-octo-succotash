@@ -52,7 +52,7 @@ export function ThreadAdminControls({
         <Settings size={18} />
       </button>
       {open ? (
-        <div className="absolute right-0 top-full z-10 mt-1 flex w-52 flex-col gap-3 rounded-md border border-amber-300 bg-white p-3 text-sm text-stone-700 shadow-lg">
+        <div className="absolute right-0 top-full z-10 mt-1 flex w-52 flex-col gap-3 rounded-md border border-green-300 bg-white p-3 text-sm text-stone-700 shadow-lg">
           <span className="text-xs font-semibold uppercase tracking-wide text-stone-400">
             Moderation
           </span>
@@ -67,7 +67,7 @@ export function ThreadAdminControls({
                 defaultValue={title}
                 maxLength={200}
                 required
-                className="rounded-md border border-amber-300 px-2 py-1 text-sm font-normal text-stone-900 dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100"
+                className="rounded-md border border-green-300 px-2 py-1 text-sm font-normal text-stone-900 dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100"
               />
             </label>
             <label className="flex items-center gap-2">
@@ -75,7 +75,7 @@ export function ThreadAdminControls({
                 type="checkbox"
                 name="is_pinned"
                 defaultChecked={isPinned}
-                className="h-4 w-4 rounded border-amber-300"
+                className="h-4 w-4 rounded border-green-300"
               />
               Pinned
             </label>
@@ -84,20 +84,20 @@ export function ThreadAdminControls({
                 type="checkbox"
                 name="is_locked"
                 defaultChecked={isLocked}
-                className="h-4 w-4 rounded border-amber-300"
+                className="h-4 w-4 rounded border-green-300"
               />
               Locked
             </label>
             <button
               type="submit"
-              className="self-start rounded-md bg-amber-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700"
+              className="self-start rounded-md bg-green-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-700"
             >
               Save
             </button>
           </form>
           <form
             action={deleteThread}
-            className="border-t border-amber-100 pt-3"
+            className="border-t border-green-100 pt-3"
             onSubmit={(event) => {
               if (!confirm("Delete this whole thread and all its posts? This can't be undone.")) {
                 event.preventDefault();

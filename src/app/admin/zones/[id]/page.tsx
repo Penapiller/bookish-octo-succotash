@@ -60,7 +60,7 @@ export default async function EditZonePage(props: PageProps<"/admin/zones/[id]">
       <div className="flex flex-col gap-4">
         <h2 className="text-lg font-semibold tracking-tight">Edit zone</h2>
         {zone.is_tutorial ? (
-          <p className="text-sm text-amber-600 dark:text-amber-400">
+          <p className="text-sm text-green-600 dark:text-green-400">
             This is the tutorial zone — its pool is fixed in code and isn&apos;t managed here.
           </p>
         ) : null}
@@ -71,9 +71,9 @@ export default async function EditZonePage(props: PageProps<"/admin/zones/[id]">
         <>
           <section className="flex flex-col gap-3">
             <h3 className="text-base font-semibold tracking-tight">Pet pool</h3>
-            <div className="overflow-hidden rounded-lg border border-amber-200 dark:border-stone-800">
+            <div className="overflow-hidden rounded-lg border border-green-200 dark:border-stone-800">
               <table className="w-full text-sm">
-                <thead className="bg-amber-100 text-left text-xs uppercase tracking-wide text-stone-500 dark:bg-stone-900">
+                <thead className="bg-green-100 text-left text-xs uppercase tracking-wide text-stone-500 dark:bg-stone-900">
                   <tr>
                     <th className="px-4 py-2">Species</th>
                     <th className="px-4 py-2">Drop weight</th>
@@ -84,7 +84,7 @@ export default async function EditZonePage(props: PageProps<"/admin/zones/[id]">
                   {pool.map((entry) => (
                     <tr
                       key={entry.species_id}
-                      className="border-t border-amber-200 dark:border-stone-800"
+                      className="border-t border-green-200 dark:border-stone-800"
                     >
                       <td className="px-4 py-2">
                         <span className="flex items-center gap-2">
@@ -149,12 +149,12 @@ export default async function EditZonePage(props: PageProps<"/admin/zones/[id]">
                     step={1}
                     defaultValue={1}
                     required
-                    className="w-24 rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
+                    className="w-24 rounded-md border border-green-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
                   />
                 </div>
                 <button
                   type="submit"
-                  className="rounded-md border border-amber-300 px-3 py-2 text-sm hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-800"
+                  className="rounded-md border border-green-300 px-3 py-2 text-sm hover:bg-green-100 dark:border-stone-700 dark:hover:bg-stone-800"
                 >
                   Add to pool
                 </button>
@@ -164,9 +164,9 @@ export default async function EditZonePage(props: PageProps<"/admin/zones/[id]">
 
           <section className="flex flex-col gap-3">
             <h3 className="text-base font-semibold tracking-tight">Loot table</h3>
-            <div className="overflow-hidden rounded-lg border border-amber-200 dark:border-stone-800">
+            <div className="overflow-hidden rounded-lg border border-green-200 dark:border-stone-800">
               <table className="w-full text-sm">
-                <thead className="bg-amber-100 text-left text-xs uppercase tracking-wide text-stone-500 dark:bg-stone-900">
+                <thead className="bg-green-100 text-left text-xs uppercase tracking-wide text-stone-500 dark:bg-stone-900">
                   <tr>
                     <th className="px-4 py-2">Item</th>
                     <th className="px-4 py-2">Drop weight</th>
@@ -177,7 +177,7 @@ export default async function EditZonePage(props: PageProps<"/admin/zones/[id]">
                   {loot.map((entry) => (
                     <tr
                       key={entry.item_id}
-                      className="border-t border-amber-200 dark:border-stone-800"
+                      className="border-t border-green-200 dark:border-stone-800"
                     >
                       <td className="px-4 py-2">
                         <span className="flex items-center gap-2">
@@ -242,12 +242,12 @@ export default async function EditZonePage(props: PageProps<"/admin/zones/[id]">
                     step={1}
                     defaultValue={1}
                     required
-                    className="w-24 rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
+                    className="w-24 rounded-md border border-green-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
                   />
                 </div>
                 <button
                   type="submit"
-                  className="rounded-md border border-amber-300 px-3 py-2 text-sm hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-800"
+                  className="rounded-md border border-green-300 px-3 py-2 text-sm hover:bg-green-100 dark:border-stone-700 dark:hover:bg-stone-800"
                 >
                   Add to loot table
                 </button>

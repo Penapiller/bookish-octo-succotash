@@ -26,7 +26,7 @@ export function QuickQuoteButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded-md border border-amber-300 px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-50 dark:border-stone-700 dark:text-amber-200 dark:hover:bg-stone-900"
+        className="rounded-md border border-green-300 px-3 py-1.5 text-xs font-semibold text-green-800 hover:bg-green-50 dark:border-stone-700 dark:text-green-200 dark:hover:bg-stone-900"
       >
         Quick quote
       </button>
@@ -34,7 +34,7 @@ export function QuickQuoteButton({
   }
 
   return (
-    <form action={formAction} className="flex w-full flex-col gap-2 rounded-md border border-amber-200 bg-amber-50/50 p-3 dark:border-stone-800 dark:bg-stone-950">
+    <form action={formAction} className="flex w-full flex-col gap-2 rounded-md border border-green-200 bg-green-50/50 p-3 dark:border-stone-800 dark:bg-stone-950">
       <input type="hidden" name="target_user_id" value={targetUserId} />
       <input type="hidden" name="quoted_content" value={quotedContent} />
       <p className="text-xs text-stone-500">
@@ -49,14 +49,14 @@ export function QuickQuoteButton({
         maxLength={500}
         required
         placeholder="Which rule did this violate? (shown to the player)"
-        className="resize-y rounded-md border border-amber-300 px-2 py-1.5 text-sm dark:border-stone-700 dark:bg-stone-900"
+        className="resize-y rounded-md border border-green-300 px-2 py-1.5 text-sm dark:border-stone-700 dark:bg-stone-900"
       />
       {state?.error ? <p className="text-xs text-red-600 dark:text-red-400">{state.error}</p> : null}
       <div className="flex gap-2">
         <button
           type="submit"
           disabled={isPending}
-          className="rounded-md bg-amber-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700 disabled:opacity-60 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
+          className="rounded-md bg-green-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-60 dark:bg-green-200 dark:text-green-950 dark:hover:bg-green-300"
         >
           {isPending ? "Sending…" : "Send quote"}
         </button>

@@ -73,7 +73,7 @@ function SelectionChips({
       {chips.map((chip) => (
         <li
           key={chip.key}
-          className="flex items-center gap-1.5 rounded-full border border-amber-300 py-1 pl-1 pr-2 text-xs dark:border-stone-700"
+          className="flex items-center gap-1.5 rounded-full border border-green-300 py-1 pl-1 pr-2 text-xs dark:border-stone-700"
         >
           {chip.imageUrl ? (
             <Image src={chip.imageUrl} alt="" width={20} height={20} className="h-5 w-5 rounded" />
@@ -289,13 +289,13 @@ export function TradeBuilderForm({
               setRecipientId(null);
             }}
             placeholder="Their display name"
-            className="flex-1 rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
+            className="flex-1 rounded-md border border-green-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
           />
           <button
             type="button"
             onClick={() => resolveRecipient(recipientName)}
             disabled={isResolving}
-            className="rounded-md border border-amber-300 px-4 py-2 text-sm hover:bg-amber-100 disabled:opacity-60 dark:border-stone-700 dark:hover:bg-stone-800"
+            className="rounded-md border border-green-300 px-4 py-2 text-sm hover:bg-green-100 disabled:opacity-60 dark:border-stone-700 dark:hover:bg-stone-800"
           >
             {isResolving ? "Finding…" : "Find"}
           </button>
@@ -317,7 +317,7 @@ export function TradeBuilderForm({
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="flex flex-col gap-3 rounded-lg border border-amber-200 p-4 dark:border-stone-800">
+        <div className="flex flex-col gap-3 rounded-lg border border-green-200 p-4 dark:border-stone-800">
           <h3 className="text-sm font-semibold">You give</h3>
           <div className="flex gap-4">
             <label className="flex items-center gap-1.5 text-sm">
@@ -328,7 +328,7 @@ export function TradeBuilderForm({
                 max={coinBalance}
                 value={coins}
                 onChange={(e) => setCoins(Math.max(0, Math.min(Number(e.target.value) || 0, coinBalance)))}
-                className="w-20 rounded-md border border-amber-300 px-2 py-1 dark:border-stone-700 dark:bg-stone-900"
+                className="w-20 rounded-md border border-green-300 px-2 py-1 dark:border-stone-700 dark:bg-stone-900"
               />
             </label>
             <label className="flex items-center gap-1.5 text-sm">
@@ -339,7 +339,7 @@ export function TradeBuilderForm({
                 max={gemBalance}
                 value={gems}
                 onChange={(e) => setGems(Math.max(0, Math.min(Number(e.target.value) || 0, gemBalance)))}
-                className="w-20 rounded-md border border-amber-300 px-2 py-1 dark:border-stone-700 dark:bg-stone-900"
+                className="w-20 rounded-md border border-green-300 px-2 py-1 dark:border-stone-700 dark:bg-stone-900"
               />
             </label>
           </div>
@@ -355,21 +355,21 @@ export function TradeBuilderForm({
             <button
               type="button"
               onClick={() => setModalTarget("myPets")}
-              className="rounded-md border border-amber-300 px-3 py-1.5 text-xs hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-800"
+              className="rounded-md border border-green-300 px-3 py-1.5 text-xs hover:bg-green-100 dark:border-stone-700 dark:hover:bg-stone-800"
             >
               + Add pet
             </button>
             <button
               type="button"
               onClick={() => setModalTarget("myItems")}
-              className="rounded-md border border-amber-300 px-3 py-1.5 text-xs hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-800"
+              className="rounded-md border border-green-300 px-3 py-1.5 text-xs hover:bg-green-100 dark:border-stone-700 dark:hover:bg-stone-800"
             >
               + Add item
             </button>
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 rounded-lg border border-amber-200 p-4 dark:border-stone-800">
+        <div className="flex flex-col gap-3 rounded-lg border border-green-200 p-4 dark:border-stone-800">
           <h3 className="text-sm font-semibold">You want</h3>
           {!recipientId ? (
             <p className="text-sm italic text-stone-500">
@@ -385,7 +385,7 @@ export function TradeBuilderForm({
                     min={0}
                     value={requestedCoins}
                     onChange={(e) => setRequestedCoins(Math.max(0, Number(e.target.value) || 0))}
-                    className="w-20 rounded-md border border-amber-300 px-2 py-1 dark:border-stone-700 dark:bg-stone-900"
+                    className="w-20 rounded-md border border-green-300 px-2 py-1 dark:border-stone-700 dark:bg-stone-900"
                   />
                 </label>
                 <label className="flex items-center gap-1.5 text-sm">
@@ -395,7 +395,7 @@ export function TradeBuilderForm({
                     min={0}
                     value={requestedGems}
                     onChange={(e) => setRequestedGems(Math.max(0, Number(e.target.value) || 0))}
-                    className="w-20 rounded-md border border-amber-300 px-2 py-1 dark:border-stone-700 dark:bg-stone-900"
+                    className="w-20 rounded-md border border-green-300 px-2 py-1 dark:border-stone-700 dark:bg-stone-900"
                   />
                 </label>
               </div>
@@ -411,14 +411,14 @@ export function TradeBuilderForm({
                 <button
                   type="button"
                   onClick={() => setModalTarget("theirPets")}
-                  className="rounded-md border border-amber-300 px-3 py-1.5 text-xs hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-800"
+                  className="rounded-md border border-green-300 px-3 py-1.5 text-xs hover:bg-green-100 dark:border-stone-700 dark:hover:bg-stone-800"
                 >
                   + Add their pet
                 </button>
                 <button
                   type="button"
                   onClick={() => setModalTarget("theirItems")}
-                  className="rounded-md border border-amber-300 px-3 py-1.5 text-xs hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-800"
+                  className="rounded-md border border-green-300 px-3 py-1.5 text-xs hover:bg-green-100 dark:border-stone-700 dark:hover:bg-stone-800"
                 >
                   + Add their item
                 </button>
@@ -439,7 +439,7 @@ export function TradeBuilderForm({
           maxLength={300}
           rows={2}
           placeholder="Anything else you'd like them to know"
-          className="resize-y rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
+          className="resize-y rounded-md border border-green-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
         />
       </div>
 
@@ -449,7 +449,7 @@ export function TradeBuilderForm({
         type="button"
         onClick={handleSubmit}
         disabled={isPending}
-        className="self-start rounded-md bg-amber-800 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-60 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
+        className="self-start rounded-md bg-green-800 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60 dark:bg-green-200 dark:text-green-950 dark:hover:bg-green-300"
       >
         {isPending ? "Sending…" : "Send trade offer"}
       </button>

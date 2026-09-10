@@ -40,7 +40,7 @@ export function ReportCard({
         : report.targetMessageSenderId;
 
   return (
-    <li className="flex flex-col gap-3 rounded-lg border border-amber-200 p-4 dark:border-stone-800">
+    <li className="flex flex-col gap-3 rounded-lg border border-green-200 p-4 dark:border-stone-800">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-sm">
@@ -76,7 +76,7 @@ export function ReportCard({
           )}
         </p>
       ) : report.target_type === "forum_post" ? (
-        <div className="rounded-md border border-amber-100 bg-amber-50/50 p-3 text-sm dark:border-stone-800 dark:bg-stone-950">
+        <div className="rounded-md border border-green-100 bg-green-50/50 p-3 text-sm dark:border-stone-800 dark:bg-stone-950">
           <p className="text-xs text-stone-500">
             Post by{" "}
             {report.targetPostAuthorId ? (
@@ -103,7 +103,7 @@ export function ReportCard({
           ) : null}
         </div>
       ) : (
-        <div className="rounded-md border border-amber-100 bg-amber-50/50 p-3 text-sm dark:border-stone-800 dark:bg-stone-950">
+        <div className="rounded-md border border-green-100 bg-green-50/50 p-3 text-sm dark:border-stone-800 dark:bg-stone-950">
           <p className="text-xs text-stone-500">
             Message from{" "}
             {report.targetMessageSenderId ? (
@@ -134,7 +134,7 @@ export function ReportCard({
       {report.details ? <p className="text-sm text-stone-600 dark:text-stone-400">&ldquo;{report.details}&rdquo;</p> : null}
 
       {report.status === "open" || report.status === "escalated" ? (
-        <div className="flex flex-wrap items-center gap-2 border-t border-amber-100 pt-3 dark:border-stone-800">
+        <div className="flex flex-wrap items-center gap-2 border-t border-green-100 pt-3 dark:border-stone-800">
           {currentUserId ? (
             <ClaimButton
               reportId={report.id}
@@ -155,7 +155,7 @@ export function ReportCard({
           ) : null}
         </div>
       ) : (
-        <p className="border-t border-amber-100 pt-3 text-xs text-stone-500 dark:border-stone-800">
+        <p className="border-t border-green-100 pt-3 text-xs text-stone-500 dark:border-stone-800">
           {report.status === "resolved" ? "Resolved" : "Dismissed"} by{" "}
           <span className="font-medium">{report.resolvedByName}</span>
           {report.resolved_at ? ` at ${new Date(report.resolved_at).toLocaleString()}` : ""}

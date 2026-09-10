@@ -37,8 +37,8 @@ export function ForTradeToggle({
       disabled={isPending}
       className={`rounded-full px-2 py-0.5 text-xs font-medium disabled:opacity-60 ${
         isForTrade
-          ? "bg-amber-800 text-white dark:bg-amber-200 dark:text-amber-950"
-          : "border border-amber-300 text-stone-500 hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-800"
+          ? "bg-green-800 text-white dark:bg-green-200 dark:text-green-950"
+          : "border border-green-300 text-stone-500 hover:bg-green-100 dark:border-stone-700 dark:hover:bg-stone-800"
       }`}
     >
       {isForTrade ? "For trade" : "Mark for trade"}

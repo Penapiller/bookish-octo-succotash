@@ -34,7 +34,7 @@ export function BanForm({ targetUserId, isAdmin }: { targetUserId: string; isAdm
   const banTypes: BanType[] = isAdmin ? ["dm", "sales", "forums", "account"] : ["dm", "sales", "forums"];
 
   return (
-    <form action={formAction} className="flex flex-col gap-3 rounded-lg border border-amber-200 p-4 dark:border-stone-800">
+    <form action={formAction} className="flex flex-col gap-3 rounded-lg border border-green-200 p-4 dark:border-stone-800">
       <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">Issue a ban</h2>
       <input type="hidden" name="target_user_id" value={targetUserId} />
 
@@ -45,7 +45,7 @@ export function BanForm({ targetUserId, isAdmin }: { targetUserId: string; isAdm
         <select
           id="ban_type"
           name="ban_type"
-          className="rounded-md border border-amber-300 px-2 py-1.5 text-sm dark:border-stone-700 dark:bg-stone-950"
+          className="rounded-md border border-green-300 px-2 py-1.5 text-sm dark:border-stone-700 dark:bg-stone-950"
         >
           {banTypes.map((t) => (
             <option key={t} value={t}>
@@ -63,7 +63,7 @@ export function BanForm({ targetUserId, isAdmin }: { targetUserId: string; isAdm
           id="duration_hours"
           name="duration_hours"
           defaultValue={24}
-          className="rounded-md border border-amber-300 px-2 py-1.5 text-sm dark:border-stone-700 dark:bg-stone-950"
+          className="rounded-md border border-green-300 px-2 py-1.5 text-sm dark:border-stone-700 dark:bg-stone-950"
         >
           {DURATION_OPTIONS.map((d) => (
             <option key={d.hours} value={d.hours}>
@@ -82,7 +82,7 @@ export function BanForm({ targetUserId, isAdmin }: { targetUserId: string; isAdm
           name="reason"
           rows={2}
           maxLength={500}
-          className="resize-y rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-950"
+          className="resize-y rounded-md border border-green-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-950"
         />
       </div>
 

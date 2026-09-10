@@ -61,12 +61,12 @@ function FilterBar({
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="Search by name…"
-        className="flex-1 rounded-md border border-amber-300 px-3 py-1.5 text-sm dark:border-stone-700 dark:bg-stone-900"
+        className="flex-1 rounded-md border border-green-300 px-3 py-1.5 text-sm dark:border-stone-700 dark:bg-stone-900"
       />
       <select
         value={rarity}
         onChange={(e) => setRarity(e.target.value as PetRarity | "all")}
-        className="rounded-md border border-amber-300 px-2 py-1.5 text-sm capitalize dark:border-stone-700 dark:bg-stone-900"
+        className="rounded-md border border-green-300 px-2 py-1.5 text-sm capitalize dark:border-stone-700 dark:bg-stone-900"
       >
         <option value="all">All rarities</option>
         {RARITIES.map((r) => (
@@ -92,7 +92,7 @@ function ModalShell({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="flex max-h-[85vh] w-full max-w-2xl flex-col gap-3 rounded-lg bg-amber-50 p-4 shadow-xl dark:bg-stone-900">
+      <div className="flex max-h-[85vh] w-full max-w-2xl flex-col gap-3 rounded-lg bg-green-50 p-4 shadow-xl dark:bg-stone-900">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-semibold">{title}</h2>
           <button
@@ -104,7 +104,7 @@ function ModalShell({
           </button>
         </div>
         <div className="flex-1 overflow-y-auto">{children}</div>
-        <div className="flex items-center justify-between border-t border-amber-200 pt-3 dark:border-stone-800">
+        <div className="flex items-center justify-between border-t border-green-200 pt-3 dark:border-stone-800">
           {footer}
         </div>
       </div>
@@ -139,7 +139,7 @@ export function PetPickerModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md bg-amber-800 px-4 py-1.5 text-sm font-medium text-white hover:bg-amber-700 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
+            className="rounded-md bg-green-800 px-4 py-1.5 text-sm font-medium text-white hover:bg-green-700 dark:bg-green-200 dark:text-green-950 dark:hover:bg-green-300"
           >
             Done
           </button>
@@ -161,8 +161,8 @@ export function PetPickerModal({
                     onClick={() => onToggle(pet.id)}
                     className={`flex w-full flex-col items-center gap-1 rounded-lg border-2 p-2 text-center ${
                       selected
-                        ? "border-amber-800 bg-amber-100 dark:border-amber-200 dark:bg-stone-800"
-                        : "border-transparent hover:bg-amber-100/60 dark:hover:bg-stone-800/60"
+                        ? "border-green-800 bg-green-100 dark:border-green-200 dark:bg-stone-800"
+                        : "border-transparent hover:bg-green-100/60 dark:hover:bg-stone-800/60"
                     }`}
                   >
                     {pet.imageUrl ? (
@@ -174,7 +174,7 @@ export function PetPickerModal({
                         className="h-14 w-14 rounded border-2 border-blue-600"
                       />
                     ) : (
-                      <div className="h-14 w-14 rounded bg-amber-200 dark:bg-stone-800" />
+                      <div className="h-14 w-14 rounded bg-green-200 dark:bg-stone-800" />
                     )}
                     <span className="text-xs">{pet.name}</span>
                     <span className="text-[10px] capitalize text-stone-500">{pet.rarity}</span>
@@ -217,7 +217,7 @@ export function ItemPickerModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md bg-amber-800 px-4 py-1.5 text-sm font-medium text-white hover:bg-amber-700 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
+            className="rounded-md bg-green-800 px-4 py-1.5 text-sm font-medium text-white hover:bg-green-700 dark:bg-green-200 dark:text-green-950 dark:hover:bg-green-300"
           >
             Done
           </button>
@@ -241,7 +241,7 @@ export function ItemPickerModal({
                     className="h-9 w-9 rounded border-2 border-green-600"
                   />
                 ) : (
-                  <div className="h-9 w-9 rounded bg-amber-200 dark:bg-stone-800" />
+                  <div className="h-9 w-9 rounded bg-green-200 dark:bg-stone-800" />
                 )}
                 <span className="flex-1 text-sm">{item.name}</span>
                 <input
@@ -252,7 +252,7 @@ export function ItemPickerModal({
                   onChange={(e) =>
                     onSetQuantity(item.id, Number(e.target.value) || 0, item.maxQuantity)
                   }
-                  className="w-16 rounded-md border border-amber-300 px-2 py-1 text-sm dark:border-stone-700 dark:bg-stone-900"
+                  className="w-16 rounded-md border border-green-300 px-2 py-1 text-sm dark:border-stone-700 dark:bg-stone-900"
                 />
                 <span className="text-xs text-stone-500">/ {item.maxQuantity}</span>
               </li>

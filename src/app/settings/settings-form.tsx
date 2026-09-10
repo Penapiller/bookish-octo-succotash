@@ -36,10 +36,10 @@ export function SettingsForm({
               width={72}
               height={72}
               unoptimized={preview !== null}
-              className="h-[72px] w-[72px] rounded-md border border-amber-200 object-cover dark:border-stone-800"
+              className="h-[72px] w-[72px] rounded-md border border-green-200 object-cover dark:border-stone-800"
             />
           ) : (
-            <div className="h-[72px] w-[72px] rounded-md border border-amber-200 bg-amber-100 dark:border-stone-800 dark:bg-stone-800" />
+            <div className="h-[72px] w-[72px] rounded-md border border-green-200 bg-green-100 dark:border-stone-800 dark:bg-stone-800" />
           )}
           <div className="flex flex-col gap-2">
             <input
@@ -85,7 +85,7 @@ export function SettingsForm({
       <button
         type="submit"
         disabled={isPending}
-        className="self-start rounded-md bg-amber-800 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-60 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
+        className="self-start rounded-md bg-green-800 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60 dark:bg-green-200 dark:text-green-950 dark:hover:bg-green-300"
       >
         {isPending ? "Saving…" : "Save changes"}
       </button>

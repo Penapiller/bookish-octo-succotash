@@ -68,7 +68,7 @@ export function ReportButton({
       onClick={close}
     >
       <div
-        className="w-full max-w-sm rounded-lg border border-amber-300 bg-white p-5 shadow-lg dark:border-stone-700 dark:bg-stone-900"
+        className="w-full max-w-sm rounded-lg border border-green-300 bg-white p-5 shadow-lg dark:border-stone-700 dark:bg-stone-900"
         onClick={(event) => event.stopPropagation()}
       >
         {isSubmitted ? (
@@ -94,7 +94,7 @@ export function ReportButton({
                   <button
                     type="button"
                     onClick={close}
-                    className="rounded-md border border-amber-300 px-3 py-1.5 text-xs hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-900"
+                    className="rounded-md border border-green-300 px-3 py-1.5 text-xs hover:bg-green-100 dark:border-stone-700 dark:hover:bg-stone-900"
                   >
                     No thanks
                   </button>
@@ -104,7 +104,7 @@ export function ReportButton({
               <button
                 type="button"
                 onClick={close}
-                className="self-start rounded-md border border-amber-300 px-3 py-1.5 text-xs hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-900"
+                className="self-start rounded-md border border-green-300 px-3 py-1.5 text-xs hover:bg-green-100 dark:border-stone-700 dark:hover:bg-stone-900"
               >
                 Close
               </button>
@@ -113,7 +113,7 @@ export function ReportButton({
               <button
                 type="button"
                 onClick={close}
-                className="self-start rounded-md border border-amber-300 px-3 py-1.5 text-xs hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-900"
+                className="self-start rounded-md border border-green-300 px-3 py-1.5 text-xs hover:bg-green-100 dark:border-stone-700 dark:hover:bg-stone-900"
               >
                 Close
               </button>
@@ -129,7 +129,7 @@ export function ReportButton({
               name="category"
               required
               defaultValue=""
-              className="rounded-md border border-amber-300 px-2 py-1.5 text-sm dark:border-stone-700 dark:bg-stone-950"
+              className="rounded-md border border-green-300 px-2 py-1.5 text-sm dark:border-stone-700 dark:bg-stone-950"
             >
               <option value="" disabled>
                 Select a reason…
@@ -145,7 +145,7 @@ export function ReportButton({
               rows={3}
               maxLength={1000}
               placeholder="Any extra details (optional)"
-              className="resize-y rounded-md border border-amber-300 px-2 py-1.5 text-sm dark:border-stone-700 dark:bg-stone-950"
+              className="resize-y rounded-md border border-green-300 px-2 py-1.5 text-sm dark:border-stone-700 dark:bg-stone-950"
             />
             {reportState && "error" in reportState ? (
               <p className="text-xs text-red-600 dark:text-red-400">{reportState.error}</p>
@@ -161,7 +161,7 @@ export function ReportButton({
               <button
                 type="button"
                 onClick={close}
-                className="rounded-md border border-amber-300 px-3 py-1.5 text-xs hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-900"
+                className="rounded-md border border-green-300 px-3 py-1.5 text-xs hover:bg-green-100 dark:border-stone-700 dark:hover:bg-stone-900"
               >
                 Cancel
               </button>

@@ -109,7 +109,7 @@ export function ExpeditionMap({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="relative aspect-[3/2] w-full overflow-hidden rounded-lg border border-amber-200 dark:border-stone-800">
+      <div className="relative aspect-[3/2] w-full overflow-hidden rounded-lg border border-green-200 dark:border-stone-800">
         <Image
           src={MAP_IMAGE_URL}
           alt="Expedition map"
@@ -172,7 +172,7 @@ export function ExpeditionMap({
       </div>
 
       {selectedZone ? (
-        <section className="flex flex-col gap-4 rounded-lg border border-amber-200 p-4 dark:border-stone-800">
+        <section className="flex flex-col gap-4 rounded-lg border border-green-200 p-4 dark:border-stone-800">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h2 className="text-lg font-semibold tracking-tight">
@@ -216,7 +216,7 @@ export function ExpeditionMap({
                         }`}
                       />
                     ) : (
-                      <div className="h-14 w-14 rounded bg-amber-200 dark:bg-stone-800" />
+                      <div className="h-14 w-14 rounded bg-green-200 dark:bg-stone-800" />
                     )}
                     <span className="text-xs">{entry.name}</span>
                     <span className="text-xs capitalize text-stone-500">
@@ -248,7 +248,7 @@ export function ExpeditionMap({
               </button>
             </div>
           ) : selectedZoneActive ? (
-            <div className="flex items-center justify-between gap-2 rounded-md bg-amber-100 p-3 text-sm dark:bg-stone-900">
+            <div className="flex items-center justify-between gap-2 rounded-md bg-green-100 p-3 text-sm dark:bg-stone-900">
               <span>
                 {petsById.get(selectedZoneActive.pet_id)?.species?.name ?? "A pet"} is exploring
                 here
@@ -269,7 +269,7 @@ export function ExpeditionMap({
                   id="pet-select"
                   value={selectedPetId}
                   onChange={(e) => setSelectedPetId(e.target.value)}
-                  className="rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
+                  className="rounded-md border border-green-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
                 >
                   {availablePets.map((pet) => (
                     <option key={pet.id} value={pet.id}>
@@ -307,7 +307,7 @@ export function ExpeditionMap({
                 type="button"
                 onClick={handleStart}
                 disabled={isSubmitting || !selectedPetId}
-                className="self-start rounded-md bg-amber-800 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-60 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
+                className="self-start rounded-md bg-green-800 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60 dark:bg-green-200 dark:text-green-950 dark:hover:bg-green-300"
               >
                 {isSubmitting ? "Starting…" : "Start expedition"}
               </button>

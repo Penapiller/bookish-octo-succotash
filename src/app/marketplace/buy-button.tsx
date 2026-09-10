@@ -63,7 +63,7 @@ export function BuyButton({
           type="button"
           onClick={() => handleBuy(confirming)}
           disabled={isPending}
-          className="rounded-md bg-amber-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 disabled:opacity-60 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
+          className="rounded-md bg-green-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-60 dark:bg-green-200 dark:text-green-950 dark:hover:bg-green-300"
         >
           {isPending ? "Buying…" : "Confirm"}
         </button>
@@ -71,7 +71,7 @@ export function BuyButton({
           type="button"
           onClick={() => setConfirming(null)}
           disabled={isPending}
-          className="rounded-md border border-amber-300 px-3 py-1.5 text-xs hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-800"
+          className="rounded-md border border-green-300 px-3 py-1.5 text-xs hover:bg-green-100 dark:border-stone-700 dark:hover:bg-stone-800"
         >
           Cancel
         </button>
@@ -90,7 +90,7 @@ export function BuyButton({
           onClick={() => setConfirming("coins")}
           disabled={!canAffordCoins}
           title={canAffordCoins ? undefined : "Not enough coins"}
-          className="rounded-md bg-amber-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
+          className="rounded-md bg-green-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-green-200 dark:text-green-950 dark:hover:bg-green-300"
         >
           Buy — 🪙 {priceCoins}
         </button>
@@ -101,7 +101,7 @@ export function BuyButton({
           onClick={() => setConfirming("gems")}
           disabled={!canAffordGems}
           title={canAffordGems ? undefined : "Not enough gems"}
-          className="rounded-md bg-amber-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
+          className="rounded-md bg-green-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-green-200 dark:text-green-950 dark:hover:bg-green-300"
         >
           Buy — 💎 {priceGems}
         </button>

@@ -28,7 +28,7 @@ function PetGrid({ list }: { list: PetWithSpecies[] }) {
         <li key={pet.id}>
           <Link
             href={`/pets/${pet.id}`}
-            className="flex flex-col items-center gap-2 rounded-xl border border-amber-200 bg-white/60 p-4 text-center shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-stone-800 dark:bg-stone-950/40"
+            className="flex flex-col items-center gap-2 rounded-xl border border-green-200 bg-white/60 p-4 text-center shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-stone-800 dark:bg-stone-950/40"
           >
             <div className="relative">
               {pet.species?.image_url ? (
@@ -40,10 +40,10 @@ function PetGrid({ list }: { list: PetWithSpecies[] }) {
                   className="h-28 w-28 rounded-lg border-2 border-blue-600 object-cover"
                 />
               ) : (
-                <div className="h-28 w-28 rounded-lg bg-amber-200 dark:bg-stone-800" />
+                <div className="h-28 w-28 rounded-lg bg-green-200 dark:bg-stone-800" />
               )}
               {TRADING_ENABLED && pet.is_for_trade ? (
-                <span className="absolute -right-2 -top-2 flex items-center gap-1 rounded-full bg-amber-800 px-2 py-0.5 text-[10px] font-semibold text-white shadow dark:bg-amber-200 dark:text-amber-950">
+                <span className="absolute -right-2 -top-2 flex items-center gap-1 rounded-full bg-green-800 px-2 py-0.5 text-[10px] font-semibold text-white shadow dark:bg-green-200 dark:text-green-950">
                   <Tag size={10} />
                   For trade
                 </span>
@@ -178,14 +178,14 @@ export default async function PetsPage(props: PageProps<"/pets">) {
 
       <NewFolderForm />
 
-      <nav className="flex flex-wrap gap-2 border-b border-amber-200 dark:border-stone-800">
+      <nav className="flex flex-wrap gap-2 border-b border-green-200 dark:border-stone-800">
         {tabs.map((tab) => (
           <Link
             key={tab.value}
             href={tab.value === ALL_TAB ? "/pets" : `/pets?folder=${tab.value}`}
             className={`border-b-2 px-3 py-2 text-sm ${
               activeTab === tab.value
-                ? "border-amber-800 font-medium dark:border-amber-200"
+                ? "border-green-800 font-medium dark:border-green-200"
                 : "border-transparent text-stone-500 hover:text-stone-900 dark:hover:text-white"
             }`}
           >
@@ -230,10 +230,10 @@ export default async function PetsPage(props: PageProps<"/pets">) {
           <Link
             href={`/pets?folder=${activeTab}&page=${page - 1}`}
             aria-disabled={page <= 1}
-            className={`rounded-md border border-amber-300 px-3 py-1.5 dark:border-stone-700 ${
+            className={`rounded-md border border-green-300 px-3 py-1.5 dark:border-stone-700 ${
               page <= 1
                 ? "pointer-events-none opacity-40"
-                : "hover:bg-amber-100 dark:hover:bg-stone-800"
+                : "hover:bg-green-100 dark:hover:bg-stone-800"
             }`}
           >
             Previous
@@ -244,10 +244,10 @@ export default async function PetsPage(props: PageProps<"/pets">) {
           <Link
             href={`/pets?folder=${activeTab}&page=${page + 1}`}
             aria-disabled={page >= totalPages}
-            className={`rounded-md border border-amber-300 px-3 py-1.5 dark:border-stone-700 ${
+            className={`rounded-md border border-green-300 px-3 py-1.5 dark:border-stone-700 ${
               page >= totalPages
                 ? "pointer-events-none opacity-40"
-                : "hover:bg-amber-100 dark:hover:bg-stone-800"
+                : "hover:bg-green-100 dark:hover:bg-stone-800"
             }`}
           >
             Next

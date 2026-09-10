@@ -18,13 +18,13 @@ export function NewMessageForm() {
           id="display_name"
           name="display_name"
           placeholder="Their username"
-          className="rounded-md border border-amber-300 px-3 py-1.5 text-sm dark:border-stone-700 dark:bg-stone-950"
+          className="rounded-md border border-green-300 px-3 py-1.5 text-sm dark:border-stone-700 dark:bg-stone-950"
         />
       </div>
       <button
         type="submit"
         disabled={isPending}
-        className="rounded-md bg-amber-800 px-4 py-1.5 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-60 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
+        className="rounded-md bg-green-800 px-4 py-1.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60 dark:bg-green-200 dark:text-green-950 dark:hover:bg-green-300"
       >
         {isPending ? "Finding…" : "Start"}
       </button>

@@ -27,7 +27,7 @@ export function PaginationBar({
   }
 
   return (
-    <div className="flex items-center justify-end gap-4 bg-amber-700 px-5 py-2.5 text-sm font-medium text-white">
+    <div className="flex items-center justify-end gap-4 bg-green-700 px-5 py-2.5 text-sm font-medium text-white">
       <PageLink href={hrefFor(1)} disabled={page <= 1} label="First page">
         <ChevronsLeft size={16} />
       </PageLink>

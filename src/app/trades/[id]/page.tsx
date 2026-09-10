@@ -90,7 +90,7 @@ export default async function TradeDetailPage(props: PageProps<"/trades/[id]">) 
       </div>
 
       {trade.note ? (
-        <p className="rounded-lg border border-amber-200 p-3 text-sm italic dark:border-stone-800">
+        <p className="rounded-lg border border-green-200 p-3 text-sm italic dark:border-stone-800">
           &ldquo;{trade.note}&rdquo;
         </p>
       ) : null}

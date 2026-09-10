@@ -65,7 +65,7 @@ export default async function ProfilePage() {
             side benefits from the extra room much more than a picture
             and a handful of stats do. */}
         <div className="flex flex-col gap-4 lg:col-span-2">
-          <div className="flex items-center gap-3 rounded-lg border border-amber-200 p-4 dark:border-stone-800">
+          <div className="flex items-center gap-3 rounded-lg border border-green-200 p-4 dark:border-stone-800">
             {profile.avatar_url ? (
               <Image
                 src={profile.avatar_url}
@@ -75,7 +75,7 @@ export default async function ProfilePage() {
                 className="h-16 w-16 rounded-md object-cover"
               />
             ) : (
-              <div className="h-16 w-16 shrink-0 rounded-md bg-amber-200 dark:bg-stone-800" />
+              <div className="h-16 w-16 shrink-0 rounded-md bg-green-200 dark:bg-stone-800" />
             )}
             <div>
               <h1 className="text-xl font-semibold tracking-tight">
@@ -93,7 +93,7 @@ export default async function ProfilePage() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-2 rounded-lg border border-amber-200 p-3 dark:border-stone-800">
+          <div className="flex flex-col gap-2 rounded-lg border border-green-200 p-3 dark:border-stone-800">
             <h2 className="text-xs font-semibold uppercase tracking-wide text-stone-500">
               Player stats
             </h2>
@@ -115,7 +115,7 @@ export default async function ProfilePage() {
             </dl>
           </div>
 
-          <div className="flex flex-col gap-3 rounded-lg border border-amber-200 p-4 dark:border-stone-800">
+          <div className="flex flex-col gap-3 rounded-lg border border-green-200 p-4 dark:border-stone-800">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">
               Active expedition
             </h2>
@@ -158,21 +158,21 @@ export default async function ProfilePage() {
         {/* Right column — wider; this is where the bio/BBCode content
             actually needs the room. */}
         <div className="flex flex-col gap-4 lg:col-span-3">
-          <div className="flex flex-col gap-3 rounded-lg border border-amber-200 p-4 dark:border-stone-800">
+          <div className="flex flex-col gap-3 rounded-lg border border-green-200 p-4 dark:border-stone-800">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">
               My stuff
             </h2>
             <div className="flex gap-3">
               <Link
                 href="/pets"
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-amber-300 px-3 py-2 text-sm hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-900"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-green-300 px-3 py-2 text-sm hover:bg-green-100 dark:border-stone-700 dark:hover:bg-stone-900"
               >
                 <PawPrint size={16} />
                 Pets
               </Link>
               <Link
                 href="/items"
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-amber-300 px-3 py-2 text-sm hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-900"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-green-300 px-3 py-2 text-sm hover:bg-green-100 dark:border-stone-700 dark:hover:bg-stone-900"
               >
                 <Package size={16} />
                 Items
@@ -180,7 +180,7 @@ export default async function ProfilePage() {
             </div>
           </div>
 
-          <div className="flex min-h-40 flex-1 flex-col gap-2 rounded-lg border border-amber-200 p-4 dark:border-stone-800">
+          <div className="flex min-h-40 flex-1 flex-col gap-2 rounded-lg border border-green-200 p-4 dark:border-stone-800">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">Bio</h2>
             {profile.bio ? (
               // bbcodeToHtml() is the only thing ever allowed to turn user
@@ -206,7 +206,7 @@ export default async function ProfilePage() {
 
       <Link
         href={`/u/${profile.id}`}
-        className="self-start rounded-md border border-amber-300 px-4 py-2 text-sm hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-900"
+        className="self-start rounded-md border border-green-300 px-4 py-2 text-sm hover:bg-green-100 dark:border-stone-700 dark:hover:bg-stone-900"
       >
         View public profile
       </Link>

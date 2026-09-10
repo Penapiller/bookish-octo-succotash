@@ -40,7 +40,7 @@ export default async function ForumsIndexPage() {
               <Link
                 key={category.id}
                 href={`/forums/${category.id}`}
-                className="flex items-center gap-2 rounded-md bg-amber-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-amber-500"
+                className="flex items-center gap-2 rounded-md bg-green-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-green-500"
               >
                 {category.icon_url ? (
                   <Image
@@ -86,15 +86,15 @@ function CategoryRow({ category, indent }: { category: ForumCategoryRow; indent?
   return (
     <Link
       href={`/forums/${category.id}`}
-      className={`flex items-start gap-4 border-t border-amber-100 p-5 first:border-t-0 hover:bg-amber-50 ${indent ? "pl-12" : ""}`}
+      className={`flex items-start gap-4 border-t border-green-100 p-5 first:border-t-0 hover:bg-green-50 ${indent ? "pl-12" : ""}`}
     >
       {category.icon_url ? (
         <Image src={category.icon_url} alt="" width={32} height={32} className="mt-0.5 h-8 w-8 rounded" />
       ) : (
-        <MessageSquare size={24} className="mt-0.5 shrink-0 text-amber-700" aria-hidden />
+        <MessageSquare size={24} className="mt-0.5 shrink-0 text-green-700" aria-hidden />
       )}
       <div className="flex-1">
-        <div className="text-base font-semibold text-amber-900">{category.name}</div>
+        <div className="text-base font-semibold text-green-900">{category.name}</div>
         {category.description ? <p className="mt-0.5 text-sm text-stone-500">{category.description}</p> : null}
       </div>
     </Link>

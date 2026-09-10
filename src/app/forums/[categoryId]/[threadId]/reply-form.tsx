@@ -21,7 +21,7 @@ export function ReplyForm({ categoryId, threadId }: { categoryId: string; thread
       <button
         type="submit"
         disabled={isPending}
-        className="self-start rounded-md bg-amber-800 px-5 py-2.5 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-60 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
+        className="self-start rounded-md bg-green-800 px-5 py-2.5 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-60 dark:bg-green-200 dark:text-green-950 dark:hover:bg-green-300"
       >
         {isPending ? "Posting…" : "Post Reply"}
       </button>

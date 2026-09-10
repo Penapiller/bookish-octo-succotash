@@ -28,13 +28,13 @@ export function NewFolderForm() {
           placeholder="e.g. Favorites"
           maxLength={60}
           required
-          className="rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
+          className="rounded-md border border-green-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
         />
       </div>
       <button
         type="submit"
         disabled={isPending}
-        className="rounded-md border border-amber-300 px-3 py-2 text-sm hover:bg-amber-100 disabled:opacity-60 dark:border-stone-700 dark:hover:bg-stone-800"
+        className="rounded-md border border-green-300 px-3 py-2 text-sm hover:bg-green-100 disabled:opacity-60 dark:border-stone-700 dark:hover:bg-stone-800"
       >
         {isPending ? "Creating…" : "+ New folder"}
       </button>

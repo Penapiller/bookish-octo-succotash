@@ -184,7 +184,7 @@ export default async function ConversationPage(
         <PaginationBar basePath={`/messages/${conversationId}`} page={page} totalPages={totalPages} />
       </ForumPanel>
 
-      <div className="overflow-hidden rounded-xl border border-amber-300 shadow-sm">
+      <div className="overflow-hidden rounded-xl border border-green-300 shadow-sm">
         <ForumPanelSection title={`Reply to ${otherName}`}>
           <div className="p-5">
             <ReplyForm conversationId={conversationId} />
@@ -229,8 +229,8 @@ function MessageCard({
     <article
       className={`flex flex-col gap-4 border-t p-6 first:border-t-0 sm:flex-row ${
         isStaffStyled
-          ? "border-amber-200 bg-amber-50/60 dark:border-stone-800 dark:bg-amber-950/20"
-          : "border-amber-100"
+          ? "border-green-200 bg-green-50/60 dark:border-stone-800 dark:bg-green-950/20"
+          : "border-green-100"
       }`}
     >
       <div className="flex shrink-0 flex-row items-center gap-3 sm:w-32 sm:flex-col sm:text-center">
@@ -240,10 +240,10 @@ function MessageCard({
             alt=""
             width={72}
             height={72}
-            className="h-16 w-16 rounded-md border-2 border-amber-400 object-cover sm:h-[72px] sm:w-[72px]"
+            className="h-16 w-16 rounded-md border-2 border-green-400 object-cover sm:h-[72px] sm:w-[72px]"
           />
         ) : (
-          <div className="h-16 w-16 rounded-md border-2 border-dashed border-amber-300 sm:h-[72px] sm:w-[72px]" />
+          <div className="h-16 w-16 rounded-md border-2 border-dashed border-green-300 sm:h-[72px] sm:w-[72px]" />
         )}
         <PlayerLink
           userId={authorId}
@@ -253,7 +253,7 @@ function MessageCard({
           className="text-sm font-semibold hover:underline"
         />
         {isFromStaffAccount ? (
-          <span className="flex items-center gap-1 text-xs font-semibold text-amber-700 dark:text-amber-400">
+          <span className="flex items-center gap-1 text-xs font-semibold text-green-700 dark:text-green-400">
             <ShieldAlert size={12} />
             Official
           </span>

@@ -81,10 +81,10 @@ export default async function MessagesPage() {
           <table className="w-full text-sm">
             <tbody>
               {summaries.map((c) => (
-                <tr key={c.id} className="border-t border-amber-100 first:border-t-0 hover:bg-amber-50">
+                <tr key={c.id} className="border-t border-green-100 first:border-t-0 hover:bg-green-50">
                   <td className="w-12 px-5 py-4" aria-hidden>
                     {c.isUnread ? (
-                      <Mail size={20} className="text-amber-600" />
+                      <Mail size={20} className="text-green-600" />
                     ) : (
                       <MailOpen size={20} className="text-stone-400" />
                     )}
@@ -99,7 +99,7 @@ export default async function MessagesPage() {
                         className="h-10 w-10 rounded-md object-cover"
                       />
                     ) : (
-                      <div className="h-10 w-10 rounded-md bg-amber-200 dark:bg-stone-800" />
+                      <div className="h-10 w-10 rounded-md bg-green-200 dark:bg-stone-800" />
                     )}
                   </td>
                   <td className="min-w-0 px-2 py-4">

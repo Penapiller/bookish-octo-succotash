@@ -80,7 +80,7 @@ export default async function ActiveTradesPage() {
         </div>
         <Link
           href="/trades/new"
-          className="rounded-md bg-amber-800 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
+          className="rounded-md bg-green-800 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 dark:bg-green-200 dark:text-green-950 dark:hover:bg-green-300"
         >
           Propose a trade
         </Link>

@@ -20,7 +20,7 @@ export function CurrencyGrantForm() {
           type="number"
           step={1}
           defaultValue={0}
-          className="rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
+          className="rounded-md border border-green-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
         />
       </div>
 
@@ -34,7 +34,7 @@ export function CurrencyGrantForm() {
           type="number"
           step={1}
           defaultValue={0}
-          className="rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
+          className="rounded-md border border-green-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
         />
       </div>
 
@@ -53,7 +53,7 @@ export function CurrencyGrantForm() {
       <button
         type="submit"
         disabled={isPending}
-        className="self-start rounded-md bg-amber-800 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-60 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
+        className="self-start rounded-md bg-green-800 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60 dark:bg-green-200 dark:text-green-950 dark:hover:bg-green-300"
       >
         {isPending ? "Applying…" : "Apply"}
       </button>

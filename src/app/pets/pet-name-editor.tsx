@@ -51,7 +51,7 @@ export function PetNameEditor({
           maxLength={40}
           autoFocus
           placeholder="Pet name"
-          className="w-28 rounded border border-amber-300 px-1.5 py-0.5 text-center text-xs dark:border-stone-700 dark:bg-stone-900"
+          className="w-28 rounded border border-green-300 px-1.5 py-0.5 text-center text-xs dark:border-stone-700 dark:bg-stone-900"
         />
         <div className="flex gap-2">
           <button

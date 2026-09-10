@@ -32,7 +32,7 @@ export function CannedMessageForm({
           required
           maxLength={100}
           placeholder="Shown in the staff dropdown, e.g. 'Content removed'"
-          className="rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
+          className="rounded-md border border-green-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
         />
       </div>
 
@@ -48,7 +48,7 @@ export function CannedMessageForm({
           defaultValue={message?.body ?? ""}
           required
           placeholder="Sent to the player exactly as written."
-          className="resize-y rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
+          className="resize-y rounded-md border border-green-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
         />
       </div>
 
@@ -61,7 +61,7 @@ export function CannedMessageForm({
           name="sort_order"
           type="number"
           defaultValue={message?.sort_order ?? 0}
-          className="w-24 rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
+          className="w-24 rounded-md border border-green-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
         />
         <p className="text-xs text-stone-500">Lower numbers appear first in the staff dropdown.</p>
       </div>
@@ -71,7 +71,7 @@ export function CannedMessageForm({
           type="checkbox"
           name="is_active"
           defaultChecked={message?.is_active ?? true}
-          className="h-4 w-4 rounded border-amber-300 dark:border-stone-700"
+          className="h-4 w-4 rounded border-green-300 dark:border-stone-700"
         />
         Active (visible in the staff dropdown)
       </label>
@@ -83,7 +83,7 @@ export function CannedMessageForm({
       <button
         type="submit"
         disabled={isPending}
-        className="self-start rounded-md bg-amber-800 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-60 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
+        className="self-start rounded-md bg-green-800 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60 dark:bg-green-200 dark:text-green-950 dark:hover:bg-green-300"
       >
         {isPending ? "Saving…" : submitLabel}
       </button>

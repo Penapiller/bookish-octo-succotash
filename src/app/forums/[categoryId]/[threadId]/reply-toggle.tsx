@@ -17,7 +17,7 @@ export function ReplyToggle({ children }: { children: React.ReactNode }) {
     <button
       type="button"
       onClick={() => setOpen(true)}
-      className="flex items-center gap-2 self-start rounded-md bg-amber-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-amber-600"
+      className="flex items-center gap-2 self-start rounded-md bg-green-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-green-600"
     >
       <Reply size={18} />
       Reply

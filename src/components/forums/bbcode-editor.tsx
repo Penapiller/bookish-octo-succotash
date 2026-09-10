@@ -318,7 +318,7 @@ function PopoverApplyButtons({ onApply, onCancel }: { onApply: () => void; onCan
       <button
         type="button"
         onClick={onApply}
-        className="rounded-md bg-amber-700 px-2.5 py-1 text-xs font-semibold text-white hover:bg-amber-600"
+        className="rounded-md bg-green-700 px-2.5 py-1 text-xs font-semibold text-white hover:bg-green-600"
       >
         Apply
       </button>

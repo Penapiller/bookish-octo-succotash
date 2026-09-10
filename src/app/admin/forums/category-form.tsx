@@ -41,7 +41,7 @@ export function CategoryForm({
           defaultValue={category?.name ?? ""}
           required
           maxLength={80}
-          className="rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
+          className="rounded-md border border-green-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
         />
       </div>
 
@@ -55,7 +55,7 @@ export function CategoryForm({
           defaultValue={category?.description ?? ""}
           maxLength={300}
           rows={3}
-          className="rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
+          className="rounded-md border border-green-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
         />
       </div>
 
@@ -67,7 +67,7 @@ export function CategoryForm({
           id="parent_id"
           name="parent_id"
           defaultValue={category?.parent_id ?? ""}
-          className="rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
+          className="rounded-md border border-green-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
         >
           <option value="">— Top-level category —</option>
           {parentOptions.map((c) => (
@@ -90,10 +90,10 @@ export function CategoryForm({
             <img
               src={previewUrl ?? category!.icon_url!}
               alt=""
-              className="h-16 w-16 rounded border border-amber-300 object-cover dark:border-stone-700"
+              className="h-16 w-16 rounded border border-green-300 object-cover dark:border-stone-700"
             />
           ) : (
-            <div className="h-16 w-16 rounded border border-dashed border-amber-300 dark:border-stone-700" />
+            <div className="h-16 w-16 rounded border border-dashed border-green-300 dark:border-stone-700" />
           )}
           <div className="flex flex-col gap-1">
             <input
@@ -118,7 +118,7 @@ export function CategoryForm({
           name="icon_url"
           defaultValue={category?.icon_url ?? ""}
           placeholder="https://…"
-          className="rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
+          className="rounded-md border border-green-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
         />
       </div>
 
@@ -131,7 +131,7 @@ export function CategoryForm({
           name="sort_order"
           type="number"
           defaultValue={category?.sort_order ?? 0}
-          className="w-32 rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
+          className="w-32 rounded-md border border-green-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
         />
         <p className="text-xs text-stone-500">Lower numbers are listed first.</p>
       </div>
@@ -141,7 +141,7 @@ export function CategoryForm({
           type="checkbox"
           name="is_active"
           defaultChecked={category?.is_active ?? true}
-          className="h-4 w-4 rounded border-amber-300 dark:border-stone-700"
+          className="h-4 w-4 rounded border-green-300 dark:border-stone-700"
         />
         Active (visible on the forums, and can hold new threads)
       </label>
@@ -153,7 +153,7 @@ export function CategoryForm({
       <button
         type="submit"
         disabled={isPending}
-        className="self-start rounded-md bg-amber-800 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-60 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
+        className="self-start rounded-md bg-green-800 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60 dark:bg-green-200 dark:text-green-950 dark:hover:bg-green-300"
       >
         {isPending ? "Saving…" : submitLabel}
       </button>

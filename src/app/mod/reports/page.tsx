@@ -37,14 +37,14 @@ export default async function ModReportsPage(props: PageProps<"/mod/reports">) {
 
   return (
     <div className="flex flex-col gap-5">
-      <nav className="flex gap-2 border-b border-amber-200 dark:border-stone-800">
+      <nav className="flex gap-2 border-b border-green-200 dark:border-stone-800">
         {TABS.map((tab) => (
           <Link
             key={tab.value}
             href={`/mod/reports?status=${tab.value}`}
             className={`border-b-2 px-3 py-2 text-sm ${
               activeStatus === tab.value
-                ? "border-amber-800 font-medium dark:border-amber-200"
+                ? "border-green-800 font-medium dark:border-green-200"
                 : "border-transparent text-stone-500 hover:text-stone-900 dark:hover:text-white"
             }`}
           >
@@ -60,7 +60,7 @@ export default async function ModReportsPage(props: PageProps<"/mod/reports">) {
           {reports.map((report) => (
             <li
               key={report.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-200 px-4 py-2.5 text-sm hover:bg-amber-50 dark:border-stone-800 dark:hover:bg-stone-900"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-green-200 px-4 py-2.5 text-sm hover:bg-green-50 dark:border-stone-800 dark:hover:bg-stone-900"
             >
               <Link href={`/mod/reports/${report.id}`} className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-3">
                 <span>

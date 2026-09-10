@@ -84,11 +84,11 @@ export default async function ModPlayerPage(props: PageProps<"/mod/players/[user
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-4 rounded-lg border border-amber-200 p-4 dark:border-stone-800">
+      <div className="flex items-center gap-4 rounded-lg border border-green-200 p-4 dark:border-stone-800">
         {profile.avatar_url ? (
           <Image src={profile.avatar_url} alt="" width={64} height={64} className="h-16 w-16 rounded-md object-cover" />
         ) : (
-          <div className="h-16 w-16 rounded-md bg-amber-200 dark:bg-stone-800" />
+          <div className="h-16 w-16 rounded-md bg-green-200 dark:bg-stone-800" />
         )}
         <div>
           <h1 className="text-xl font-semibold tracking-tight">{profile.display_name}</h1>
@@ -123,7 +123,7 @@ export default async function ModPlayerPage(props: PageProps<"/mod/players/[user
                 <li key={c.id}>
                   <Link
                     href={`/mod/conversations/${c.id}`}
-                    className="flex items-center justify-between gap-3 rounded-md border border-amber-200 px-4 py-2.5 text-sm hover:bg-amber-50 dark:border-stone-800 dark:hover:bg-stone-900"
+                    className="flex items-center justify-between gap-3 rounded-md border border-green-200 px-4 py-2.5 text-sm hover:bg-green-50 dark:border-stone-800 dark:hover:bg-stone-900"
                   >
                     <span className="flex items-center gap-2">
                       <Mail size={14} className="text-stone-400" />

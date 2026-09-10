@@ -17,7 +17,7 @@ export function TradeSideSummary({
   const isEmpty = pets.length === 0 && items.length === 0 && coins === 0 && gems === 0;
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-amber-200 p-4 dark:border-stone-800">
+    <div className="flex flex-col gap-3 rounded-lg border border-green-200 p-4 dark:border-stone-800">
       <h3 className="text-sm font-semibold">{heading}</h3>
 
       {isEmpty ? (
@@ -37,7 +37,7 @@ export function TradeSideSummary({
                       className="h-16 w-16 rounded border-2 border-blue-600"
                     />
                   ) : (
-                    <div className="h-16 w-16 rounded bg-amber-200 dark:bg-stone-800" />
+                    <div className="h-16 w-16 rounded bg-green-200 dark:bg-stone-800" />
                   )}
                   <span className="text-xs">{pet.customName ?? pet.speciesName}</span>
                 </li>
@@ -58,7 +58,7 @@ export function TradeSideSummary({
                       className="h-8 w-8 rounded border-2 border-green-600"
                     />
                   ) : (
-                    <div className="h-8 w-8 rounded bg-amber-200 dark:bg-stone-800" />
+                    <div className="h-8 w-8 rounded bg-green-200 dark:bg-stone-800" />
                   )}
                   <span className="text-sm">
                     {item.name} × {item.quantity}

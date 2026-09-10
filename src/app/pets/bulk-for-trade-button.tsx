@@ -39,7 +39,7 @@ export function BulkForTradeButton({
       type="button"
       onClick={handleClick}
       disabled={isPending}
-      className="rounded-md border border-amber-300 px-3 py-1.5 text-xs text-stone-600 hover:bg-amber-100 disabled:opacity-60 dark:border-stone-700 dark:text-stone-300 dark:hover:bg-stone-800"
+      className="rounded-md border border-green-300 px-3 py-1.5 text-xs text-stone-600 hover:bg-green-100 disabled:opacity-60 dark:border-stone-700 dark:text-stone-300 dark:hover:bg-stone-800"
     >
       {isPending
         ? "Working…"

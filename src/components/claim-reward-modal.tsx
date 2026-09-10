@@ -120,13 +120,13 @@ export function ClaimRewardModal({
               className={`h-24 w-24 rounded border-2 ${borderColor}`}
             />
           ) : (
-            <div className="h-24 w-24 rounded bg-amber-200 dark:bg-stone-800" />
+            <div className="h-24 w-24 rounded bg-green-200 dark:bg-stone-800" />
           )}
           <p className="font-medium">{bonus.bonus_name}</p>
           <button
             type="button"
             onClick={onClose}
-            className="w-full rounded-md bg-amber-800 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
+            className="w-full rounded-md bg-green-800 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 dark:bg-green-200 dark:text-green-950 dark:hover:bg-green-300"
           >
             Nice!
           </button>
@@ -161,7 +161,7 @@ export function ClaimRewardModal({
                 className="h-28 w-28 rounded border-2 border-blue-600"
               />
             ) : (
-              <div className="h-28 w-28 rounded bg-amber-200 dark:bg-stone-800" />
+              <div className="h-28 w-28 rounded bg-green-200 dark:bg-stone-800" />
             )}
             <p className="font-medium">{reveal.species.name}</p>
             <p className="text-xs capitalize text-stone-500">{reveal.species.rarity}</p>
@@ -178,7 +178,7 @@ export function ClaimRewardModal({
                 className="h-28 w-28 rounded border-2 border-green-600"
               />
             ) : (
-              <div className="h-28 w-28 rounded bg-amber-200 dark:bg-stone-800" />
+              <div className="h-28 w-28 rounded bg-green-200 dark:bg-stone-800" />
             )}
             <p className="font-medium">{reveal.items.name}</p>
             <p className="text-xs capitalize text-stone-500">{reveal.items.rarity}</p>
@@ -200,7 +200,7 @@ export function ClaimRewardModal({
                 type="button"
                 onClick={() => handleChoice(true)}
                 disabled={isSubmitting}
-                className="flex-1 rounded-md bg-amber-800 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-60 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
+                className="flex-1 rounded-md bg-green-800 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60 dark:bg-green-200 dark:text-green-950 dark:hover:bg-green-300"
               >
                 {isSubmitting ? "…" : "Keep it"}
               </button>
@@ -208,7 +208,7 @@ export function ClaimRewardModal({
                 type="button"
                 onClick={() => handleChoice(false)}
                 disabled={isSubmitting}
-                className="flex-1 rounded-md border border-amber-300 px-4 py-2 text-sm hover:bg-amber-100 disabled:opacity-60 dark:border-stone-700 dark:hover:bg-stone-800"
+                className="flex-1 rounded-md border border-green-300 px-4 py-2 text-sm hover:bg-green-100 disabled:opacity-60 dark:border-stone-700 dark:hover:bg-stone-800"
               >
                 {isSubmitting ? "…" : "Send it away"}
               </button>
@@ -218,7 +218,7 @@ export function ClaimRewardModal({
               type="button"
               onClick={() => handleChoice(false)}
               disabled={isSubmitting}
-              className="flex-1 rounded-md bg-amber-800 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-60 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
+              className="flex-1 rounded-md bg-green-800 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60 dark:bg-green-200 dark:text-green-950 dark:hover:bg-green-300"
             >
               {isSubmitting ? "…" : "Continue"}
             </button>

@@ -113,7 +113,7 @@ export default async function ForumCategoryPage(props: PageProps<"/forums/[categ
   const newPostButton = (
     <Link
       href={`/forums/${category.id}/new`}
-      className="flex items-center gap-1.5 rounded-md bg-white px-3.5 py-1.5 text-sm font-semibold text-amber-800 hover:bg-amber-50"
+      className="flex items-center gap-1.5 rounded-md bg-white px-3.5 py-1.5 text-sm font-semibold text-green-800 hover:bg-green-50"
     >
       <Plus size={16} />
       New Post
@@ -145,14 +145,14 @@ export default async function ForumCategoryPage(props: PageProps<"/forums/[categ
               <Link
                 key={child.id}
                 href={`/forums/${child.id}`}
-                className="flex items-center gap-3 border-t border-amber-100 p-4 first:border-t-0 hover:bg-amber-50"
+                className="flex items-center gap-3 border-t border-green-100 p-4 first:border-t-0 hover:bg-green-50"
               >
                 {child.icon_url ? (
                   <Image src={child.icon_url} alt="" width={24} height={24} className="h-6 w-6 rounded" />
                 ) : (
-                  <MessageSquare size={20} className="text-amber-700" aria-hidden />
+                  <MessageSquare size={20} className="text-green-700" aria-hidden />
                 )}
-                <span className="text-base font-medium text-amber-900">{child.name}</span>
+                <span className="text-base font-medium text-green-900">{child.name}</span>
               </Link>
             ))}
           </div>
@@ -160,7 +160,7 @@ export default async function ForumCategoryPage(props: PageProps<"/forums/[categ
       ) : null}
 
       {isDividerCategory ? (
-        <p className="rounded-md border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-stone-500">
+        <p className="rounded-md border border-green-200 bg-green-50 px-5 py-4 text-sm text-stone-500">
           {category.name} is organized into the subcategories above — pick one to see its threads.
         </p>
       ) : (
@@ -196,12 +196,12 @@ function ThreadTable({ categoryId, threads }: { categoryId: string; threads: For
     <table className="w-full text-sm">
       <tbody>
         {threads.map((thread) => (
-          <tr key={thread.id} className="border-t border-amber-100 first:border-t-0 hover:bg-amber-50">
+          <tr key={thread.id} className="border-t border-green-100 first:border-t-0 hover:bg-green-50">
             <td className="w-12 px-5 py-4" aria-hidden>
               {thread.is_locked ? (
                 <Lock size={20} className="text-stone-400" />
               ) : (
-                <MessageSquare size={20} className="text-amber-600" />
+                <MessageSquare size={20} className="text-green-600" />
               )}
             </td>
             <td className="px-2 py-4">

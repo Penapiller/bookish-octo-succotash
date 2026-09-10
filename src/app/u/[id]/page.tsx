@@ -52,7 +52,7 @@ export default async function PublicProfilePage(
             side benefits from the extra room much more than a picture
             and a couple of buttons do. */}
         <div className="flex flex-col gap-4 lg:col-span-2">
-          <div className="flex items-center gap-3 rounded-lg border border-amber-200 p-4 dark:border-stone-800">
+          <div className="flex items-center gap-3 rounded-lg border border-green-200 p-4 dark:border-stone-800">
             {profile.avatar_url ? (
               <Image
                 src={profile.avatar_url}
@@ -62,7 +62,7 @@ export default async function PublicProfilePage(
                 className="h-16 w-16 rounded-md object-cover"
               />
             ) : (
-              <div className="h-16 w-16 shrink-0 rounded-md bg-amber-200 dark:bg-stone-800" />
+              <div className="h-16 w-16 shrink-0 rounded-md bg-green-200 dark:bg-stone-800" />
             )}
             <div>
               <h1 className="text-xl font-semibold tracking-tight">
@@ -83,7 +83,7 @@ export default async function PublicProfilePage(
           </div>
 
           {!isOwnProfile ? (
-            <div className="flex flex-col gap-3 rounded-lg border border-amber-200 p-4 dark:border-stone-800">
+            <div className="flex flex-col gap-3 rounded-lg border border-green-200 p-4 dark:border-stone-800">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">
                 Interact
               </h2>
@@ -94,7 +94,7 @@ export default async function PublicProfilePage(
                     <input type="hidden" name="user_id" value={profile.id} />
                     <button
                       type="submit"
-                      className="flex items-center gap-1.5 rounded-md border border-amber-300 px-3 py-2 text-sm hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-900"
+                      className="flex items-center gap-1.5 rounded-md border border-green-300 px-3 py-2 text-sm hover:bg-green-100 dark:border-stone-700 dark:hover:bg-stone-900"
                     >
                       <MessageCircle size={16} />
                       Send DM
@@ -106,7 +106,7 @@ export default async function PublicProfilePage(
                 {TRADING_ENABLED && viewer ? (
                   <Link
                     href={`/trades/new?to=${encodeURIComponent(profile.display_name)}`}
-                    className="rounded-md bg-amber-800 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
+                    className="rounded-md bg-green-800 px-3 py-2 text-sm font-medium text-white hover:bg-green-700 dark:bg-green-200 dark:text-green-950 dark:hover:bg-green-300"
                   >
                     Propose a trade
                   </Link>
@@ -124,7 +124,7 @@ export default async function PublicProfilePage(
         {/* Right column — wider; this is where the bio/BBCode content
             actually needs the room. */}
         <div className="flex flex-col gap-4 lg:col-span-3">
-          <div className="flex flex-col gap-3 rounded-lg border border-amber-200 p-4 dark:border-stone-800">
+          <div className="flex flex-col gap-3 rounded-lg border border-green-200 p-4 dark:border-stone-800">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">
               {profile.display_name}&apos;s stuff
             </h2>
@@ -142,7 +142,7 @@ export default async function PublicProfilePage(
             </div>
           </div>
 
-          <div className="flex min-h-40 flex-1 flex-col gap-2 rounded-lg border border-amber-200 p-4 dark:border-stone-800">
+          <div className="flex min-h-40 flex-1 flex-col gap-2 rounded-lg border border-green-200 p-4 dark:border-stone-800">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">Bio</h2>
             {profile.bio ? (
               // bbcodeToHtml() is the only thing ever allowed to turn user text

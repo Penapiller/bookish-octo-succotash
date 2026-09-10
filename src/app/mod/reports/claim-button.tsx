@@ -19,7 +19,7 @@ export function ClaimButton({
         <input type="hidden" name="report_id" value={reportId} />
         <button
           type="submit"
-          className="whitespace-nowrap rounded-md border border-amber-300 px-3 py-1.5 text-xs font-medium hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-900"
+          className="whitespace-nowrap rounded-md border border-green-300 px-3 py-1.5 text-xs font-medium hover:bg-green-100 dark:border-stone-700 dark:hover:bg-stone-900"
         >
           Claim
         </button>
@@ -32,7 +32,7 @@ export function ClaimButton({
       <span>Claimed by {isMine ? "you" : claimedByName}</span>
       <form action={unclaimReport}>
         <input type="hidden" name="report_id" value={reportId} />
-        <button type="submit" className="text-amber-800 underline hover:no-underline dark:text-amber-400">
+        <button type="submit" className="text-green-800 underline hover:no-underline dark:text-green-400">
           Unclaim
         </button>
       </form>

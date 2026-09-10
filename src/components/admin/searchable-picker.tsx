@@ -42,7 +42,7 @@ export function SearchablePicker({
     return (
       <div className="flex flex-col gap-1.5">
         <span className="text-xs text-stone-500">Selected</span>
-        <div className="flex items-center gap-2 rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900">
+        <div className="flex items-center gap-2 rounded-md border border-green-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900">
           <input type="hidden" name={name} value={selected.id} />
           {selected.imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element -- catalog thumbnails don't need next/image optimization here
@@ -81,10 +81,10 @@ export function SearchablePicker({
         onFocus={() => setIsOpen(true)}
         onBlur={() => setTimeout(() => setIsOpen(false), 150)}
         autoComplete="off"
-        className="w-56 rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
+        className="w-56 rounded-md border border-green-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
       />
       {isOpen ? (
-        <ul className="absolute top-full z-10 mt-1 max-h-56 w-56 overflow-y-auto rounded-md border border-amber-200 bg-white shadow-lg dark:border-stone-800 dark:bg-stone-900">
+        <ul className="absolute top-full z-10 mt-1 max-h-56 w-56 overflow-y-auto rounded-md border border-green-200 bg-white shadow-lg dark:border-stone-800 dark:bg-stone-900">
           {matches.length === 0 ? (
             <li className="px-3 py-2 text-sm text-stone-500">No matches</li>
           ) : (
@@ -98,7 +98,7 @@ export function SearchablePicker({
                     setSelected(option);
                     setIsOpen(false);
                   }}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-amber-100 dark:hover:bg-stone-800"
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-green-100 dark:hover:bg-stone-800"
                 >
                   {option.imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element -- catalog thumbnails don't need next/image optimization here

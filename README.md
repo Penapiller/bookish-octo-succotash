@@ -1,4 +1,4 @@
-# Virtual Pet Site
+# Furgarden
 
 A virtual pet adoption/collection game (Chicken Smoothie/Neopets-style): adopt
 and hatch pets with layered customizable art, send them on expeditions, brew
@@ -212,6 +212,13 @@ This project is being built one module at a time. Current state:
       moved to a new `/pets/[petId]` page) that shows a pet's full info
       (species, rarity, color, adopted date, ID) and a player-editable,
       BBCode-supported bio. See Notes below
+- [x] Furgarden rebrand — the site is now named Furgarden (page title,
+      footer, this README's own title), and the whole `amber-*` Tailwind
+      accent palette became `green-*` sitewide to match a provided
+      "Furgarden" hero banner (sky blue, spring green, sunny yellow,
+      brown outlines). A placeholder reserves the hero banner's spot on
+      the homepage until the actual art file makes it into the repo —
+      see Notes below for why it isn't wired in yet.
 
 ---
 
@@ -2909,3 +2916,55 @@ signs in.
     grid's own layout breathing room, not a new lair-decoration/
     background-customization feature) and public pet browsing (still
     explicitly unavailable per `/u/[id]`).
+
+- **Furgarden rebrand** — prompted by a "Furgarden" hero banner
+  (sky blue, spring green, sunny yellow, brown-outlined title, "Coming
+  Soon") shared in chat, asking for it to be added to the site and the
+  site recolored to match.
+  - **The hero image itself isn't wired in** — it only ever reached
+    this session as an inline chat image, not a file on disk (checked
+    the whole filesystem, including `game-assets/` — nothing there).
+    Per `game-assets/README.md`'s own documented convention, getting a
+    chat-attached asset into this repo needs either the user pushing it
+    themselves or attaching it in a way this environment can actually
+    save to disk — neither happened here. A placeholder (`src/app/
+    page.tsx`) reserves the hero's exact spot and aspect ratio on the
+    homepage, styled in the new palette, with instructions to drop the
+    real file in `game-assets/other/` to swap it in — same "placeholder
+    now, swap for real art later" convention as the header's own logo
+    box.
+  - **The palette swap is the same straight, ordered token
+    substitution used for the earlier zinc→amber round**: every
+    `amber-*` Tailwind class across every `.tsx` file under `src/`
+    became `green-*` — backgrounds, borders, primary buttons, the
+    `--color-amber-*` CSS variables (and their fallback hex values) in
+    `globals.css`. `amber-` as a literal substring needs no
+    longest-match-first ordering the way the zinc round's whole-class
+    substitutions did — replacing that one fixed 6-character substring
+    wherever it appears is unambiguous regardless of what prefix
+    (`bg-`, `dark:hover:`, etc.) precedes it. `stone-*` (neutral/muted
+    text) was deliberately left alone — it already reads as a warm
+    gray that pairs fine with green/yellow/blue, and the ask was to
+    match the hero's *accent* colors, not recolor body text. The
+    header's pre-existing `green-500`/`yellow-400` (logo box/account
+    panel, from a much earlier round) turned out to already match the
+    hero's palette — the mismatch was everywhere else, which used
+    `amber-*`/`stone-*` from the later cream/parchment round.
+  - **`--background`** nudged from a pale `#cddffa` to a more vivid
+    `#a9ddf9`, closer to the hero's sky blue, while staying light
+    enough for the white content box and diagonal-stripe overlay to
+    still read clearly on top of it.
+  - **The site is now named Furgarden** — page `<title>` (`layout.tsx`),
+    the footer tagline (`site-footer.tsx`), and this README's own H1,
+    all swapped from "Virtual Pet Site." This wasn't explicitly asked
+    for in so many words, but the hero art itself names the game
+    "Furgarden," so treating "add this hero image" as also meaning "and
+    the site is now called that" seemed like the obvious reading rather
+    than leaving a Furgarden-branded hero sitting on a page still
+    titled "Virtual Pet Site."
+  - Verified with a full `next build` and `eslint` pass across every
+    touched file, plus visually (temporary dev server + Playwright,
+    env vars cleaned up after): the homepage's hero placeholder, header,
+    and primary button, and the `/login` page's button, all render in
+    the new green/yellow/blue palette with the updated page title and
+    footer text.

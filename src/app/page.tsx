@@ -42,6 +42,15 @@ export default async function Home(props: PageProps<"/">) {
 
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-6 px-6 py-24 text-center">
+      {/* Hero image placeholder — swap for the real Furgarden Hero art
+          (drop it in game-assets/other/, same convention as every other
+          asset this app wires in) once it's actually in the repo; this
+          reserves the same wide-banner shape/aspect ratio so nothing
+          else needs to move when it's swapped in. */}
+      <div className="flex aspect-[2/1] w-full max-w-2xl flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-green-400 bg-gradient-to-b from-sky-200 to-green-200 text-green-950 dark:border-green-700 dark:from-sky-950 dark:to-green-950 dark:text-green-100">
+        <span className="text-sm font-bold uppercase tracking-wide">Furgarden hero image placeholder</span>
+        <span className="text-xs opacity-80">Drop the real art in game-assets/other/ to swap this in</span>
+      </div>
       <h1 className="max-w-xl text-4xl font-semibold tracking-tight">
         Adopt, hatch, and trade virtual pets
       </h1>
@@ -51,7 +60,7 @@ export default async function Home(props: PageProps<"/">) {
       </p>
       <Link
         href={user ? "/profile" : "/login"}
-        className="rounded-md bg-amber-800 px-5 py-2.5 text-sm font-medium text-white hover:bg-amber-700 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
+        className="rounded-md bg-green-800 px-5 py-2.5 text-sm font-medium text-white hover:bg-green-700 dark:bg-green-200 dark:text-green-950 dark:hover:bg-green-300"
       >
         {user ? "Go to your profile" : "Sign in with Google"}
       </Link>

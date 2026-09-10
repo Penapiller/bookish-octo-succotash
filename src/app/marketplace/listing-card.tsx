@@ -3,7 +3,7 @@ import { CancelListingButton } from "./cancel-listing-button";
 import type { MarketplaceListing } from "@/lib/supabase/types";
 
 const STATUS_STYLES: Record<MarketplaceListing["status"], string> = {
-  active: "bg-amber-200 text-amber-900 dark:bg-amber-900 dark:text-amber-100",
+  active: "bg-green-200 text-green-900 dark:bg-green-900 dark:text-green-100",
   sold: "bg-green-200 text-green-900 dark:bg-green-900 dark:text-green-100",
   cancelled: "bg-stone-200 text-stone-700 dark:bg-stone-800 dark:text-stone-300",
   expired: "bg-stone-200 text-stone-700 dark:bg-stone-800 dark:text-stone-300",
@@ -37,7 +37,7 @@ export function ListingCard({
   const isSeller = listing.sellerId === viewerId;
 
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-amber-200 p-3 dark:border-stone-800">
+    <div className="flex items-center gap-3 rounded-lg border border-green-200 p-3 dark:border-stone-800">
       {imageUrl ? (
         <Image
           src={imageUrl}
@@ -47,7 +47,7 @@ export function ListingCard({
           className={`h-12 w-12 rounded border-2 ${isPet ? "border-blue-600" : "border-green-600"}`}
         />
       ) : (
-        <div className="h-12 w-12 rounded bg-amber-200 dark:bg-stone-800" />
+        <div className="h-12 w-12 rounded bg-green-200 dark:bg-stone-800" />
       )}
       <div className="flex-1">
         <p className="text-sm font-medium">

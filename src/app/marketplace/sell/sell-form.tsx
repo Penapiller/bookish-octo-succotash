@@ -129,7 +129,7 @@ export function SellForm({
       <div className="flex flex-col gap-2">
         <span className="text-sm font-medium">What are you selling?</span>
         {selectedPet ? (
-          <div className="flex items-center gap-3 rounded-lg border border-amber-300 p-3 dark:border-stone-700">
+          <div className="flex items-center gap-3 rounded-lg border border-green-300 p-3 dark:border-stone-700">
             {selectedPet.imageUrl ? (
               <Image src={selectedPet.imageUrl} alt="" width={48} height={48} className="h-12 w-12 rounded border-2 border-blue-600" />
             ) : null}
@@ -139,7 +139,7 @@ export function SellForm({
             </button>
           </div>
         ) : selectedItem ? (
-          <div className="flex items-center gap-3 rounded-lg border border-amber-300 p-3 dark:border-stone-700">
+          <div className="flex items-center gap-3 rounded-lg border border-green-300 p-3 dark:border-stone-700">
             {selectedItem.imageUrl ? (
               <Image src={selectedItem.imageUrl} alt="" width={48} height={48} className="h-12 w-12 rounded border-2 border-green-600" />
             ) : null}
@@ -164,14 +164,14 @@ export function SellForm({
           <button
             type="button"
             onClick={() => setModalOpen("pets")}
-            className="rounded-md border border-amber-300 px-3 py-1.5 text-xs hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-800"
+            className="rounded-md border border-green-300 px-3 py-1.5 text-xs hover:bg-green-100 dark:border-stone-700 dark:hover:bg-stone-800"
           >
             Choose a pet
           </button>
           <button
             type="button"
             onClick={() => setModalOpen("items")}
-            className="rounded-md border border-amber-300 px-3 py-1.5 text-xs hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-800"
+            className="rounded-md border border-green-300 px-3 py-1.5 text-xs hover:bg-green-100 dark:border-stone-700 dark:hover:bg-stone-800"
           >
             Choose an item
           </button>
@@ -192,7 +192,7 @@ export function SellForm({
               min={0}
               value={priceCoins}
               onChange={(e) => setPriceCoins(Math.max(0, Number(e.target.value) || 0))}
-              className="w-24 rounded-md border border-amber-300 px-2 py-1 dark:border-stone-700 dark:bg-stone-900"
+              className="w-24 rounded-md border border-green-300 px-2 py-1 dark:border-stone-700 dark:bg-stone-900"
             />
           </label>
           <label className="flex items-center gap-2 text-sm">
@@ -202,7 +202,7 @@ export function SellForm({
               min={0}
               value={priceGems}
               onChange={(e) => setPriceGems(Math.max(0, Number(e.target.value) || 0))}
-              className="w-24 rounded-md border border-amber-300 px-2 py-1 dark:border-stone-700 dark:bg-stone-900"
+              className="w-24 rounded-md border border-green-300 px-2 py-1 dark:border-stone-700 dark:bg-stone-900"
             />
           </label>
         </div>
@@ -216,7 +216,7 @@ export function SellForm({
           id="duration"
           value={durationDays}
           onChange={(e) => setDurationDays(Number(e.target.value) as ListingDurationDays)}
-          className="w-40 rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
+          className="w-40 rounded-md border border-green-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
         >
           {DURATIONS.map((d) => (
             <option key={d.value} value={d.value}>
@@ -235,7 +235,7 @@ export function SellForm({
         type="button"
         onClick={handleSubmit}
         disabled={isPending}
-        className="self-start rounded-md bg-amber-800 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-60 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
+        className="self-start rounded-md bg-green-800 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60 dark:bg-green-200 dark:text-green-950 dark:hover:bg-green-300"
       >
         {isPending ? "Listing…" : "List for sale"}
       </button>

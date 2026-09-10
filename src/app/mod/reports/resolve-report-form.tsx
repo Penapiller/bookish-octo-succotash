@@ -20,14 +20,14 @@ export function ResolveReportForm({
         type="text"
         name="resolution_note"
         placeholder="Note (optional)"
-        className="w-36 rounded-md border border-amber-300 px-2 py-1 text-xs dark:border-stone-700 dark:bg-stone-950"
+        className="w-36 rounded-md border border-green-300 px-2 py-1 text-xs dark:border-stone-700 dark:bg-stone-950"
       />
       <button
         type="submit"
         className={
           status === "resolved"
-            ? "rounded-md bg-amber-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
-            : "rounded-md border border-amber-300 px-3 py-1.5 text-xs font-medium hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-900"
+            ? "rounded-md bg-green-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 dark:bg-green-200 dark:text-green-950 dark:hover:bg-green-300"
+            : "rounded-md border border-green-300 px-3 py-1.5 text-xs font-medium hover:bg-green-100 dark:border-stone-700 dark:hover:bg-stone-900"
         }
       >
         {label}

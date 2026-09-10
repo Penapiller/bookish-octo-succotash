@@ -26,7 +26,7 @@ export function BansList({ bans, targetUserId }: { bans: BanWithIssuer[]; target
         return (
           <li
             key={ban.id}
-            className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-200 px-4 py-2.5 text-sm dark:border-stone-800"
+            className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-green-200 px-4 py-2.5 text-sm dark:border-stone-800"
           >
             <div>
               <p>
@@ -53,7 +53,7 @@ export function BansList({ bans, targetUserId }: { bans: BanWithIssuer[]; target
                 <input type="hidden" name="target_user_id" value={targetUserId} />
                 <button
                   type="submit"
-                  className="rounded-md border border-amber-300 px-3 py-1.5 text-xs font-medium hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-900"
+                  className="rounded-md border border-green-300 px-3 py-1.5 text-xs font-medium hover:bg-green-100 dark:border-stone-700 dark:hover:bg-stone-900"
                 >
                   Lift ban
                 </button>

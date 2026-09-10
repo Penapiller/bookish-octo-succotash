@@ -29,7 +29,7 @@ export function WarningDmForm({
   const isCustom = selected === CUSTOM_VALUE;
 
   return (
-    <form action={formAction} className="flex flex-col gap-3 rounded-lg border border-amber-200 p-4 dark:border-stone-800">
+    <form action={formAction} className="flex flex-col gap-3 rounded-lg border border-green-200 p-4 dark:border-stone-800">
       <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">
         Message {targetName} as staff
       </h2>
@@ -38,7 +38,7 @@ export function WarningDmForm({
       <select
         value={selected}
         onChange={(event) => setSelected(event.target.value)}
-        className="rounded-md border border-amber-300 px-2 py-1.5 text-sm dark:border-stone-700 dark:bg-stone-950"
+        className="rounded-md border border-green-300 px-2 py-1.5 text-sm dark:border-stone-700 dark:bg-stone-950"
       >
         {cannedMessages.map((m) => (
           <option key={m.label} value={m.body}>
@@ -55,7 +55,7 @@ export function WarningDmForm({
           maxLength={4000}
           placeholder="Write a message…"
           required
-          className="resize-y rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-950"
+          className="resize-y rounded-md border border-green-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-950"
         />
       ) : (
         <>
@@ -71,7 +71,7 @@ export function WarningDmForm({
       <button
         type="submit"
         disabled={isPending}
-        className="self-start rounded-md bg-amber-800 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-60 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
+        className="self-start rounded-md bg-green-800 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60 dark:bg-green-200 dark:text-green-950 dark:hover:bg-green-300"
       >
         {isPending ? "Sending…" : "Send message"}
       </button>

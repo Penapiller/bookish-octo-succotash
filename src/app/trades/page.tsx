@@ -19,12 +19,12 @@ function HubCard({
   return (
     <Link
       href={href}
-      className="flex flex-col gap-1 rounded-lg border border-amber-200 p-4 hover:bg-amber-50 dark:border-stone-800 dark:hover:bg-stone-900"
+      className="flex flex-col gap-1 rounded-lg border border-green-200 p-4 hover:bg-green-50 dark:border-stone-800 dark:hover:bg-stone-900"
     >
       <div className="flex items-center justify-between">
         <span className="font-semibold">{title}</span>
         {badge ? (
-          <span className="rounded-full bg-amber-800 px-2 py-0.5 text-xs font-medium text-white dark:bg-amber-200 dark:text-amber-950">
+          <span className="rounded-full bg-green-800 px-2 py-0.5 text-xs font-medium text-white dark:bg-green-200 dark:text-green-950">
             {badge}
           </span>
         ) : null}

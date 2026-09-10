@@ -2,7 +2,7 @@
  * The bordered panel-with-colored-header-bar look used throughout the
  * forums (index, thread list, thread view) — one shared wrapper so
  * every panel stays visually consistent. Colors are the site's existing
- * testing palette (amber), not meant to be final.
+ * theme palette (green), not meant to be final.
  */
 export function ForumPanel({
   icon,
@@ -16,8 +16,8 @@ export function ForumPanel({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-amber-300 shadow-sm">
-      <div className="flex items-center justify-between gap-2 bg-amber-700 px-5 py-3 text-base font-semibold text-white">
+    <div className="overflow-hidden rounded-xl border border-green-300 shadow-sm">
+      <div className="flex items-center justify-between gap-2 bg-green-700 px-5 py-3 text-base font-semibold text-white">
         <span className="flex items-center gap-2.5">
           {icon}
           {title}
@@ -39,8 +39,8 @@ export function ForumPanelSection({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="border-t border-amber-300 first:border-t-0">
-      <div className="flex items-center justify-between gap-2 bg-amber-100 px-5 py-2.5 text-sm font-semibold text-amber-900">
+    <div className="border-t border-green-300 first:border-t-0">
+      <div className="flex items-center justify-between gap-2 bg-green-100 px-5 py-2.5 text-sm font-semibold text-green-900">
         <span>{title}</span>
         {action}
       </div>

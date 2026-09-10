@@ -189,25 +189,25 @@ export default async function MarketplacePage(props: PageProps<"/marketplace">) 
         <div className="flex gap-2">
           <Link
             href="/marketplace/mine"
-            className="rounded-md border border-amber-300 px-4 py-2 text-sm hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-800"
+            className="rounded-md border border-green-300 px-4 py-2 text-sm hover:bg-green-100 dark:border-stone-700 dark:hover:bg-stone-800"
           >
             My listings
           </Link>
           <Link
             href="/marketplace/sell"
-            className="rounded-md bg-amber-800 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
+            className="rounded-md bg-green-800 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 dark:bg-green-200 dark:text-green-950 dark:hover:bg-green-300"
           >
             Sell something
           </Link>
         </div>
       </div>
 
-      <nav className="flex gap-2 border-b border-amber-200 dark:border-stone-800">
+      <nav className="flex gap-2 border-b border-green-200 dark:border-stone-800">
         <Link
           href={qs({ tab: "pets", page: 1 })}
           className={`border-b-2 px-3 py-2 text-sm ${
             tab === "pets"
-              ? "border-amber-800 font-medium dark:border-amber-200"
+              ? "border-green-800 font-medium dark:border-green-200"
               : "border-transparent text-stone-500 hover:text-stone-900 dark:hover:text-white"
           }`}
         >
@@ -217,7 +217,7 @@ export default async function MarketplacePage(props: PageProps<"/marketplace">) 
           href={qs({ tab: "items", page: 1 })}
           className={`border-b-2 px-3 py-2 text-sm ${
             tab === "items"
-              ? "border-amber-800 font-medium dark:border-amber-200"
+              ? "border-green-800 font-medium dark:border-green-200"
               : "border-transparent text-stone-500 hover:text-stone-900 dark:hover:text-white"
           }`}
         >
@@ -231,12 +231,12 @@ export default async function MarketplacePage(props: PageProps<"/marketplace">) 
           name="q"
           defaultValue={q}
           placeholder={tab === "pets" ? "Search species…" : "Search items…"}
-          className="flex-1 rounded-md border border-amber-300 px-3 py-1.5 text-sm dark:border-stone-700 dark:bg-stone-900"
+          className="flex-1 rounded-md border border-green-300 px-3 py-1.5 text-sm dark:border-stone-700 dark:bg-stone-900"
         />
         <select
           name="rarity"
           defaultValue={rarity ?? ""}
-          className="rounded-md border border-amber-300 px-2 py-1.5 text-sm capitalize dark:border-stone-700 dark:bg-stone-900"
+          className="rounded-md border border-green-300 px-2 py-1.5 text-sm capitalize dark:border-stone-700 dark:bg-stone-900"
         >
           <option value="">All rarities</option>
           {RARITIES.map((r) => (
@@ -251,7 +251,7 @@ export default async function MarketplacePage(props: PageProps<"/marketplace">) 
           min={0}
           defaultValue={Number.isFinite(minPrice) && minPrice > 0 ? minPrice : ""}
           placeholder="Min 🪙"
-          className="w-24 rounded-md border border-amber-300 px-2 py-1.5 text-sm dark:border-stone-700 dark:bg-stone-900"
+          className="w-24 rounded-md border border-green-300 px-2 py-1.5 text-sm dark:border-stone-700 dark:bg-stone-900"
         />
         <input
           name="max"
@@ -259,11 +259,11 @@ export default async function MarketplacePage(props: PageProps<"/marketplace">) 
           min={0}
           defaultValue={Number.isFinite(maxPrice) && maxPrice > 0 ? maxPrice : ""}
           placeholder="Max 🪙"
-          className="w-24 rounded-md border border-amber-300 px-2 py-1.5 text-sm dark:border-stone-700 dark:bg-stone-900"
+          className="w-24 rounded-md border border-green-300 px-2 py-1.5 text-sm dark:border-stone-700 dark:bg-stone-900"
         />
         <button
           type="submit"
-          className="rounded-md border border-amber-300 px-3 py-1.5 text-sm hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-800"
+          className="rounded-md border border-green-300 px-3 py-1.5 text-sm hover:bg-green-100 dark:border-stone-700 dark:hover:bg-stone-800"
         >
           Filter
         </button>
@@ -277,7 +277,7 @@ export default async function MarketplacePage(props: PageProps<"/marketplace">) 
             {petRows.map((pet) => (
               <li
                 key={pet.id}
-                className="flex flex-col items-center gap-1.5 rounded-lg border border-amber-200 p-3 text-center dark:border-stone-800"
+                className="flex flex-col items-center gap-1.5 rounded-lg border border-green-200 p-3 text-center dark:border-stone-800"
               >
                 {pet.pet_species_image_url ? (
                   <Image
@@ -288,7 +288,7 @@ export default async function MarketplacePage(props: PageProps<"/marketplace">) 
                     className="h-16 w-16 rounded border-2 border-blue-600"
                   />
                 ) : (
-                  <div className="h-16 w-16 rounded bg-amber-200 dark:bg-stone-800" />
+                  <div className="h-16 w-16 rounded bg-green-200 dark:bg-stone-800" />
                 )}
                 <p className="text-xs font-medium">{pet.pet_custom_name ?? pet.pet_species_name}</p>
                 <p className="text-[10px] capitalize text-stone-500">
@@ -319,7 +319,7 @@ export default async function MarketplacePage(props: PageProps<"/marketplace">) 
           {itemRows.map((row) => (
             <li
               key={row.id}
-              className="flex flex-col items-center gap-1.5 rounded-lg border border-amber-200 p-3 text-center dark:border-stone-800"
+              className="flex flex-col items-center gap-1.5 rounded-lg border border-green-200 p-3 text-center dark:border-stone-800"
             >
               {row.items?.image_url ? (
                 <Image
@@ -330,7 +330,7 @@ export default async function MarketplacePage(props: PageProps<"/marketplace">) 
                   className="h-14 w-14 rounded border-2 border-green-600"
                 />
               ) : (
-                <div className="h-14 w-14 rounded bg-amber-200 dark:bg-stone-800" />
+                <div className="h-14 w-14 rounded bg-green-200 dark:bg-stone-800" />
               )}
               <p className="text-xs font-medium">{row.items?.name}</p>
               <p className="text-[10px] text-stone-500">×{row.item_quantity}</p>
@@ -358,8 +358,8 @@ export default async function MarketplacePage(props: PageProps<"/marketplace">) 
           <Link
             href={qs({ page: page - 1 })}
             aria-disabled={page <= 1}
-            className={`rounded-md border border-amber-300 px-3 py-1.5 dark:border-stone-700 ${
-              page <= 1 ? "pointer-events-none opacity-40" : "hover:bg-amber-100 dark:hover:bg-stone-800"
+            className={`rounded-md border border-green-300 px-3 py-1.5 dark:border-stone-700 ${
+              page <= 1 ? "pointer-events-none opacity-40" : "hover:bg-green-100 dark:hover:bg-stone-800"
             }`}
           >
             Previous
@@ -370,10 +370,10 @@ export default async function MarketplacePage(props: PageProps<"/marketplace">) 
           <Link
             href={qs({ page: page + 1 })}
             aria-disabled={page >= totalPages}
-            className={`rounded-md border border-amber-300 px-3 py-1.5 dark:border-stone-700 ${
+            className={`rounded-md border border-green-300 px-3 py-1.5 dark:border-stone-700 ${
               page >= totalPages
                 ? "pointer-events-none opacity-40"
-                : "hover:bg-amber-100 dark:hover:bg-stone-800"
+                : "hover:bg-green-100 dark:hover:bg-stone-800"
             }`}
           >
             Next

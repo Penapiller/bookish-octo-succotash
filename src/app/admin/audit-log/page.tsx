@@ -42,7 +42,7 @@ export default async function AdminAuditLogPage() {
         {entries.map((entry) => (
           <details
             key={entry.id}
-            className="rounded-lg border border-amber-200 p-3 text-sm dark:border-stone-800"
+            className="rounded-lg border border-green-200 p-3 text-sm dark:border-stone-800"
           >
             <summary className="flex cursor-pointer flex-wrap items-center gap-2">
               <span className="font-medium uppercase text-xs tracking-wide text-stone-500">
@@ -56,7 +56,7 @@ export default async function AdminAuditLogPage() {
                 {new Date(entry.created_at).toLocaleString()}
               </span>
             </summary>
-            <pre className="mt-2 overflow-x-auto rounded-md bg-amber-100 p-3 text-xs dark:bg-stone-900">
+            <pre className="mt-2 overflow-x-auto rounded-md bg-green-100 p-3 text-xs dark:bg-stone-900">
               {JSON.stringify(entry.change_summary, null, 2)}
             </pre>
           </details>

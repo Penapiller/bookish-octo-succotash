@@ -59,14 +59,14 @@ export default async function ItemsPage(props: PageProps<"/items">) {
         </p>
       </div>
 
-      <nav className="flex gap-2 border-b border-amber-200 dark:border-stone-800">
+      <nav className="flex gap-2 border-b border-green-200 dark:border-stone-800">
         {TABS.map((tab) => (
           <Link
             key={tab.value}
             href={tab.value === "all" ? "/items" : `/items?type=${tab.value}`}
             className={`border-b-2 px-3 py-2 text-sm ${
               activeTab === tab.value
-                ? "border-amber-800 font-medium dark:border-amber-200"
+                ? "border-green-800 font-medium dark:border-green-200"
                 : "border-transparent text-stone-500 hover:text-stone-900 dark:hover:text-white"
             }`}
           >
@@ -87,9 +87,9 @@ export default async function ItemsPage(props: PageProps<"/items">) {
             entry.item ? (
               <li
                 key={entry.item.id}
-                className="relative flex flex-col items-center gap-2 rounded-lg border border-amber-200 p-3 text-center dark:border-stone-800"
+                className="relative flex flex-col items-center gap-2 rounded-lg border border-green-200 p-3 text-center dark:border-stone-800"
               >
-                <span className="absolute right-2 top-2 rounded-full bg-amber-800 px-2 py-0.5 text-xs font-medium text-white dark:bg-amber-200 dark:text-amber-950">
+                <span className="absolute right-2 top-2 rounded-full bg-green-800 px-2 py-0.5 text-xs font-medium text-white dark:bg-green-200 dark:text-green-950">
                   ×{entry.quantity}
                 </span>
                 {entry.item.image_url ? (
@@ -103,7 +103,7 @@ export default async function ItemsPage(props: PageProps<"/items">) {
                     }`}
                   />
                 ) : (
-                  <div className="h-24 w-24 rounded bg-amber-200 dark:bg-stone-800" />
+                  <div className="h-24 w-24 rounded bg-green-200 dark:bg-stone-800" />
                 )}
                 <p className="text-sm font-medium">{entry.item.name}</p>
                 <p className="text-xs capitalize text-stone-500">

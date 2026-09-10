@@ -145,7 +145,7 @@ export default async function ForumThreadPage(props: PageProps<"/forums/[categor
       </ForumPanel>
 
       {thread.is_locked ? (
-        <p className="rounded-md border border-amber-300 bg-amber-50 px-5 py-4 text-sm text-stone-500">
+        <p className="rounded-md border border-green-300 bg-green-50 px-5 py-4 text-sm text-stone-500">
           This thread is locked — no new replies.
         </p>
       ) : user ? (
@@ -157,7 +157,7 @@ export default async function ForumThreadPage(props: PageProps<"/forums/[categor
           </ForumPanelWrapper>
         </ReplyToggle>
       ) : (
-        <p className="rounded-md border border-amber-300 bg-amber-50 px-5 py-4 text-sm">
+        <p className="rounded-md border border-green-300 bg-green-50 px-5 py-4 text-sm">
           <Link href="/login" className="underline">
             Sign in
           </Link>{" "}
@@ -170,7 +170,7 @@ export default async function ForumThreadPage(props: PageProps<"/forums/[categor
 
 function ForumPanelWrapper({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-amber-300 shadow-sm">
+    <div className="overflow-hidden rounded-xl border border-green-300 shadow-sm">
       <ForumPanelSection title={title}>{children}</ForumPanelSection>
     </div>
   );
@@ -204,7 +204,7 @@ function PostCard({
         : (post.lastEditorName ?? "Unknown");
 
   return (
-    <article className="flex flex-col gap-4 border-t border-amber-100 p-6 first:border-t-0 sm:flex-row">
+    <article className="flex flex-col gap-4 border-t border-green-100 p-6 first:border-t-0 sm:flex-row">
       <div className="flex shrink-0 flex-row items-center gap-3 sm:w-32 sm:flex-col sm:text-center">
         {post.authorAvatarUrl ? (
           <Image
@@ -212,10 +212,10 @@ function PostCard({
             alt=""
             width={72}
             height={72}
-            className="h-16 w-16 rounded-md border-2 border-amber-400 object-cover sm:h-[72px] sm:w-[72px]"
+            className="h-16 w-16 rounded-md border-2 border-green-400 object-cover sm:h-[72px] sm:w-[72px]"
           />
         ) : (
-          <div className="h-16 w-16 rounded-md border-2 border-dashed border-amber-300 sm:h-[72px] sm:w-[72px]" />
+          <div className="h-16 w-16 rounded-md border-2 border-dashed border-green-300 sm:h-[72px] sm:w-[72px]" />
         )}
         <PlayerLink
           userId={post.authorId}
@@ -232,7 +232,7 @@ function PostCard({
             {canEdit ? (
               <Link
                 href={`/forums/${categoryId}/${threadId}/${post.id}/edit`}
-                className="flex items-center gap-1.5 rounded-md border border-amber-300 px-2.5 py-1.5 text-xs font-medium hover:bg-amber-50"
+                className="flex items-center gap-1.5 rounded-md border border-green-300 px-2.5 py-1.5 text-xs font-medium hover:bg-green-50"
               >
                 <Pencil size={14} />
                 Edit

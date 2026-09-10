@@ -55,7 +55,7 @@ export function PlayerNotes({
             editingId === note.id ? (
               <li
                 key={note.id}
-                className="rounded-md border border-amber-300 bg-stone-50 p-2.5 text-sm dark:border-stone-700 dark:bg-stone-950"
+                className="rounded-md border border-green-300 bg-stone-50 p-2.5 text-sm dark:border-stone-700 dark:bg-stone-950"
               >
                 <form action={editAction} className="flex flex-col gap-2">
                   <input type="hidden" name="note_id" value={note.id} />
@@ -66,7 +66,7 @@ export function PlayerNotes({
                     rows={2}
                     maxLength={2000}
                     defaultValue={note.body}
-                    className="resize-y rounded-md border border-amber-300 px-2 py-1.5 text-sm dark:border-stone-700 dark:bg-stone-900"
+                    className="resize-y rounded-md border border-green-300 px-2 py-1.5 text-sm dark:border-stone-700 dark:bg-stone-900"
                   />
                   {editState && "error" in editState ? (
                     <p className="text-xs text-red-600 dark:text-red-400">{editState.error}</p>
@@ -75,7 +75,7 @@ export function PlayerNotes({
                     <button
                       type="submit"
                       disabled={isEditPending}
-                      className="self-start rounded-md border border-amber-300 px-3 py-1 text-xs font-medium hover:bg-amber-100 disabled:opacity-60 dark:border-stone-700 dark:hover:bg-stone-900"
+                      className="self-start rounded-md border border-green-300 px-3 py-1 text-xs font-medium hover:bg-green-100 disabled:opacity-60 dark:border-stone-700 dark:hover:bg-stone-900"
                     >
                       {isEditPending ? "Saving…" : "Save"}
                     </button>
@@ -104,7 +104,7 @@ export function PlayerNotes({
                     <button
                       type="button"
                       onClick={() => setEditingId(note.id)}
-                      className="text-amber-800 underline hover:no-underline dark:text-amber-400"
+                      className="text-green-800 underline hover:no-underline dark:text-green-400"
                     >
                       Edit
                     </button>
@@ -123,13 +123,13 @@ export function PlayerNotes({
           rows={2}
           maxLength={2000}
           placeholder="Add a note about this player (staff-only)…"
-          className="resize-y rounded-md border border-amber-300 px-2 py-1.5 text-sm dark:border-stone-700 dark:bg-stone-950"
+          className="resize-y rounded-md border border-green-300 px-2 py-1.5 text-sm dark:border-stone-700 dark:bg-stone-950"
         />
         {addState?.error ? <p className="text-xs text-red-600 dark:text-red-400">{addState.error}</p> : null}
         <button
           type="submit"
           disabled={isAddPending}
-          className="self-start rounded-md border border-amber-300 px-3 py-1.5 text-xs font-medium hover:bg-amber-100 disabled:opacity-60 dark:border-stone-700 dark:hover:bg-stone-900"
+          className="self-start rounded-md border border-green-300 px-3 py-1.5 text-xs font-medium hover:bg-green-100 disabled:opacity-60 dark:border-stone-700 dark:hover:bg-stone-900"
         >
           {isAddPending ? "Adding…" : "Add note"}
         </button>

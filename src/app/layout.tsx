@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Virtual Pet Site",
+  title: "Furgarden",
   description: "Adopt, hatch, and trade virtual pets.",
 };
 

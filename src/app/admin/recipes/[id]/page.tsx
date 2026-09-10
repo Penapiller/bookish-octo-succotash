@@ -78,9 +78,9 @@ export default async function EditRecipePage(props: PageProps<"/admin/recipes/[i
           The brewing stand has 3 slots, and a brew must match a recipe&apos;s ingredients
           exactly — {ingredientTotal} / 3 slots used.
         </p>
-        <div className="overflow-hidden rounded-lg border border-amber-200 dark:border-stone-800">
+        <div className="overflow-hidden rounded-lg border border-green-200 dark:border-stone-800">
           <table className="w-full text-sm">
-            <thead className="bg-amber-100 text-left text-xs uppercase tracking-wide text-stone-500 dark:bg-stone-900">
+            <thead className="bg-green-100 text-left text-xs uppercase tracking-wide text-stone-500 dark:bg-stone-900">
               <tr>
                 <th className="px-4 py-2">Item</th>
                 <th className="px-4 py-2">Quantity required</th>
@@ -89,7 +89,7 @@ export default async function EditRecipePage(props: PageProps<"/admin/recipes/[i
             </thead>
             <tbody>
               {ingredients.map((entry) => (
-                <tr key={entry.item_id} className="border-t border-amber-200 dark:border-stone-800">
+                <tr key={entry.item_id} className="border-t border-green-200 dark:border-stone-800">
                   <td className="px-4 py-2">
                     <span className="flex items-center gap-2">
                       {entry.items?.image_url ? (
@@ -154,12 +154,12 @@ export default async function EditRecipePage(props: PageProps<"/admin/recipes/[i
                 step={1}
                 defaultValue={1}
                 required
-                className="w-24 rounded-md border border-amber-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
+                className="w-24 rounded-md border border-green-300 px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
               />
             </div>
             <button
               type="submit"
-              className="rounded-md border border-amber-300 px-3 py-2 text-sm hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-800"
+              className="rounded-md border border-green-300 px-3 py-2 text-sm hover:bg-green-100 dark:border-stone-700 dark:hover:bg-stone-800"
             >
               Add ingredient
             </button>

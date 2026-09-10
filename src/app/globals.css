@@ -3,17 +3,18 @@
 /* Tailwind v4 defaults dark: to @media (prefers-color-scheme: dark) —
    meaning every dark:* class in the app (and the block below) would
    auto-activate for any visitor whose OS/browser is in dark mode. The
-   cream/parchment theme is meant to be the site's theme for now, not
+   Furgarden theme (formerly cream/parchment — see the "Furgarden
+   rebrand" README entry) is meant to be the site's theme for now, not
    one half of a light/dark toggle, so dark mode is switched to
    class-based instead: dark:* only ever applies if something adds a
    `dark` class to <html>, which nothing in this app does (yet). This
    keeps all the existing dark:* work in the codebase intact and ready,
-   without it silently overriding the cream theme for anyone whose
+   without it silently overriding the light theme for anyone whose
    system happens to prefer dark. */
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --background: #cddffa;
+  --background: #a9ddf9;
   --foreground: #1c1917;
 }
 
@@ -60,14 +61,14 @@ body {
 .forum-content blockquote {
   margin: 0.6em 0;
   padding: 0.5em 1em;
-  border-left: 3px solid var(--color-amber-300, #fcd34d);
-  background: var(--color-amber-50, #fffbeb);
+  border-left: 3px solid var(--color-green-300, #86efac);
+  background: var(--color-green-50, #f0fdf4);
   color: var(--color-stone-500, #78716c);
   border-radius: 0.25rem;
 }
-.forum-content a { color: var(--color-amber-800, #92400e); text-decoration: underline; }
+.forum-content a { color: var(--color-green-800, #166534); text-decoration: underline; }
 .forum-content img { max-width: 100%; border-radius: 0.25rem; }
-.forum-content hr { margin: 1em 0; border-color: var(--color-amber-300, #fcd34d); clear: both; }
+.forum-content hr { margin: 1em 0; border-color: var(--color-green-300, #86efac); clear: both; }
 .forum-content :where(ul, ol) { margin: 0.5em 0; padding-left: 1.5em; }
 .forum-content ul { list-style: disc; }
 .forum-content ol { list-style: decimal; }
@@ -78,7 +79,7 @@ body {
   padding: 0.6em 0.8em;
   border-radius: 0.375rem;
   background: var(--color-stone-900, #1c1917);
-  color: var(--color-amber-50, #fffbeb);
+  color: var(--color-green-50, #f0fdf4);
 }
 .forum-content pre code { font-family: var(--font-mono, monospace); background: none; }
 /* [left]/[right] (see bbcode.ts) float rather than just text-align, so

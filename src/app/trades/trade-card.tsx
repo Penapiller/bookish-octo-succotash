@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { TradeWithParticipants } from "@/lib/supabase/types";
 
 const STATUS_STYLES: Record<TradeWithParticipants["status"], string> = {
-  pending: "bg-amber-200 text-amber-900 dark:bg-amber-900 dark:text-amber-100",
+  pending: "bg-green-200 text-green-900 dark:bg-green-900 dark:text-green-100",
   completed: "bg-green-200 text-green-900 dark:bg-green-900 dark:text-green-100",
   declined: "bg-red-200 text-red-900 dark:bg-red-900 dark:text-red-100",
   cancelled: "bg-stone-200 text-stone-700 dark:bg-stone-800 dark:text-stone-300",
@@ -37,7 +37,7 @@ function OfferPreview({ trade, side }: { trade: TradeWithParticipants; side: "in
             className={`h-8 w-8 rounded border-2 ${t.border}`}
           />
         ) : (
-          <div key={t.key} className={`h-8 w-8 rounded border-2 bg-amber-200 dark:bg-stone-800 ${t.border}`} />
+          <div key={t.key} className={`h-8 w-8 rounded border-2 bg-green-200 dark:bg-stone-800 ${t.border}`} />
         ),
       )}
       {thumbnails.length > 4 ? (
@@ -62,7 +62,7 @@ export function TradeCard({
   return (
     <Link
       href={`/trades/${trade.id}`}
-      className="flex flex-col gap-2 rounded-lg border border-amber-200 p-3 hover:bg-amber-50 dark:border-stone-800 dark:hover:bg-stone-900"
+      className="flex flex-col gap-2 rounded-lg border border-green-200 p-3 hover:bg-green-50 dark:border-stone-800 dark:hover:bg-stone-900"
     >
       <div className="flex items-center justify-between gap-2">
         <span className="text-sm font-medium">

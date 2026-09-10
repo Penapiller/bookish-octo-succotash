@@ -61,7 +61,7 @@ export function PetBioEditor({
           <button
             type="submit"
             disabled={isPending}
-            className="self-start rounded-md bg-amber-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 disabled:opacity-60 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
+            className="self-start rounded-md bg-green-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-60 dark:bg-green-200 dark:text-green-950 dark:hover:bg-green-300"
           >
             {isPending ? "Saving…" : "Save"}
           </button>
@@ -71,7 +71,7 @@ export function PetBioEditor({
               setIsEditing(false);
               setError(null);
             }}
-            className="self-start rounded-md border border-amber-300 px-3 py-1.5 text-xs hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-900"
+            className="self-start rounded-md border border-green-300 px-3 py-1.5 text-xs hover:bg-green-100 dark:border-stone-700 dark:hover:bg-stone-900"
           >
             Cancel
           </button>
@@ -93,7 +93,7 @@ export function PetBioEditor({
       <button
         type="button"
         onClick={() => setIsEditing(true)}
-        className="self-start text-xs text-amber-800 underline hover:no-underline dark:text-amber-400"
+        className="self-start text-xs text-green-800 underline hover:no-underline dark:text-green-400"
       >
         {bio ? "Edit bio" : "Add a bio"}
       </button>

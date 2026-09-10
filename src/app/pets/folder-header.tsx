@@ -29,7 +29,7 @@ export function FolderHeader({
             autoFocus
             maxLength={60}
             required
-            className="rounded-md border border-amber-300 px-2 py-1 text-sm dark:border-stone-700 dark:bg-stone-900"
+            className="rounded-md border border-green-300 px-2 py-1 text-sm dark:border-stone-700 dark:bg-stone-900"
           />
           <button
             type="submit"

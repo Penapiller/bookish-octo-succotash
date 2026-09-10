@@ -68,7 +68,7 @@ export default async function ModConversationPage(
               return (
                 <article
                   key={message.id}
-                  className="flex flex-col gap-4 border-t border-amber-100 p-6 first:border-t-0 sm:flex-row"
+                  className="flex flex-col gap-4 border-t border-green-100 p-6 first:border-t-0 sm:flex-row"
                 >
                   <div className="flex shrink-0 flex-row items-center gap-3 sm:w-32 sm:flex-col sm:text-center">
                     {author?.avatar_url ? (
@@ -77,16 +77,16 @@ export default async function ModConversationPage(
                         alt=""
                         width={56}
                         height={56}
-                        className="h-14 w-14 rounded-md border-2 border-amber-400 object-cover"
+                        className="h-14 w-14 rounded-md border-2 border-green-400 object-cover"
                       />
                     ) : (
-                      <div className="h-14 w-14 rounded-md border-2 border-dashed border-amber-300" />
+                      <div className="h-14 w-14 rounded-md border-2 border-dashed border-green-300" />
                     )}
                     <Link href={`/u/${message.sender_id}`} className="text-sm font-semibold hover:underline">
                       {author?.display_name ?? "Unknown"}
                     </Link>
                     {isFromStaffAccount ? (
-                      <span className="flex items-center gap-1 text-xs font-semibold text-amber-700 dark:text-amber-400">
+                      <span className="flex items-center gap-1 text-xs font-semibold text-green-700 dark:text-green-400">
                         <ShieldAlert size={12} />
                         Official
                       </span>

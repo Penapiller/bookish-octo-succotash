@@ -65,7 +65,7 @@ export default async function PetDetailPage(props: PageProps<"/pets/[petId]">) {
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-[220px_1fr]">
         {/* ── Left column: portrait + identity ────────────────────────── */}
-        <div className="flex flex-col items-center gap-3 rounded-xl border border-amber-200 p-5 text-center dark:border-stone-800">
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-green-200 p-5 text-center dark:border-stone-800">
           {pet.species?.image_url ? (
             <Image
               src={pet.species.image_url}
@@ -75,14 +75,14 @@ export default async function PetDetailPage(props: PageProps<"/pets/[petId]">) {
               className="h-40 w-40 rounded-lg border-2 border-blue-600 object-cover"
             />
           ) : (
-            <div className="h-40 w-40 rounded-lg bg-amber-200 dark:bg-stone-800" />
+            <div className="h-40 w-40 rounded-lg bg-green-200 dark:bg-stone-800" />
           )}
           <PetNameEditor userId={user.id} petId={pet.id} customName={pet.custom_name} />
         </div>
 
         {/* ── Right column: info + bio ─────────────────────────────────── */}
         <div className="flex flex-col gap-4">
-          <section className="flex flex-col gap-1.5 rounded-xl border border-amber-200 p-4 dark:border-stone-800">
+          <section className="flex flex-col gap-1.5 rounded-xl border border-green-200 p-4 dark:border-stone-800">
             <h2 className="text-xs font-semibold uppercase tracking-wide text-stone-500">Details</h2>
             <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
               <dt className="text-stone-500">Species</dt>
@@ -102,7 +102,7 @@ export default async function PetDetailPage(props: PageProps<"/pets/[petId]">) {
             </dl>
           </section>
 
-          <section className="flex flex-col gap-2 rounded-xl border border-amber-200 p-4 dark:border-stone-800">
+          <section className="flex flex-col gap-2 rounded-xl border border-green-200 p-4 dark:border-stone-800">
             <h2 className="text-xs font-semibold uppercase tracking-wide text-stone-500">Organize</h2>
             <div className="flex flex-wrap items-center gap-3">
               <label className="flex items-center gap-2 text-sm">
@@ -120,7 +120,7 @@ export default async function PetDetailPage(props: PageProps<"/pets/[petId]">) {
             </div>
           </section>
 
-          <section className="flex flex-col gap-2 rounded-xl border border-amber-200 p-4 dark:border-stone-800">
+          <section className="flex flex-col gap-2 rounded-xl border border-green-200 p-4 dark:border-stone-800">
             <h2 className="text-xs font-semibold uppercase tracking-wide text-stone-500">Bio</h2>
             <PetBioEditor userId={user.id} petId={pet.id} bio={pet.bio} />
           </section>

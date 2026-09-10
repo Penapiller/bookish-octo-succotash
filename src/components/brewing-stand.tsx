@@ -160,7 +160,7 @@ export function BrewingStand({
 
   return (
     <div className="flex flex-col items-center gap-6">
-      <div className="relative w-full max-w-lg overflow-hidden rounded-lg border border-amber-200 dark:border-stone-800">
+      <div className="relative w-full max-w-lg overflow-hidden rounded-lg border border-green-200 dark:border-stone-800">
         <div className="relative aspect-[8/5] w-full">
           <Image
             src={STAND_IMAGE_URL}
@@ -335,7 +335,7 @@ function IngredientPickerModal({
                 <button
                   type="button"
                   onClick={() => onSelect(ingredient.itemId)}
-                  className="flex w-full flex-col items-center gap-1 rounded-lg border border-amber-200 p-2 text-center hover:bg-amber-100 dark:border-stone-800 dark:hover:bg-stone-800"
+                  className="flex w-full flex-col items-center gap-1 rounded-lg border border-green-200 p-2 text-center hover:bg-green-100 dark:border-stone-800 dark:hover:bg-stone-800"
                 >
                   {ingredient.image_url ? (
                     <Image
@@ -346,7 +346,7 @@ function IngredientPickerModal({
                       className="h-14 w-14 rounded border-2 border-green-600"
                     />
                   ) : (
-                    <div className="h-14 w-14 rounded bg-amber-200 dark:bg-stone-800" />
+                    <div className="h-14 w-14 rounded bg-green-200 dark:bg-stone-800" />
                   )}
                   <span className="text-xs">{ingredient.name}</span>
                   <span className="text-xs text-stone-500">
@@ -414,7 +414,7 @@ function RecipeCell({
               />
             ) : (
               <div
-                className="rounded bg-amber-200"
+                className="rounded bg-green-200"
                 style={{ width: CELL_ICON_SIZE, height: CELL_ICON_SIZE }}
               />
             )}
@@ -443,7 +443,7 @@ function RecipeCell({
           />
         ) : (
           <div
-            className="rounded bg-amber-200"
+            className="rounded bg-green-200"
             style={{ width: CELL_POTION_SIZE, height: CELL_POTION_SIZE }}
           />
         )}
@@ -663,7 +663,7 @@ function ClaimBrewModal({
             className="h-28 w-28 rounded border-2 border-purple-600"
           />
         ) : (
-          <div className="h-28 w-28 rounded bg-amber-200 dark:bg-stone-800" />
+          <div className="h-28 w-28 rounded bg-green-200 dark:bg-stone-800" />
         )}
         <p className="font-medium">{potionName}</p>
 

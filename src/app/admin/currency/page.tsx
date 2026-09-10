@@ -21,7 +21,7 @@ export default async function AdminCurrencyPage() {
         </p>
       </div>
 
-      <dl className="flex gap-8 rounded-lg border border-amber-200 p-4 text-sm dark:border-stone-800">
+      <dl className="flex gap-8 rounded-lg border border-green-200 p-4 text-sm dark:border-stone-800">
         <div>
           <dt className="text-stone-500">🪙 Coins</dt>
           <dd className="text-lg font-medium">{profile?.coin_balance ?? 0}</dd>

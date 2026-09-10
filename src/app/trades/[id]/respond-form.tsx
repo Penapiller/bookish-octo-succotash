@@ -127,7 +127,7 @@ export function RespondForm({
     requestedGems === 0;
 
   return (
-    <div className="flex flex-col gap-4 rounded-lg border border-amber-200 p-4 dark:border-stone-800">
+    <div className="flex flex-col gap-4 rounded-lg border border-green-200 p-4 dark:border-stone-800">
       <h3 className="text-sm font-semibold">Respond to this trade</h3>
       {requestedNothing ? (
         <p className="text-xs text-stone-500">
@@ -149,7 +149,7 @@ export function RespondForm({
             max={coinBalance}
             value={coins}
             onChange={(e) => setCoins(Math.max(0, Math.min(Number(e.target.value) || 0, coinBalance)))}
-            className="w-24 rounded-md border border-amber-300 px-2 py-1 dark:border-stone-700 dark:bg-stone-900"
+            className="w-24 rounded-md border border-green-300 px-2 py-1 dark:border-stone-700 dark:bg-stone-900"
           />
           <span className="text-xs text-stone-500">/ {coinBalance}</span>
         </label>
@@ -161,7 +161,7 @@ export function RespondForm({
             max={gemBalance}
             value={gems}
             onChange={(e) => setGems(Math.max(0, Math.min(Number(e.target.value) || 0, gemBalance)))}
-            className="w-24 rounded-md border border-amber-300 px-2 py-1 dark:border-stone-700 dark:bg-stone-900"
+            className="w-24 rounded-md border border-green-300 px-2 py-1 dark:border-stone-700 dark:bg-stone-900"
           />
           <span className="text-xs text-stone-500">/ {gemBalance}</span>
         </label>
@@ -174,7 +174,7 @@ export function RespondForm({
           return (
             <span
               key={id}
-              className="flex items-center gap-1.5 rounded-full border border-amber-300 py-1 pl-1 pr-2 text-xs dark:border-stone-700"
+              className="flex items-center gap-1.5 rounded-full border border-green-300 py-1 pl-1 pr-2 text-xs dark:border-stone-700"
             >
               {pet.imageUrl ? (
                 <Image src={pet.imageUrl} alt="" width={20} height={20} className="h-5 w-5 rounded" />
@@ -194,7 +194,7 @@ export function RespondForm({
             return (
               <span
                 key={id}
-                className="flex items-center gap-1.5 rounded-full border border-amber-300 py-1 pl-1 pr-2 text-xs dark:border-stone-700"
+                className="flex items-center gap-1.5 rounded-full border border-green-300 py-1 pl-1 pr-2 text-xs dark:border-stone-700"
               >
                 {item.imageUrl ? (
                   <Image src={item.imageUrl} alt="" width={20} height={20} className="h-5 w-5 rounded" />
@@ -219,14 +219,14 @@ export function RespondForm({
         <button
           type="button"
           onClick={() => setModalTarget("pets")}
-          className="rounded-md border border-amber-300 px-3 py-1.5 text-xs hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-800"
+          className="rounded-md border border-green-300 px-3 py-1.5 text-xs hover:bg-green-100 dark:border-stone-700 dark:hover:bg-stone-800"
         >
           + Add pet
         </button>
         <button
           type="button"
           onClick={() => setModalTarget("items")}
-          className="rounded-md border border-amber-300 px-3 py-1.5 text-xs hover:bg-amber-100 dark:border-stone-700 dark:hover:bg-stone-800"
+          className="rounded-md border border-green-300 px-3 py-1.5 text-xs hover:bg-green-100 dark:border-stone-700 dark:hover:bg-stone-800"
         >
           + Add item
         </button>
@@ -239,7 +239,7 @@ export function RespondForm({
           type="button"
           onClick={() => respond(true)}
           disabled={isPending}
-          className="rounded-md bg-amber-800 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-60 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
+          className="rounded-md bg-green-800 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60 dark:bg-green-200 dark:text-green-950 dark:hover:bg-green-300"
         >
           {isPending ? "Working…" : "Accept trade"}
         </button>

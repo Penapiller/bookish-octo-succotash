@@ -83,7 +83,7 @@ export default async function ReportHandlingPage(props: PageProps<"/mod/reports/
         {/* ── Left column: the offending player ─────────────────────── */}
         <div className="flex flex-col gap-4">
           {offendingProfile ? (
-            <div className="flex flex-col items-center gap-2 rounded-lg border border-amber-200 p-4 text-center dark:border-stone-800">
+            <div className="flex flex-col items-center gap-2 rounded-lg border border-green-200 p-4 text-center dark:border-stone-800">
               {offendingProfile.avatar_url ? (
                 <Image
                   src={offendingProfile.avatar_url}
@@ -93,7 +93,7 @@ export default async function ReportHandlingPage(props: PageProps<"/mod/reports/
                   className="h-20 w-20 rounded-md object-cover"
                 />
               ) : (
-                <div className="h-20 w-20 rounded-md bg-amber-200 dark:bg-stone-800" />
+                <div className="h-20 w-20 rounded-md bg-green-200 dark:bg-stone-800" />
               )}
               <Link href={`/mod/players/${offendingProfile.id}`} className="font-semibold hover:underline">
                 {offendingProfile.display_name}
@@ -104,12 +104,12 @@ export default async function ReportHandlingPage(props: PageProps<"/mod/reports/
               </Link>
             </div>
           ) : (
-            <div className="rounded-lg border border-amber-200 p-4 text-center text-sm italic text-stone-500 dark:border-stone-800">
+            <div className="rounded-lg border border-green-200 p-4 text-center text-sm italic text-stone-500 dark:border-stone-800">
               This account or content no longer exists.
             </div>
           )}
 
-          <section className="flex flex-col gap-2 rounded-lg border border-amber-200 p-4 dark:border-stone-800">
+          <section className="flex flex-col gap-2 rounded-lg border border-green-200 p-4 dark:border-stone-800">
             <h2 className="text-xs font-semibold uppercase tracking-wide text-stone-500">Player notes</h2>
             {offendingUserId ? (
               <PlayerNotes userId={offendingUserId} reportId={reportId} notes={playerNotes} currentUserId={user.id} />
@@ -118,7 +118,7 @@ export default async function ReportHandlingPage(props: PageProps<"/mod/reports/
             )}
           </section>
 
-          <section className="flex flex-col gap-2 rounded-lg border border-amber-200 p-4 dark:border-stone-800">
+          <section className="flex flex-col gap-2 rounded-lg border border-green-200 p-4 dark:border-stone-800">
             <h2 className="text-xs font-semibold uppercase tracking-wide text-stone-500">Past reports</h2>
             {pastReports.length === 0 ? (
               <p className="text-sm italic text-stone-500">No other reports about this player.</p>
@@ -146,7 +146,7 @@ export default async function ReportHandlingPage(props: PageProps<"/mod/reports/
 
         {/* ── Right column: the report + response tools ─────────────── */}
         <div className="flex flex-col gap-4">
-          <section className="flex flex-col gap-2 rounded-lg border border-amber-200 p-4 dark:border-stone-800">
+          <section className="flex flex-col gap-2 rounded-lg border border-green-200 p-4 dark:border-stone-800">
             <h2 className="text-xs font-semibold uppercase tracking-wide text-stone-500">Report</h2>
             <p className="text-sm">
               <Link href={`/u/${report.reporterId}`} className="font-medium hover:underline">
@@ -157,7 +157,7 @@ export default async function ReportHandlingPage(props: PageProps<"/mod/reports/
             </p>
 
             {report.target_type === "forum_post" ? (
-              <div className="rounded-md border border-amber-100 bg-amber-50/50 p-3 text-sm dark:border-stone-800 dark:bg-stone-950">
+              <div className="rounded-md border border-green-100 bg-green-50/50 p-3 text-sm dark:border-stone-800 dark:bg-stone-950">
                 {report.targetCategoryId && report.targetThreadId ? (
                   <Link href={`/forums/${report.targetCategoryId}/${report.targetThreadId}`} className="text-xs underline">
                     View thread
@@ -168,7 +168,7 @@ export default async function ReportHandlingPage(props: PageProps<"/mod/reports/
                 {report.targetPostBody ? <p className="mt-1 whitespace-pre-wrap">{report.targetPostBody}</p> : null}
               </div>
             ) : report.target_type === "dm_message" ? (
-              <div className="rounded-md border border-amber-100 bg-amber-50/50 p-3 text-sm dark:border-stone-800 dark:bg-stone-950">
+              <div className="rounded-md border border-green-100 bg-green-50/50 p-3 text-sm dark:border-stone-800 dark:bg-stone-950">
                 {report.targetMessageConversationId ? (
                   <Link href={`/mod/conversations/${report.targetMessageConversationId}`} className="text-xs underline">
                     View conversation
@@ -188,11 +188,11 @@ export default async function ReportHandlingPage(props: PageProps<"/mod/reports/
           </section>
 
           {report.status === "open" ? (
-            <section className="rounded-lg border border-amber-200 p-4 dark:border-stone-800">
+            <section className="rounded-lg border border-green-200 p-4 dark:border-stone-800">
               <ReportHandlingForm reportId={reportId} />
             </section>
           ) : (
-            <p className="rounded-lg border border-amber-200 p-4 text-sm text-stone-500 dark:border-stone-800">
+            <p className="rounded-lg border border-green-200 p-4 text-sm text-stone-500 dark:border-stone-800">
               {report.status === "escalated"
                 ? "This report has been escalated to admins."
                 : `${report.status === "resolved" ? "Resolved" : "Dismissed"}${
