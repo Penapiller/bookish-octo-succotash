@@ -2921,18 +2921,19 @@ signs in.
   (sky blue, spring green, sunny yellow, brown-outlined title, "Coming
   Soon") shared in chat, asking for it to be added to the site and the
   site recolored to match.
-  - **The hero image itself isn't wired in** — it only ever reached
-    this session as an inline chat image, not a file on disk (checked
-    the whole filesystem, including `game-assets/` — nothing there).
-    Per `game-assets/README.md`'s own documented convention, getting a
-    chat-attached asset into this repo needs either the user pushing it
-    themselves or attaching it in a way this environment can actually
-    save to disk — neither happened here. A placeholder (`src/app/
-    page.tsx`) reserves the hero's exact spot and aspect ratio on the
-    homepage, styled in the new palette, with instructions to drop the
-    real file in `game-assets/other/` to swap it in — same "placeholder
-    now, swap for real art later" convention as the header's own logo
-    box.
+  - **The hero image** initially only reached this session as an inline
+    chat image, not a file on disk (checked the whole filesystem,
+    including `game-assets/` — nothing there), so a placeholder went
+    up on the homepage first reserving its exact spot/aspect ratio.
+    The user then pushed the real file directly to `game-assets/other/
+    Furgarden Hero.png` — since it's static site chrome rather than
+    admin-editable game content (a species/item/zone's art, which goes
+    through Supabase Storage so it can be swapped from the admin panel),
+    it was copied straight into `public/ui/furgarden-hero.png` instead
+    and wired into `src/app/page.tsx` with a plain `next/image`, same
+    as the existing `public/icons/`/`public/ui/` assets (edit-pencil,
+    item-slot frames, etc.) — no Storage upload, no `image_url` column,
+    nothing else touches this file.
   - **The palette swap is the same straight, ordered token
     substitution used for the earlier zinc→amber round**: every
     `amber-*` Tailwind class across every `.tsx` file under `src/`

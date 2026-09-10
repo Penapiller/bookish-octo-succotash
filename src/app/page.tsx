@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 
@@ -42,15 +43,14 @@ export default async function Home(props: PageProps<"/">) {
 
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-6 px-6 py-24 text-center">
-      {/* Hero image placeholder — swap for the real Furgarden Hero art
-          (drop it in game-assets/other/, same convention as every other
-          asset this app wires in) once it's actually in the repo; this
-          reserves the same wide-banner shape/aspect ratio so nothing
-          else needs to move when it's swapped in. */}
-      <div className="flex aspect-[2/1] w-full max-w-2xl flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-green-400 bg-gradient-to-b from-sky-200 to-green-200 text-green-950 dark:border-green-700 dark:from-sky-950 dark:to-green-950 dark:text-green-100">
-        <span className="text-sm font-bold uppercase tracking-wide">Furgarden hero image placeholder</span>
-        <span className="text-xs opacity-80">Drop the real art in game-assets/other/ to swap this in</span>
-      </div>
+      <Image
+        src="/ui/furgarden-hero.png"
+        alt="Furgarden — coming soon"
+        width={2274}
+        height={1080}
+        priority
+        className="h-auto w-full max-w-2xl rounded-xl shadow-sm"
+      />
       <h1 className="max-w-xl text-4xl font-semibold tracking-tight">
         Adopt, hatch, and trade virtual pets
       </h1>
