@@ -10,12 +10,14 @@ export default async function AdminDashboardPage() {
     { count: speciesCount },
     { count: recipeCount },
     { count: forumCategoryCount },
+    { count: gardenPlantCount },
   ] = await Promise.all([
     supabase.from("zones").select("*", { count: "exact", head: true }),
     supabase.from("items").select("*", { count: "exact", head: true }),
     supabase.from("species").select("*", { count: "exact", head: true }),
     supabase.from("potion_recipes").select("*", { count: "exact", head: true }),
     supabase.from("forum_categories").select("*", { count: "exact", head: true }),
+    supabase.from("garden_plants").select("*", { count: "exact", head: true }),
   ]);
 
   const cards = [
@@ -24,6 +26,7 @@ export default async function AdminDashboardPage() {
     { href: "/admin/species", label: "Species", count: speciesCount ?? 0 },
     { href: "/admin/recipes", label: "Potion recipes", count: recipeCount ?? 0 },
     { href: "/admin/forums", label: "Forum categories", count: forumCategoryCount ?? 0 },
+    { href: "/admin/garden-plants", label: "Garden plants", count: gardenPlantCount ?? 0 },
   ];
 
   return (

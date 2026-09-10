@@ -4,7 +4,7 @@ import { useActionState, useState } from "react";
 import type { ItemFormState } from "./actions";
 import type { ItemRarity, ItemRow, ItemType } from "@/lib/supabase/types";
 
-const ITEM_TYPES: ItemType[] = ["ingredient", "cosmetic", "potion"];
+const ITEM_TYPES: ItemType[] = ["ingredient", "cosmetic", "potion", "seed", "fertilizer"];
 const ITEM_RARITIES: ItemRarity[] = ["common", "uncommon", "rare", "epic", "legendary"];
 
 const initialState: ItemFormState = null;

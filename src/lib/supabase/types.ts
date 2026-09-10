@@ -9,6 +9,7 @@ export type UserRow = {
   coin_balance: number;
   gem_balance: number;
   den_size: number;
+  garden_rows: number;
   is_admin: boolean;
   is_moderator: boolean;
   starter_granted: boolean;
@@ -30,7 +31,7 @@ export type PublicUserProfile = Pick<
 export type PetRarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
 export type ItemRarity = PetRarity;
 export type ExpeditionStatus = "in_progress" | "awaiting_claim" | "completed";
-export type ItemType = "ingredient" | "cosmetic" | "potion";
+export type ItemType = "ingredient" | "cosmetic" | "potion" | "seed" | "fertilizer";
 export type PotionEffectType =
   | "duration_reduction"
   | "rarity_boost"
@@ -138,6 +139,63 @@ export type PotionRecipeIngredientRow = {
   recipe_id: string;
   item_id: string;
   quantity_required: number;
+};
+
+// ── Gardening (0035_gardening.sql) ──────────────────────────────────────
+export type GardenPlantRow = {
+  id: string;
+  name: string;
+  image_stage1_url: string | null;
+  image_stage2_url: string | null;
+  image_stage3_url: string | null;
+  produce_item_id: string | null;
+  produce_quantity_min: number;
+  produce_quantity_max: number;
+  base_coin_yield: number;
+  is_active: boolean;
+  created_at: string;
+};
+
+export type SeedPlantRow = {
+  seed_item_id: string;
+  plant_id: string;
+  drop_weight: number;
+};
+
+export type FertilizerEffectType = "grow_speed_boost" | "pest_deterrence" | "double_coin_chance";
+
+export type FertilizerEffectRow = {
+  item_id: string;
+  effect_type: FertilizerEffectType;
+  effect_magnitude: number;
+};
+
+export type GardenPlantingStatus = "growing" | "ready" | "wilted";
+
+// See resolve_due_garden()/water_plant() for how next_water_needed_at and
+// grow_completes_at combine to decide ready-vs-wilted — this row's raw
+// timestamps, not a single "progress" field, are the source of truth;
+// src/lib/garden.ts derives displayable stage/needsWater/etc. from them.
+export type GardenPlantingRow = {
+  id: string;
+  user_id: string;
+  plot_index: number;
+  plant_id: string;
+  fertilizer_item_id: string | null;
+  status: GardenPlantingStatus;
+  planted_at: string;
+  total_duration_seconds: number;
+  last_watered_at: string;
+  next_water_needed_at: string;
+  grow_completes_at: string;
+  is_pest_affected: boolean;
+  created_at: string;
+};
+
+// A planting joined with its plant's display info — what /garden actually
+// renders per occupied plot.
+export type GardenPlantingWithPlant = GardenPlantingRow & {
+  plant: Pick<GardenPlantRow, "name" | "image_stage1_url" | "image_stage2_url" | "image_stage3_url"> | null;
 };
 
 // Written only by the log_admin_action() trigger (see
@@ -314,6 +372,18 @@ export type ExpandDenResult = {
   new_den_size: number;
   coins_spent: number;
 };
+
+export type ExpandGardenResult = {
+  new_garden_rows: number;
+  coins_spent: number;
+};
+
+// What harvest_plot() returns — either nothing (a wilted plant) or what
+// was granted for a ready one. produce_item_id/quantity are absent when
+// the plant has no produce_item_id configured (coins-only crop).
+export type HarvestResult =
+  | { wilted: true }
+  | { coins: number; produce_item_id?: string; quantity?: number };
 
 // What admin_grant_self_currency returns — the admin's new balances.
 export type AdminCurrencyGrantResult = {
@@ -848,6 +918,13 @@ export type Database = {
         BanRow,
         Partial<BanRow> & { user_id: string; ban_type: BanType; issued_by: string; expires_at: string }
       >;
+      garden_plants: TableOf<GardenPlantRow, Partial<GardenPlantRow> & { name: string }>;
+      seed_plants: TableOf<SeedPlantRow, Partial<SeedPlantRow> & { seed_item_id: string; plant_id: string }>;
+      fertilizer_effects: TableOf<
+        FertilizerEffectRow,
+        Partial<FertilizerEffectRow> & { item_id: string; effect_type: FertilizerEffectType; effect_magnitude: number }
+      >;
+      garden_plantings: TableOf<GardenPlantingRow>;
     };
     Views: {
       user_profiles: {
@@ -902,6 +979,31 @@ export type Database = {
       expand_den: {
         Args: { p_user_id: string };
         Returns: ExpandDenResult;
+      };
+      expand_garden: {
+        Args: { p_user_id: string };
+        Returns: ExpandGardenResult;
+      };
+      plant_seed: {
+        Args: {
+          p_user_id: string;
+          p_plot_index: number;
+          p_seed_item_id: string;
+          p_fertilizer_item_id?: string | null;
+        };
+        Returns: string;
+      };
+      water_plant: {
+        Args: { p_user_id: string; p_planting_id: string };
+        Returns: null;
+      };
+      resolve_due_garden: {
+        Args: { p_user_id: string };
+        Returns: null;
+      };
+      harvest_plot: {
+        Args: { p_user_id: string; p_planting_id: string };
+        Returns: HarvestResult;
       };
       admin_grant_self_currency: {
         Args: {

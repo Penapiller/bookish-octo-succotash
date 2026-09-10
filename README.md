@@ -221,6 +221,16 @@ This project is being built one module at a time. Current state:
       a sky-to-grass gradient backdrop replacing the flat blue one — all
       echoing the hero's own sky/grass/brown-outline palette. See Notes
       below
+- [x] Gardening — a new `/garden` page: 3 starting rows of 5 plots (more
+      rows purchasable at an escalating coin cost, shown greyed-out/locked
+      until bought), a planting pop-up listing a player's seed and
+      fertilizer inventory, watering (once per 8 hours, a plant stops
+      growing and shows a droplet icon when it needs water), wilting (no
+      water for 72 hours after it's needed kills the plant for no reward),
+      three visual growth stages over a 3-day total grow time, and two
+      kinds of seeds (grows one specific plant, or rolls from a weighted
+      pool of several). New admin tooling manages the plant/seed/
+      fertilizer catalog. See Notes below
 
 ---
 
@@ -3005,3 +3015,103 @@ signs in.
       groups — the real `SiteNav` needs a live Supabase session to
       render anything, since it returns `null` for a signed-out
       request) against the same gradient/footer.
+- **Gardening** (`0035_gardening.sql`) reuses four patterns already
+  established elsewhere in this codebase rather than inventing new ones:
+  - Two new `item_type` enum values, `seed` (brown placeholder art, per
+    the ask) and `fertilizer` (yellow placeholder art), added via
+    `alter type ... add value` followed by an explicit `commit;` in the
+    migration — Postgres won't let a transaction use a brand-new enum
+    value as data in the same transaction that added it (same reason
+    `0008_...sql` does this).
+  - **Seeds are a weighted pool, always** — `seed_plants` (seed item id,
+    plant id, drop weight) is the exact same shape as the existing zone
+    pet pool, resolved with the same Efraimidis-Spirakis weighted-random
+    SQL (`pick_weighted_seed_plant`, mirroring `pick_weighted_zone_
+    species`). A seed that "plants one specific plant" is just a pool
+    with a single row — this avoids a separate seed-kind flag and
+    branching logic for what's really the same mechanism at two
+    different pool sizes.
+  - **Garden row expansion** (`garden_rows` column + `expand_garden()`)
+    is `den_size`/`expand_den()`'s escalating-cost pattern verbatim
+    (cost = 300 × 1.5^rows already bought), including reuse of
+    `begin_trusted_user_write()` before crediting/debiting `users`, and
+    `protect_privileged_user_fields()` extended to guard the new column
+    from direct client writes the same way it already guards
+    `den_size`/`coin_balance`/etc.
+  - **Growth pauses while a plant needs water, without a background
+    job** — `garden_plantings` stores `last_watered_at`,
+    `next_water_needed_at` (= last watered + 8h), and `grow_completes_at`
+    (initially planted + total grow time). `water_plant()` only pushes
+    `grow_completes_at` forward when watering happens *after* it was due
+    (an overdue/"thirsty" gap) — by exactly that gap's length — so a
+    plant watered on time never has its clock touched, and a plant
+    watered late resumes exactly where it left off instead of losing
+    progress. `resolve_due_garden()` (called lazily, same as
+    `resolve_due_expeditions`/`resolve_due_brews`, right before any read
+    of garden data — no cron) wilts anything more than 72 hours overdue,
+    and separately marks anything past its completion time **and
+    currently on-time for water** as ready — that second condition is
+    the subtle part: without it, a plant that's been neglected past its
+    nominal completion timestamp would flip to "ready" the instant it's
+    watered again, even though it should've kept growing (paused) the
+    whole time it was thirsty. Verified against a local Postgres
+    instance with 15 scripted scenarios, including the two that exercise
+    this directly: a plant simulated as complete-but-not-yet-overdue
+    resolves to ready, while one simulated as complete-but-currently-
+    overdue does not (stays `growing` until watered).
+  - Fertilizer is a second, optional item consumed at planting time.
+    `fertilizer_effects` lets one fertilizer item carry multiple named
+    effects (`grow_speed_boost`, `pest_deterrence`, `double_coin_chance`
+    — the three examples named in the ask, not an open-ended list):
+    grow-speed multiplies the total duration down (floored at 1 hour so
+    a strong boost can't make something finish instantly), pest
+    deterrence multiplies down a flat 15% base pest chance rolled once
+    at planting (mirroring the existing double-reward-roll-at-start
+    pattern used by expeditions, rather than a recurring random event),
+    and double-coin is checked once at harvest. A pest hit adds a flat
+    24-hour penalty to that one roll's grow time rather than modeling
+    an ongoing infestation.
+  - `harvest_plot()` deletes the planting row on both outcomes: a
+    wilted plant returns `{"wilted": true}` (nothing granted), a ready
+    plant rolls a produce quantity, credits it to inventory, and credits
+    coins directly (doubled on a `double_coin_chance` hit) — modeled as
+    a coin credit rather than doubling the item quantity so "double
+    coins" from the ask could be implemented literally.
+  - The player-facing `/garden` page (`GardenGrid`) renders `garden_rows
+    + 1` rows — the extra row always shows locked (dashed border, lock
+    icon, an `ExpandGardenButton` mirroring `ExpandDenButton`'s existing
+    client-RPC-then-refresh pattern) as a preview of the next unlock
+    rather than only appearing once affordable. Clicking an empty plot
+    opens `PlantSeedModal`, listing the player's seed and (optionally)
+    fertilizer inventory; clicking Plant calls `plant_seed` directly from
+    the client, same as the Water/Harvest buttons on occupied plots call
+    `water_plant`/`harvest_plot` — no server actions, matching the
+    existing convention for this class of simple state-changing control
+    (`ForTradeToggle`, `PetNameEditor`, `ExpandDenButton`, etc.). Display
+    state (which of the 3 stage images to show, whether to show the
+    water-droplet icon) is computed client-side in `src/lib/garden.ts`
+    by mirroring the SQL's own pause logic (freezing "now" at
+    `min(actual now, next_water_needed_at)` for progress purposes) so
+    the UI never shows a state a reload wouldn't also show.
+  - New admin tooling: a `garden-plants` catalog CRUD (mirrors the
+    `species` admin pages, but with URL-only image inputs for the 3
+    growth-stage images instead of file upload — a deliberate scope
+    trim, since `uploadGameImage()`'s folder type would need extending
+    for a 4th case) and, on the existing item edit page, a conditional
+    seed-pool editor (`type === "seed"`, reusing `SearchablePicker`) or
+    fertilizer-effects editor (`type === "fertilizer"`, a plain
+    `<select>` of remaining effect types) depending on the item's type.
+  - Verified against a local Postgres instance (all 35 migrations
+    applied cleanly) with 15 scripted scenarios covering: specific vs.
+    pooled seed resolution, double-planting/out-of-bounds/other-user's-
+    plot rejections, fertilizer duration/inventory effects, the 8-hour
+    water rate limit, the overdue-gap catch-up math, the wilt threshold,
+    both resolve_due_garden edge cases described above, harvest payouts
+    for both ready and wilted plants, row expansion cost/crediting, and
+    that the privileged-column trigger still blocks a direct client
+    write to `garden_rows`. Verified visually with a temporary preview
+    route + dev server + Playwright (cleaned up after): all three growth
+    stages, the water-droplet icon and Water/Harvest buttons on the
+    right plots, a wilted plot's harvest-for-nothing styling, the
+    locked/expansion row, and the planting pop-up with seed and
+    fertilizer (including a "None" option) selectable.

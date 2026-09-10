@@ -24,6 +24,7 @@ export async function SiteNav() {
       links: [
         { href: "/expeditions", label: "Expeditions" },
         { href: "/brewing", label: "Brewing" },
+        { href: "/garden", label: "Garden" },
       ],
     },
     {
